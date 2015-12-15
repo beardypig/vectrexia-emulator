@@ -1,0 +1,5 @@
+
+INCFLAGS := -I. -I$(CORE_DIR)
+
+SOURCES_C := $(CORE_DIR)/vectrexia.c \
+             $(LIBRETRO_DIR)/libretro.c
