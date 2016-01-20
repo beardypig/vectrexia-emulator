@@ -1,0 +1,7 @@
+language: c
+compiler:
+  - clang
+  - gcc
+script:
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++" && cmake --build build; fi
+  - if [ "$CXX" == "g++" ];     then export CXX="g++"     && cmake --build build; fi
