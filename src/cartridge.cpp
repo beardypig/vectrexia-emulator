@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "Cartridge.h"
+#include "cartridge.h"
 #include <cstring>
 
 void Cartridge::Load(const uint8_t *data, size_t size)
