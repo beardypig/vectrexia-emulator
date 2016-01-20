@@ -10,10 +10,8 @@ Vectrexia is a work in progress Vectrex emulator written as a `libretro` core. I
 To compile this `libretro` core use `cmake`. Your C++ compiler must support the C++14/1y standard, eg. `clang >= 3.5` or `gcc >= 4.9`.
  
 ``` shell
-$ mkdir build
-$ cd build
-$ cmake ..
-$ build 
+$ cmake -E make_directory build && cmake -E chdir build cmake .. 
+$ cmake --build build -- all test # compile and run the tests
 ```
 
 ## Authors
