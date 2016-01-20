@@ -58,7 +58,9 @@ include_directories(. ../src)
 add_executable(vectrexia_tests
         test_runner.cpp
         vectrex_test.cpp
-        cartridge_test.cpp)
+        cartridge_test.cpp
+        m6809opcode_test.cpp
+        m6809_test.cpp)
 
 target_link_libraries(vectrexia_tests
         vectrexia_libretro

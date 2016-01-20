@@ -134,12 +134,14 @@ class M6809
                     case 1:
                         // ,R+ | ,R++
                         ea = reg;
+                        // register is incremented by 1 or 2
                         reg += 1 + (post_byte & 1);
                         break;
                     case 2:
                     case 3:
                         // ,-R | ,--R
                         ea = reg;
+                        // register is decremented by 1 or 2
                         reg += 1 + (post_byte & 1);
                         break;
                     case 4:
@@ -179,7 +181,7 @@ class M6809
                         break;
                     default:
                         // Illegal
-                        throw E_ILLEGAL_INDEXING_MODE;
+                        return 0;
                 }
                 // indirect mode
                 if ((post_byte >> 4) & 1)
@@ -194,31 +196,6 @@ class M6809
         }
     };
     struct inherent { };
-
-    /*
-     * Opcode implementations
-     */
-    template <typename T>
-    struct op_add { T operator() (M6809& cpu, T operand_a, T operand_b) { return operand_a + operand_b; } };
-
-    template <typename T>
-    struct op_sub {
-        T operator() (M6809& cpu, T operand_a, T operand_b) {
-            return operand_a - operand_b;
-        }
-    };
-
-    struct op_and { uint8_t operator() (M6809& cpu, uint8_t operand_a, uint8_t operand_b) { return operand_a & operand_b; } };
-    // store/load, M <= Register or Register <= Memory
-    struct op_copy { uint16_t operator() (M6809& cpu, uint16_t operand_a, uint16_t operand_b) { return operand_b; } };
-
-    // one operand
-    struct op_dec { uint16_t operator() (M6809& cpu, uint16_t operand) { return (uint16_t) (operand - 1); } };
-    struct op_clr { uint16_t operator() (M6809& cpu, uint16_t operand) { return 0; } };
-
-    // no operands
-    struct op_nop { uint16_t operator() (M6809& cpu) { return 0u; } };
-
 
     /*
      * Operand Classes
@@ -281,6 +258,27 @@ class M6809
     };
 
     /*
+     * Alaises for Registers and memory addressing modes
+     */
+    using RegisterA = Register<uint8_t, reg_a>;
+    using RegisterB = Register<uint8_t, reg_b>;
+    using RegisterA_RO = Register<uint8_t, reg_a, 0>;  // read-only version
+    using RegisterB_RO = Register<uint8_t, reg_b, 0>;  // read-only version
+    using RegisterD = Register<uint16_t, reg_d>;
+    using RegisterX = Register<uint16_t, reg_x>;
+    using RegisterY = Register<uint16_t, reg_y>;
+    using RegisterCC = Register<uint8_t, reg_cc>;
+
+    using ImmediateOperand8 = MemoryOperand<uint8_t, immediate>;
+    using ImmediateOperand16 = MemoryOperand<uint16_t, immediate>;
+    using DirectOperand8 = MemoryOperand<uint8_t, direct>;
+    using DirectOperand16 = MemoryOperand<uint16_t, direct>;
+    using ExtendedOperand8 = MemoryOperand<uint8_t, extended>;
+    using ExtendedOperand16 = MemoryOperand<uint16_t, extended>;
+    using IndexedOperand8 = MemoryOperand<uint8_t, indexed>;
+    using IndexedOperand16 = MemoryOperand<uint16_t, indexed>;
+
+    /*
      * Calculate flags
      */
     template <int FlagUpdateMask=0, int FlagSetMask=0, int FlagClearMask=0, int BitSize=8>
@@ -298,6 +296,38 @@ class M6809
             if (FlagUpdateMask & FLAG_C) cpu.registers.flags.C = cpu.ComputeCarryFlag<BitSize>(operand_a, operand_b, result);
         }
     };
+
+    // Aliases for common flags
+    using FlagMaths = compute_flags<FLAGS_MATH>;
+    using FlagMaths16 = compute_flags<FLAGS_MATH, 0, 0, 16>;
+    using LogicFlags = compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>;
+
+    /*
+     * Opcode implementations
+     */
+    template <typename T>
+    struct op_add { T operator() (M6809& cpu, T operand_a, T operand_b) { return operand_a + operand_b; } };
+
+    struct op_adc { uint8_t operator() (M6809& cpu, uint8_t operand_a, uint8_t operand_b) { return operand_a + operand_b + cpu.registers.flags.C; } };
+
+    template <typename T>
+    struct op_sub {
+        T operator() (M6809& cpu, T operand_a, T operand_b) {
+            return operand_a - operand_b;
+        }
+    };
+
+    struct op_and { uint8_t operator() (M6809& cpu, uint8_t operand_a, uint8_t operand_b) { return operand_a & operand_b; } };
+    // store/load, M <= Register or Register <= Memory
+    struct op_copy { uint16_t operator() (M6809& cpu, uint16_t operand_a, uint16_t operand_b) { return operand_b; } };
+
+    // one operand
+    struct op_dec { uint16_t operator() (M6809& cpu, uint16_t operand) { return (uint16_t) (operand - 1); } };
+    struct op_clr { uint16_t operator() (M6809& cpu, uint16_t operand) { return 0; } };
+    struct op_asr { uint8_t operator() (M6809& cpu, uint8_t operand) { return operand >> 1; } };
+
+    // no operands
+    struct op_nop { uint16_t operator() (M6809& cpu) { return 0u; } };
 
     /*
      * Opcode Templates
@@ -358,48 +388,77 @@ class M6809
     }
 
     /*
-     * Alaises for Registers and memory addressing modes
-     */
-    using RegisterA = Register<uint8_t, reg_a>;
-    using RegisterB = Register<uint8_t, reg_b>;
-    using RegisterA_RO = Register<uint8_t, reg_a, 0>;  // read-only version
-    using RegisterB_RO = Register<uint8_t, reg_b, 0>;  // read-only version
-    using RegisterD = Register<uint16_t, reg_d>;
-    using RegisterX = Register<uint16_t, reg_x>;
-    using RegisterY = Register<uint16_t, reg_y>;
-    using RegisterCC = Register<uint8_t, reg_cc>;
-
-    using ImmediateOperand8 = MemoryOperand<uint8_t, immediate>;
-    using ImmediateOperand16 = MemoryOperand<uint16_t, immediate>;
-    using DirectOperand8 = MemoryOperand<uint8_t, direct>;
-    using DirectOperand16 = MemoryOperand<uint16_t, direct>;
-    using ExtendedOperand8 = MemoryOperand<uint8_t, extended>;
-    using ExtendedOperand16 = MemoryOperand<uint16_t, extended>;
-    using IndexedOperand8 = MemoryOperand<uint8_t, indexed>;
-    using IndexedOperand16 = MemoryOperand<uint16_t, indexed>;
-
-    using FlagMaths = compute_flags<FLAGS_MATH>;
-    using FlagMaths16 = compute_flags<FLAGS_MATH, 0, 0, 16>;
-    /*
      * Opcode handler definitions
      */
     std::array<opcode_handler_t, 0x100> opcode_handlers;
 
-    using op_abx_inherent = opcode<op_add<uint16_t>, RegisterX, RegisterB>;
+    // ABX
+    using op_abx_inherent = opcode<op_add<uint16_t>,    RegisterX,          RegisterB>;
 
-    using op_adda_immediate = opcode<op_add<uint8_t>, RegisterA, ImmediateOperand8, FlagMaths>;
-    using op_adda_direct = opcode<op_add<uint8_t>, DirectOperand8, RegisterA, FlagMaths>;
-    using op_adda_extended = opcode<op_add<uint8_t>, ExtendedOperand8, RegisterA, FlagMaths>;
+    // ADC - ADD with carry
+    using op_adca_immediate = opcode<op_adc,            RegisterA,          ImmediateOperand8,  FlagMaths>;
+    using op_adca_direct    = opcode<op_adc,            DirectOperand8,     RegisterA,          FlagMaths>;
+    using op_adca_indexed   = opcode<op_adc,            IndexedOperand8,    RegisterA,          FlagMaths>;
+    using op_adca_extended  = opcode<op_adc,            ExtendedOperand8,   RegisterA,          FlagMaths>;
 
-    using op_addb_immediate = opcode<op_add<uint8_t>, RegisterB, ImmediateOperand8, FlagMaths>;
-    using op_addb_direct = opcode<op_add<uint8_t>, DirectOperand8, RegisterB, FlagMaths>;
-    using op_addb_extended = opcode<op_add<uint8_t>, ExtendedOperand8, RegisterB, FlagMaths>;
+    using op_adcb_immediate = opcode<op_adc,            RegisterB,          ImmediateOperand8,  FlagMaths>;
+    using op_adcb_direct    = opcode<op_adc,            DirectOperand8,     RegisterB,          FlagMaths>;
+    using op_adcb_indexed   = opcode<op_adc,            IndexedOperand8,    RegisterB,          FlagMaths>;
+    using op_adcb_extended  = opcode<op_adc,            ExtendedOperand8,   RegisterB,          FlagMaths>;
 
-    using op_addd_immediate = opcode<op_add<uint16_t>, RegisterD, ImmediateOperand16, FlagMaths16>;
+    // ADD
+    using op_adda_immediate = opcode<op_add<uint8_t>,   RegisterA,          ImmediateOperand8,  FlagMaths>;
+    using op_adda_direct    = opcode<op_add<uint8_t>,   DirectOperand8,     RegisterA,          FlagMaths>;
+    using op_adda_indexed   = opcode<op_add<uint8_t>,   IndexedOperand8,    RegisterA,          FlagMaths>;
+    using op_adda_extended  = opcode<op_add<uint8_t>,   ExtendedOperand8,   RegisterA,          FlagMaths>;
+
+    using op_addb_immediate = opcode<op_add<uint8_t>,   RegisterB,          ImmediateOperand8,  FlagMaths>;
+    using op_addb_direct    = opcode<op_add<uint8_t>,   DirectOperand8,     RegisterB,          FlagMaths>;
+    using op_addb_indexed   = opcode<op_add<uint8_t>,   IndexedOperand8,    RegisterB,          FlagMaths>;
+    using op_addb_extended  = opcode<op_add<uint8_t>,   ExtendedOperand8,   RegisterB,          FlagMaths>;
+
+    using op_addd_immediate = opcode<op_add<uint16_t>,  RegisterD,          ImmediateOperand16, FlagMaths16>;
+    using op_addd_direct    = opcode<op_add<uint16_t>,  DirectOperand16,    RegisterD,          FlagMaths16>;
+    using op_addd_indexed   = opcode<op_add<uint16_t>,  IndexedOperand16,   RegisterD,          FlagMaths16>;
+    using op_addd_extended  = opcode<op_add<uint16_t>,  ExtendedOperand16,  RegisterD,          FlagMaths16>;
+
+    // AND
+    using op_anda_immediate = opcode<op_and,            RegisterA,          ImmediateOperand8,  LogicFlags>;
+    using op_anda_direct    = opcode<op_and,            DirectOperand8,     RegisterA,          LogicFlags>;
+    using op_anda_indexed   = opcode<op_and,            IndexedOperand8,    RegisterA,          LogicFlags>;
+    using op_anda_extended  = opcode<op_and,            ExtendedOperand8,   RegisterA,          LogicFlags>;
+
+    using op_andb_immediate = opcode<op_and,            RegisterB,          ImmediateOperand8,  LogicFlags>;
+    using op_andb_direct    = opcode<op_and,            DirectOperand8,     RegisterB,          LogicFlags>;
+    using op_andb_indexed   = opcode<op_and,            IndexedOperand8,    RegisterB,          LogicFlags>;
+    using op_andb_extended  = opcode<op_and,            ExtendedOperand8,   RegisterB,          LogicFlags>;
+
+    // ANDCC - do not update the flags, they are affected by the immediate value
+    using op_andcc_immediate = opcode<op_and,           RegisterCC,         ImmediateOperand8>;
+
+    // ASL (see LSL)
+    // ASR
+    using op_asra_inherent = opcode<op_asr,             RegisterA,          inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>>;
+    using op_asrb_inherent = opcode<op_asr,             RegisterB,          inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>>;
+
+    using op_asr_direct    = opcode<op_asr,             DirectOperand8,     inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>>;
+    using op_asr_indexed   = opcode<op_asr,             IndexedOperand8,    inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>>;
+    using op_asr_extended  = opcode<op_asr,             ExtendedOperand8,   inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>>;
 
     // BIT - bitwise AND, update flags but don't store the result
-    using op_bita_immediate = opcode<op_and, RegisterA_RO, ImmediateOperand8, compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>>;
-    using op_bitb_immediate = opcode<op_and, RegisterB_RO, ImmediateOperand8, compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>>;
+    using op_bita_immediate = opcode<op_and,            RegisterA_RO,       ImmediateOperand8,  LogicFlags>;
+    using op_bitb_immediate = opcode<op_and,            RegisterB_RO,       ImmediateOperand8,  LogicFlags>;
+
+    // CLR
+    using op_clra_inherent = opcode<op_clr,             RegisterA,          inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    using op_clrb_inherent = opcode<op_clr,             RegisterB,          inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+
+    using op_clr_direct    = opcode<op_clr,             DirectOperand8,     inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    using op_clr_indexed   = opcode<op_clr,             IndexedOperand8,    inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    using op_clr_extended  = opcode<op_clr,             ExtendedOperand8,   inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+
+
+
 
     using op_suba_immediate = opcode<op_sub<int8_t>, RegisterA, ImmediateOperand8, FlagMaths>;
 

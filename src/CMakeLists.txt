@@ -4,7 +4,8 @@ set(LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/link.T")
 add_library(vectrexia_libretro SHARED
         libretro/libretro.cpp
         vectrexia.cpp
-        cartridge.cpp)
+        cartridge.cpp
+        m6809.cpp)
 
 set_target_properties(vectrexia_libretro PROPERTIES PREFIX "")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKER_SCRIPT}")
