@@ -14,11 +14,11 @@ before_install:
 install:
   # g++4.9
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.9; fi
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9"; fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9"; export CC="gcc-4.9"; fi
 
   # clang 3.4
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.4 libc++-dev; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.4"; fi
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.5 libc++-dev; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.5"; CC="clang-3.5"; fi
 
 script:
-  - cmake -E make_directory build && cmake -E chdir build cmake .. && cmake --build build && ctest
+  - cmake -E make_directory build && cmake -E chdir build cmake .. && cmake --build build -- all test
