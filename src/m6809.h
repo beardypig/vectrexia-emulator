@@ -33,9 +33,9 @@ struct M6809Registers;
 
 class M6809
 {
+    using read_callback_t = uint8_t (*)(intptr_t, uint16_t);
+    using write_callback_t = void (*)(intptr_t, uint16_t, uint8_t);
     using opcode_handler_t = void (*)(M6809 &, int &);
-    using read_callback_t = std::function<uint8_t(uint16_t)>;
-    using write_callback_t = std::function<void(uint16_t, uint8_t)>;
 
     static const uint16_t RESET_VECTOR = 0xfffe;
 
@@ -76,6 +76,14 @@ class M6809
 
     } registers;
 
+
+    // memory accessors
+    //   callbacks
+    read_callback_t read_callback_func;
+    intptr_t read_callback_ref;
+    write_callback_t write_callback_func;
+    intptr_t write_callback_ref;
+
     bool wait_for_intterupt = false;
 
     uint16_t *index_mode_register_table[4] = {
@@ -85,14 +93,9 @@ class M6809
             &registers.SP
     };
 
-    // memory accessors
-    //   callbacks
-    read_callback_t read_callback = {};
-    write_callback_t write_callback = {};
-
     inline uint8_t Read8(const uint16_t &addr)
     {
-        return read_callback(addr);
+        return read_callback_func(read_callback_ref, addr);
     }
 
     inline uint16_t Read16(const uint16_t &addr)
@@ -102,7 +105,7 @@ class M6809
 
     inline void Write8(const uint16_t &addr, const uint8_t &data)
     {
-        write_callback(addr, data);
+        write_callback_func(write_callback_ref, addr, data);
     }
 
     inline void Write16(const uint16_t &addr, const uint16_t &data)
@@ -570,11 +573,13 @@ class M6809
 
 
 public:
-    M6809(const read_callback_t &read_callback,
-          const write_callback_t &write_callback);
+    M6809();
 
     // Reset the CPU to it's default state, clearing the registers and setting the PC to the reset vector
     void Reset();
+
+    void SetReadCallback(read_callback_t func, intptr_t ref);
+    void SetWriteCallback(write_callback_t func, intptr_t ref);
 
     // Exceture one instruction and updated the number of cycles that it took
     m6809_error_t Execute(int &cycles);

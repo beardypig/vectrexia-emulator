@@ -2,9 +2,7 @@
 #include "m6809.h"
 
 
-M6809::M6809(const read_callback_t &read_callback,
-             const write_callback_t &write_callback)
-        : read_callback(read_callback), write_callback(write_callback)
+M6809::M6809()
 {
     opcode_handlers.fill(nullptr);
     opcode_handlers[0x3A] = std::addressof(opcodewrap<op_abx_inherent>);
@@ -210,7 +208,7 @@ M6809::M6809(const read_callback_t &read_callback,
     //opcode_handlers[0x4D] = std::addressof(opcodewrap<op_tsta_inherent>);
     //opcode_handlers[0x5D] = std::addressof(opcodewrap<op_tstb_inherent>);
 
-    Reset();
+    //Reset();
 }
 
 void M6809::Reset()
@@ -270,4 +268,16 @@ m6809_error_t M6809::Execute(int &cycles)
     }
 
     return E_SUCCESS;
+}
+
+void M6809::SetReadCallback(M6809::read_callback_t func, intptr_t ref)
+{
+    read_callback_func = func;
+    read_callback_ref = ref;
+}
+
+void M6809::SetWriteCallback(M6809::write_callback_t func, intptr_t ref)
+{
+    write_callback_func = func;
+    write_callback_ref = ref;
 }
