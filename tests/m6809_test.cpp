@@ -4,22 +4,30 @@
 
 TEST(ComputeFlags, ZeroFlagNotSetOn1)
 {
-    EXPECT_EQ(0, M6809::ComputeZeroFlag((uint8_t)1));
+    uint8_t flags = 0;
+    M6809::ComputeZeroFlag<uint8_t>(flags, 1);
+    EXPECT_EQ(0, flags);
 }
 
 TEST(ComputeFlags, ZeroFlagSetOn0)
 {
-    EXPECT_EQ(1, M6809::ComputeZeroFlag((uint8_t)0));
+    uint8_t flags = 0;
+    M6809::ComputeZeroFlag<uint8_t>(flags, 0);
+    EXPECT_EQ(FLAG_Z, flags);
 }
 
 TEST(ComputeFlags, NegativeFlagNotSetOn1)
 {
-    EXPECT_EQ(0, M6809::ComputeZeroFlag((uint8_t)1));
+    uint8_t flags = 0;
+    M6809::ComputeNegativeFlag<uint8_t>(flags, 0);
+    EXPECT_EQ(0, flags);
 }
 
 TEST(ComputeFlags, NegativeFlagSetOnFF)
 {
-    EXPECT_EQ(1, M6809::ComputeNegativeFlag<8>(0xFF));
+    uint8_t flags = 0;
+    M6809::ComputeNegativeFlag<uint8_t>(flags, 0xff);
+    EXPECT_EQ(FLAG_N, flags);
 }
 
 

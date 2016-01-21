@@ -33,7 +33,7 @@ struct M6809Registers;
 
 class M6809
 {
-    using opcode_handler_t = void(*)(M6809&, int&);
+    using opcode_handler_t = void (*)(M6809 &, int &);
     using read_callback_t = std::function<uint8_t(uint16_t)>;
     using write_callback_t = std::function<void(uint16_t, uint8_t)>;
 
@@ -76,6 +76,8 @@ class M6809
 
     } registers;
 
+    bool wait_for_intterupt = false;
+
     uint16_t *index_mode_register_table[4] = {
             &registers.X,
             &registers.Y,
@@ -88,26 +90,56 @@ class M6809
     read_callback_t read_callback = {};
     write_callback_t write_callback = {};
 
-    uint8_t Read8(uint16_t addr);
-    uint16_t Read16(uint16_t addr);
+    inline uint8_t Read8(const uint16_t &addr)
+    {
+        return read_callback(addr);
+    }
 
-    void Write8(uint16_t addr, uint8_t data);
-    void Write16(uint16_t addr, uint16_t data);
+    inline uint16_t Read16(const uint16_t &addr)
+    {
+        return (uint16_t) Read8(addr) | (uint16_t) Read8((uint16_t) (addr + 1)) << 8;
+    }
+
+    inline void Write8(const uint16_t &addr, const uint8_t &data)
+    {
+        write_callback(addr, data);
+    }
+
+    inline void Write16(const uint16_t &addr, const uint16_t &data)
+    {
+        Write8(addr, (uint8_t) (data & 0xff));
+        Write8((uint16_t) (addr + 1), (uint8_t) (data >> 8));
+    }
 
     // read 8/16 bits from relative to the pc
-    uint8_t NextOpcode();
-    uint8_t ReadPC8();
-    uint16_t ReadPC16();
+    inline uint8_t NextOpcode()
+    {
+        return ReadPC8();
+    }
+
+    inline uint8_t ReadPC8()
+    {
+        return Read8(registers.PC++);
+    }
+
+    inline uint16_t ReadPC16()
+    {
+        uint16_t bytes = Read16(registers.PC);
+        registers.PC += 2;
+        return bytes;
+    }
 
     /*
      * OpCode Templates
      */
-    struct reg_a { uint8_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.A; } };
-    struct reg_b { uint8_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.B; } };
-    struct reg_d { uint16_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.D; } };
-    struct reg_x { uint16_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.X; } };
-    struct reg_y { uint16_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.Y; } };
-    struct reg_cc { uint8_t &operator() (M6809& cpu, uint16_t &a) { return cpu.registers.CC; } };
+    struct reg_a { uint8_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.A; } };
+    struct reg_b { uint8_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.B; } };
+    struct reg_d { uint16_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.D; } };
+    struct reg_x { uint16_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.X; } };
+    struct reg_y { uint16_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.Y; } };
+    struct reg_cc { uint8_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.CC; } };
+    struct reg_sp { uint16_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.SP; } };
+    struct reg_usp { uint16_t &operator() (M6809& cpu, const uint16_t &a) { return cpu.registers.USP; } };
 
     /*
      * Memory addressing implementations
@@ -211,14 +243,14 @@ class M6809
     {
         MemoryOperand(M6809 &cpu) : Operand(cpu) {}
 
-        T operator ()(uint16_t &addr) {
+        inline T operator ()(uint16_t &addr) {
             addr = Fn()(cpu);
-            return (std::is_same<T, uint8_t>::value) ? cpu.Read8(addr) : cpu.Read16(addr);
+            return (sizeof(T) == 8) ? cpu.Read8(addr) : cpu.Read16(addr);
         }
         void update(uint16_t addr, T data) {
             if (RW)
             {
-                if (std::is_same<T, uint8_t>::value)
+                if (sizeof(T) == 8)
                     cpu.Write8(addr, data);
                 else
                     cpu.Write16(addr, data);
@@ -232,13 +264,13 @@ class M6809
     {
         MemoryOperand(M6809 &cpu) : Operand(cpu) {}
 
-        T operator ()(uint16_t &addr) {
-            if (std::is_same<T, uint8_t>::value)
+        inline T operator ()(uint16_t &addr) {
+            if (sizeof(T) == 8)
                 return cpu.ReadPC8();
             else
                 return cpu.ReadPC16();
         }
-        void update(uint16_t addr, T data) { }
+        inline void update(uint16_t addr, T data) { }
     };
 
     template <typename T, typename Fn, int RW=1>
@@ -246,10 +278,10 @@ class M6809
     {
         Register(M6809 &cpu) : Operand(cpu) { }
 
-        uint8_t operator() (uint16_t &addr) {
+        inline T &operator() (uint16_t &addr) {
             return Fn()(cpu, addr);
         }
-        void update(uint16_t addr, T data) {
+        inline void update(uint16_t addr, T data) {
             if (RW)
             {
                 Fn()(cpu, addr) = data;
@@ -262,12 +294,19 @@ class M6809
      */
     using RegisterA = Register<uint8_t, reg_a>;
     using RegisterB = Register<uint8_t, reg_b>;
-    using RegisterA_RO = Register<uint8_t, reg_a, 0>;  // read-only version
-    using RegisterB_RO = Register<uint8_t, reg_b, 0>;  // read-only version
     using RegisterD = Register<uint16_t, reg_d>;
     using RegisterX = Register<uint16_t, reg_x>;
     using RegisterY = Register<uint16_t, reg_y>;
     using RegisterCC = Register<uint8_t, reg_cc>;
+    // read-only version
+    using RegisterA_RO    = Register<uint8_t,  reg_a,   0>;
+    using RegisterB_RO    = Register<uint8_t,  reg_b,   0>;
+    using RegisterD_RO    = Register<uint16_t, reg_d,   0>;
+    using RegisterX_RO    = Register<uint16_t, reg_x,   0>;
+    using RegisterY_RO    = Register<uint16_t, reg_y,   0>;
+    using RegisterCC_RO   = Register<uint8_t,  reg_cc,  0>;
+    using RegisterSP_RO   = Register<uint8_t,  reg_sp,  0>;
+    using RegisterUSP_RO  = Register<uint8_t,  reg_usp, 0>;
 
     using ImmediateOperand8 = MemoryOperand<uint8_t, immediate>;
     using ImmediateOperand16 = MemoryOperand<uint16_t, immediate>;
@@ -281,58 +320,69 @@ class M6809
     /*
      * Calculate flags
      */
-    template <int FlagUpdateMask=0, int FlagSetMask=0, int FlagClearMask=0, int BitSize=8>
+    template <int FlagUpdateMask=0, int FlagSetMask=0, int FlagClearMask=0, typename T=uint8_t, typename T2=T>
     struct compute_flags
     {
-        void operator() (M6809 &cpu, uint16_t result, uint16_t operand_a, uint16_t operand_b)
+        inline void operator() (M6809 &cpu, T &result, T &operand_a, T2 &operand_b)
         {
-            cpu.registers.CC &= ~FlagClearMask;
-            cpu.registers.CC |= FlagSetMask;
+            if (FlagClearMask) cpu.registers.CC &= ~FlagClearMask;
+            if (FlagSetMask) cpu.registers.CC |= FlagSetMask;
 
-            if (FlagUpdateMask & FLAG_Z) cpu.registers.flags.Z = cpu.ComputeZeroFlag<BitSize>(result);
-            if (FlagUpdateMask & FLAG_N) cpu.registers.flags.N = cpu.ComputeNegativeFlag(result);
-            if (FlagUpdateMask & FLAG_H) cpu.registers.flags.H = cpu.ComputeCarryFlag<4>(operand_a, operand_b, result);
-            if (FlagUpdateMask & FLAG_V) cpu.registers.flags.V = cpu.ComputeOverflowFlag<BitSize>(operand_a, operand_b, result);
-            if (FlagUpdateMask & FLAG_C) cpu.registers.flags.C = cpu.ComputeCarryFlag<BitSize>(operand_a, operand_b, result);
+            if (FlagUpdateMask & FLAG_Z) cpu.ComputeZeroFlag<T>(cpu.registers.CC, result);
+            if (FlagUpdateMask & FLAG_N) cpu.ComputeNegativeFlag(cpu.registers.CC, result);
+            if (FlagUpdateMask & FLAG_H) cpu.ComputeHalfCarryFlag(cpu.registers.CC, operand_a, operand_b, result);
+            if (FlagUpdateMask & FLAG_V) cpu.ComputeOverflowFlag<T>(cpu.registers.CC, operand_a, operand_b, result);
+            if (FlagUpdateMask & FLAG_C) cpu.ComputeCarryFlag<T>(cpu.registers.CC, operand_a, operand_b, result);
         }
     };
 
     // Aliases for common flags
     using FlagMaths = compute_flags<FLAGS_MATH>;
-    using FlagMaths16 = compute_flags<FLAGS_MATH, 0, 0, 16>;
+    using FlagMaths16 = compute_flags<FLAGS_MATH, 0, 0, uint16_t>;
     using LogicFlags = compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>;
 
     /*
      * Opcode implementations
      */
-    template <typename T>
-    struct op_add { T operator() (M6809& cpu, T operand_a, T operand_b) { return operand_a + operand_b; } };
+    template <typename T1, typename T2=T1>
+    struct op_add { T1 operator() (M6809& cpu, const T1 &operand_a, const T2 &operand_b) { return operand_a + operand_b; } };
 
-    struct op_adc { uint8_t operator() (M6809& cpu, uint8_t operand_a, uint8_t operand_b) { return operand_a + operand_b + cpu.registers.flags.C; } };
+    struct op_adc { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b) { return operand_a + operand_b + cpu.registers.flags.C; } };
 
     template <typename T>
     struct op_sub {
-        T operator() (M6809& cpu, T operand_a, T operand_b) {
+        T operator() (const M6809& cpu, const T &operand_a, const T &operand_b) {
             return operand_a - operand_b;
         }
     };
 
-    struct op_and { uint8_t operator() (M6809& cpu, uint8_t operand_a, uint8_t operand_b) { return operand_a & operand_b; } };
+    struct op_and { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b) { return operand_a & operand_b; } };
     // store/load, M <= Register or Register <= Memory
-    struct op_copy { uint16_t operator() (M6809& cpu, uint16_t operand_a, uint16_t operand_b) { return operand_b; } };
+    struct op_copy { uint16_t operator() (const M6809& cpu, const uint16_t &operand_a, const uint16_t &operand_b) { return operand_b; } };
+
+    // This is a special case where the operation sets a pseudo flag to tell the cpu to wait for an interrupt
+    struct op_cwai {
+        uint16_t operator() (M6809& cpu, const uint16_t &operand_a, const uint16_t &operand_b) {
+            cpu.wait_for_intterupt = true;
+            return operand_a ^ operand_b;
+        }
+    };
+
 
     // one operand
-    struct op_dec { uint16_t operator() (M6809& cpu, uint16_t operand) { return (uint16_t) (operand - 1); } };
-    struct op_clr { uint16_t operator() (M6809& cpu, uint16_t operand) { return 0; } };
-    struct op_asr { uint8_t operator() (M6809& cpu, uint8_t operand) { return operand >> 1; } };
+    struct op_dec { uint16_t operator() (const M6809& cpu, const uint16_t &operand) { return (uint16_t) (operand - 1); } };
+    struct op_clr { uint16_t operator() (const M6809& cpu, const uint16_t &operand) { return 0; } };
+    struct op_asr { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand >> 1; } };
+    struct op_com { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return ~operand; } };
+
 
     // no operands
-    struct op_nop { uint16_t operator() (M6809& cpu) { return 0u; } };
+    struct op_nop { uint16_t operator() (const M6809& cpu) { return 0u; } };
 
     /*
      * Opcode Templates
      */
-    template<typename Fn, typename OpA=inherent, typename OpB=inherent, typename Flags=compute_flags<>, int W=1, int BitSize=8>
+    template<typename Fn, typename OpA=inherent, typename OpB=inherent, typename Flags=compute_flags<>>
     struct opcode
     {
         void operator() (M6809& cpu, int &cycles)
@@ -355,8 +405,8 @@ class M6809
         }
     };
 
-    template<typename Fn, typename OpA, typename Flags, int W, int BitSize>
-    struct opcode<Fn, OpA, inherent, Flags, W, BitSize>
+    template<typename Fn, typename OpA, typename Flags>
+    struct opcode<Fn, OpA, inherent, Flags>
     {
         void operator() (M6809& cpu, int &cycles)
         {
@@ -364,20 +414,22 @@ class M6809
             auto operand = OpA(cpu);
             auto operand_value = operand(operand_addr);
             auto result = Fn()(cpu, operand_value);
+            decltype(operand_value) zero = 0;
 
-            Flags()(cpu, result, 0, operand_value);
+            Flags()(cpu, result, zero, operand_value);
 
             operand.update(operand_addr, result);
         }
     };
 
-    template<typename Fn, typename Flags, int W, int BitSize>
-    struct opcode<Fn, inherent, inherent, Flags, W, BitSize>
+    template<typename Fn, typename Flags>
+    struct opcode<Fn, inherent, inherent, Flags>
     {
         void operator() (M6809& cpu, int &cycles)
         {
             auto result = Fn()(cpu);
-            Flags()(cpu, result, 0, 0);
+            decltype(result) zero = 0;
+            Flags()(cpu, result, zero, zero);
         }
     };
 
@@ -393,7 +445,7 @@ class M6809
     std::array<opcode_handler_t, 0x100> opcode_handlers;
 
     // ABX
-    using op_abx_inherent = opcode<op_add<uint16_t>,    RegisterX,          RegisterB>;
+    using op_abx_inherent = opcode<op_add<uint16_t, uint8_t>,    RegisterX,          RegisterB,          compute_flags<0, 0, 0, uint16_t, uint8_t>>;
 
     // ADC - ADD with carry
     using op_adca_immediate = opcode<op_adc,            RegisterA,          ImmediateOperand8,  FlagMaths>;
@@ -457,8 +509,52 @@ class M6809
     using op_clr_indexed   = opcode<op_clr,             IndexedOperand8,    inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
     using op_clr_extended  = opcode<op_clr,             ExtendedOperand8,   inherent,           compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
 
+    // CMP
+    using op_cmpa_immediate = opcode<op_sub<uint8_t>,   RegisterA_RO,       ImmediateOperand8,  FlagMaths>;
+    using op_cmpa_direct =    opcode<op_sub<uint8_t>,   RegisterA_RO,       DirectOperand8,     FlagMaths>;
+    using op_cmpa_indexed =   opcode<op_sub<uint8_t>,   RegisterA_RO,       IndexedOperand8,    FlagMaths>;
+    using op_cmpa_extended =  opcode<op_sub<uint8_t>,   RegisterA_RO,       ExtendedOperand8,   FlagMaths>;
 
+    using op_cmpb_immediate = opcode<op_sub<uint8_t>,   RegisterB_RO,       ImmediateOperand8,  FlagMaths16>;
+    using op_cmpb_direct =    opcode<op_sub<uint8_t>,   RegisterB_RO,       DirectOperand8,     FlagMaths16>;
+    using op_cmpb_indexed =   opcode<op_sub<uint8_t>,   RegisterB_RO,       IndexedOperand8,    FlagMaths16>;
+    using op_cmpb_extended =  opcode<op_sub<uint8_t>,   RegisterB_RO,       ExtendedOperand8,   FlagMaths16>;
 
+    using op_cmpd_immediate = opcode<op_sub<uint8_t>,   RegisterD_RO,       ImmediateOperand8,  FlagMaths16>;
+    using op_cmpd_direct =    opcode<op_sub<uint8_t>,   RegisterD_RO,       DirectOperand8,     FlagMaths16>;
+    using op_cmpd_indexed =   opcode<op_sub<uint8_t>,   RegisterD_RO,       IndexedOperand8,    FlagMaths16>;
+    using op_cmpd_extended =  opcode<op_sub<uint8_t>,   RegisterD_RO,       ExtendedOperand8,   FlagMaths16>;
+
+    using op_cmps_immediate = opcode<op_sub<uint8_t>,   RegisterSP_RO,      ImmediateOperand8,  FlagMaths16>;
+    using op_cmps_direct =    opcode<op_sub<uint8_t>,   RegisterSP_RO,      DirectOperand8,     FlagMaths16>;
+    using op_cmps_indexed =   opcode<op_sub<uint8_t>,   RegisterSP_RO,      IndexedOperand8,    FlagMaths16>;
+    using op_cmps_extended =  opcode<op_sub<uint8_t>,   RegisterSP_RO,      ExtendedOperand8,   FlagMaths16>;
+
+    using op_cmpu_immediate = opcode<op_sub<uint8_t>,   RegisterUSP_RO,     ImmediateOperand8,  FlagMaths16>;
+    using op_cmpu_direct =    opcode<op_sub<uint8_t>,   RegisterUSP_RO,     DirectOperand8,     FlagMaths16>;
+    using op_cmpu_indexed =   opcode<op_sub<uint8_t>,   RegisterUSP_RO,     IndexedOperand8,    FlagMaths16>;
+    using op_cmpu_extended =  opcode<op_sub<uint8_t>,   RegisterUSP_RO,     ExtendedOperand8,   FlagMaths16>;
+
+    using op_cmpx_immediate = opcode<op_sub<uint8_t>,   RegisterX_RO,       ImmediateOperand8,  FlagMaths16>;
+    using op_cmpx_direct =    opcode<op_sub<uint8_t>,   RegisterX_RO,       DirectOperand8,     FlagMaths16>;
+    using op_cmpx_indexed =   opcode<op_sub<uint8_t>,   RegisterX_RO,       IndexedOperand8,    FlagMaths16>;
+    using op_cmpx_extended =  opcode<op_sub<uint8_t>,   RegisterX_RO,       ExtendedOperand8,   FlagMaths16>;
+
+    using op_cmpy_immediate = opcode<op_sub<uint8_t>,   RegisterY_RO,       ImmediateOperand8,  FlagMaths16>;
+    using op_cmpy_direct =    opcode<op_sub<uint8_t>,   RegisterY_RO,       DirectOperand8,     FlagMaths16>;
+    using op_cmpy_indexed =   opcode<op_sub<uint8_t>,   RegisterY_RO,       IndexedOperand8,    FlagMaths16>;
+    using op_cmpy_extended =  opcode<op_sub<uint8_t>,   RegisterY_RO,       ExtendedOperand8,   FlagMaths16>;
+
+    // COM
+    using op_coma_immediate = opcode<op_com,            RegisterA,          inherent,           compute_flags<FLAG_N|FLAG_Z, FLAG_C, FLAG_V>>;
+    using op_comb_immediate = opcode<op_com,            RegisterB,          inherent,           compute_flags<FLAG_N|FLAG_Z, FLAG_C, FLAG_V>>;
+
+    using op_com_direct     = opcode<op_com,            DirectOperand8,     inherent,           compute_flags<FLAG_N|FLAG_Z, FLAG_C, FLAG_V>>;
+    using op_com_indexed    = opcode<op_com,            IndexedOperand8,    inherent,           compute_flags<FLAG_N|FLAG_Z, FLAG_C, FLAG_V>>;
+    using op_com_extended   = opcode<op_com,            ExtendedOperand8,   inherent,           compute_flags<FLAG_N|FLAG_Z, FLAG_C, FLAG_V>>;
+
+    // CWAI
+    using op_cawi_immediate = opcode<op_cwai,           RegisterCC,         ImmediateOperand8>;
 
     using op_suba_immediate = opcode<op_sub<int8_t>, RegisterA, ImmediateOperand8, FlagMaths>;
 
@@ -484,33 +580,45 @@ public:
     m6809_error_t Execute(int &cycles);
 
     // flag computation
-    template <unsigned bits=8>
-    static uint8_t ComputeZeroFlag(uint16_t value)
+    template<typename T>
+    static inline void ComputeZeroFlag(uint8_t &flags, const T &value)
     {
-        return (uint8_t)(((value & (bits == 8 ? 0xff : 0xffff)) == 0) ? 1u : 0u);
+        flags &= ~FLAG_Z;
+        flags |= FLAG_Z * ((value == 0) ? 1u : 0u);
     };
 
-    template <unsigned bits=8>
-    static uint8_t ComputeNegativeFlag(uint16_t value)
+    template <typename T>
+    static inline void ComputeNegativeFlag(uint8_t &flags, const T &value)
     {
-        return (uint8_t) (value >> (bits - 1u) & 1u);
+        flags &= ~FLAG_N;
+        flags |= FLAG_N * (value >> ((sizeof(T) * 8) - 1u) & 1u);
     };
 
-    template <unsigned bits=8>
-    static uint8_t ComputeCarryFlag(uint16_t opa, uint16_t opb, uint16_t result)
+    template <typename T>
+    static inline void ComputeCarryFlag(uint8_t &flags, const T &opa, const T &opb, const T &result)
     {
         uint16_t flag  = (opa | opb) & ~result;  // one of the inputs is 1 and output is 0
         flag |= (opa & opb);                     // both inputs are 1
-        return (uint8_t) (flag >> (bits - 1u) & 1u);
+        flags &= ~FLAG_C;
+        flags |= FLAG_C * (flag >> ((sizeof(T) * 8) - 1u) & 1u);
     };
 
-    template <unsigned bits=8>
-    static uint8_t ComputeOverflowFlag(uint16_t opa, uint16_t opb, uint16_t result)
+    static inline void ComputeHalfCarryFlag(uint8_t &flags, const uint8_t &opa, const uint8_t &opb, const uint8_t &result)
+    {
+        uint16_t flag  = (opa | opb) & ~result;  // one of the inputs is 1 and output is 0
+        flag |= (opa & opb);                     // both inputs are 1
+        flags |= FLAG_H * (flag >> 3 & 1u);
+    };
+
+    template <typename T>
+    static inline void ComputeOverflowFlag(uint8_t &flags, const T &opa, const T &opb, const T &result)
     {
         // if the sign bit is the same in both operands but
         // different in the result, then there has been an overflow
-        return (uint8_t) ((opa >> (bits - 1u)) == (opb >> (bits - 1u)) &&
-                                  (opb >> (bits - 1u)) != (result >> (bits - 1u)) ? 1u : 0u);
+        auto bits = sizeof(T) * 8;
+        auto set = ((opa >> (bits - 1u)) == (opb >> (bits - 1u)) && (opb >> (bits - 1u)) != (result >> (bits - 1u))) ? 1u : 0u;
+        flags &= ~FLAG_V;
+        flags |= FLAG_H * set;
     }
 
     M6809Registers &getRegisters() { return registers; }
