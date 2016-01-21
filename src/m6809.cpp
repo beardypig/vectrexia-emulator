@@ -42,11 +42,11 @@ M6809::M6809()
     opcode_handlers[0x57] = std::addressof(opcodewrap<op_asrb_inherent>);
     //opcode_handlers[0x95] = std::addressof(opcodewrap<op_bita_direct>);
     //opcode_handlers[0xB5] = std::addressof(opcodewrap<op_bita_extended>);
-    //opcode_handlers[0x85] = std::addressof(opcodewrap<op_bita_immediate>);
+    opcode_handlers[0x85] = std::addressof(opcodewrap<op_bita_immediate>);
     //opcode_handlers[0xA5] = std::addressof(opcodewrap<op_bita_indexed>);
     //opcode_handlers[0xD5] = std::addressof(opcodewrap<op_bitb_direct>);
     //opcode_handlers[0xF5] = std::addressof(opcodewrap<op_bitb_extended>);
-    //opcode_handlers[0xC5] = std::addressof(opcodewrap<op_bitb_immediate>);
+    opcode_handlers[0xC5] = std::addressof(opcodewrap<op_bitb_immediate>);
     //opcode_handlers[0xE5] = std::addressof(opcodewrap<op_bitb_indexed>);
     //opcode_handlers[0x0F] = std::addressof(opcodewrap<op_clr_direct>);
     //opcode_handlers[0x7F] = std::addressof(opcodewrap<op_clr_extended>);
@@ -189,7 +189,7 @@ M6809::M6809()
     //opcode_handlers[0xAF] = std::addressof(opcodewrap<op_stx_indexed>);
     //opcode_handlers[0x90] = std::addressof(opcodewrap<op_suba_direct>);
     //opcode_handlers[0xB0] = std::addressof(opcodewrap<op_suba_extended>);
-    //opcode_handlers[0x80] = std::addressof(opcodewrap<op_suba_immediate>);
+    opcode_handlers[0x80] = std::addressof(opcodewrap<op_suba_immediate>);
     //opcode_handlers[0xA0] = std::addressof(opcodewrap<op_suba_indexed>);
     //opcode_handlers[0xD0] = std::addressof(opcodewrap<op_subb_direct>);
     //opcode_handlers[0xF0] = std::addressof(opcodewrap<op_subb_extended>);

@@ -13,17 +13,28 @@ public:
     MOCK_METHOD2(Write, void(uint16_t addr, uint8_t value));
 };
 
+static uint8_t read_mem(intptr_t ref, uint16_t addr)
+{
+    reinterpret_cast<MockMemory*>(ref)->Read(addr);
+}
+
+static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
+{
+    reinterpret_cast<MockMemory*>(ref)->Write(addr, data);
+}
+
 M6809 OpCodeTestHelper(MockMemory &mem)
 {
     EXPECT_CALL(mem, Read(_))
             .WillOnce(Return(0x00))
             .WillOnce(Return(0x00));
-    M6809 cpu([&mem](uint16_t addr) -> uint8_t {
-                return mem.Read(addr);
-              },
-              [&mem](uint16_t addr, uint8_t data) -> void {
-                mem.Write(addr, data);
-              });
+
+    M6809 cpu;
+    cpu.SetReadCallback(&read_mem, reinterpret_cast<intptr_t>(&mem));
+    cpu.SetWriteCallback(&write_mem, reinterpret_cast<intptr_t>(&mem));
+
+    cpu.Reset();
+
     return cpu;
 }
 
@@ -141,7 +152,7 @@ TEST(M6809OpCodes, ADDD_IMMEDIATE)
 
     EXPECT_EQ(registers.PC, 3);
 
-    EXPECT_EQ(0x2040, registers.D);
+    EXPECT_EQ(0x3030, registers.D);
 }
 
 /*

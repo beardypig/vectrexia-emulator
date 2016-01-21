@@ -147,7 +147,7 @@ class M6809
     /*
      * Memory addressing implementations
      */
-    struct immediate { uint16_t operator()(M6809& cpu) { return cpu.registers.PC++; } };
+    struct immediate { };
     struct direct { uint16_t operator()(M6809& cpu) { return (cpu.registers.DP << 8) | cpu.ReadPC8(); } };
     struct extended { uint16_t operator()(M6809& cpu) { return cpu.ReadPC16(); } };
     struct indexed { uint16_t operator()(M6809& cpu) {
@@ -248,12 +248,12 @@ class M6809
 
         inline T operator ()(uint16_t &addr) {
             addr = Fn()(cpu);
-            return (sizeof(T) == 8) ? cpu.Read8(addr) : cpu.Read16(addr);
+            return (sizeof(T) == 1) ? cpu.Read8(addr) : cpu.Read16(addr);
         }
         void update(uint16_t addr, T data) {
             if (RW)
             {
-                if (sizeof(T) == 8)
+                if (sizeof(T) == 1)
                     cpu.Write8(addr, data);
                 else
                     cpu.Write16(addr, data);
@@ -268,7 +268,7 @@ class M6809
         MemoryOperand(M6809 &cpu) : Operand(cpu) {}
 
         inline T operator ()(uint16_t &addr) {
-            if (sizeof(T) == 8)
+            if (sizeof(T) == 1)
                 return cpu.ReadPC8();
             else
                 return cpu.ReadPC16();
@@ -355,7 +355,7 @@ class M6809
     template <typename T>
     struct op_sub {
         T operator() (const M6809& cpu, const T &operand_a, const T &operand_b) {
-            return operand_a - operand_b;
+            return operand_a - static_cast<int8_t>(operand_b);
         }
     };
 
@@ -559,7 +559,7 @@ class M6809
     // CWAI
     using op_cawi_immediate = opcode<op_cwai,           RegisterCC,         ImmediateOperand8>;
 
-    using op_suba_immediate = opcode<op_sub<int8_t>, RegisterA, ImmediateOperand8, FlagMaths>;
+    using op_suba_immediate = opcode<op_sub<uint8_t>,   RegisterA,          ImmediateOperand8, FlagMaths>;
 
     using op_dec_direct = opcode<op_dec, DirectOperand8, inherent, FlagMaths>;
     using op_dec_extended = opcode<op_dec, ExtendedOperand8, inherent, FlagMaths>;
