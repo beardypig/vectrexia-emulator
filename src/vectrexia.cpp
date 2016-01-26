@@ -40,21 +40,37 @@ void Vectrex::Reset()
 
 uint64_t Vectrex::Run(uint64_t cycles)
 {
-    uint64_t cpu_cycles = 0;
-    m6809_error_t rcode = cpu_->Execute(cpu_cycles);
-
-    if (rcode != E_SUCCESS)
+    uint64_t cycles_run = 0;
+    while (cycles_run < cycles)
     {
-        auto registers = cpu_->getRegisters();
-        if (rcode == E_UNKNOWN_OPCODE)
-            message("Unknown opcode at $%04x [$%02x]", registers.PC-1, Read((uint16_t) (registers.PC - 1)));
-        else if (rcode == E_UNKNOWN_OPCODE_PAGE1)
-            message("Unknown page 1 opcode at $%04x [$%02x]", registers.PC-1, Read((uint16_t) (registers.PC - 1)));
-        else if (rcode == E_UNKNOWN_OPCODE_PAGE2)
-            message("Unknown page 2 opcode at $%04x [$%02x]", registers.PC-1), Read((uint16_t) (registers.PC - 1));
-    }
+        uint64_t cpu_cycles = 0;
+        // run one instruction on the CPU
+        // The VIA 6522 interrupt line is connected to the M6809 IRQ line
+        m6809_error_t rcode = cpu_->Execute(cpu_cycles, (via_->GetIRQ()) ? IRQ : NONE);
+        if (rcode != E_SUCCESS)
+        {
+            auto registers = cpu_->getRegisters();
+            if (rcode == E_UNKNOWN_OPCODE)
+                message("Unknown opcode at $%04x [$%02x]", registers.PC - 1, Read((uint16_t) (registers.PC - 1)));
+            else if (rcode == E_UNKNOWN_OPCODE_PAGE1)
+                message("Unknown page 1 opcode at $%04x [$%02x]", registers.PC - 1,
+                        Read((uint16_t) (registers.PC - 1)));
+            else if (rcode == E_UNKNOWN_OPCODE_PAGE2)
+                message("Unknown page 2 opcode at $%04x [$%02x]", registers.PC - 1),
+                        Read((uint16_t) (registers.PC - 1));
+        }
 
-    return cpu_cycles;
+        // run the VIA for the same number of cycles
+        for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
+        {
+            via_->Execute();
+            this->cycles++;
+        }
+
+        cycles_run += cpu_cycles;
+        cycles -= cpu_cycles;
+    }
+    return cycles_run;
 }
 
 bool Vectrex::LoadCartridge(const uint8_t *data, size_t size)
@@ -85,6 +101,7 @@ static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
 Vectrex::Vectrex() noexcept
 {
     cpu_ = std::make_unique<M6809>();
+    via_ = std::make_unique<VIA6522>();
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
 }
@@ -111,6 +128,7 @@ uint8_t Vectrex::Read(uint16_t addr)
         }
         else if (addr < 0xD800) {
             // D000-D7FF: 6522VIA I/O
+            return via_->Read((uint8_t) (addr & 0xf));
         }
     }
     return 0x00;
@@ -137,6 +155,7 @@ void Vectrex::Write(uint16_t addr, uint8_t data)
         }
         if (addr & 0x1000) {
             // D000-D7FF: 6522VIA I/O
+            via_->Write((uint8_t) (addr & 0xf), data);
         }
     }
 }
