@@ -322,6 +322,9 @@ class M6809
         Operand(M6809 &cpu) : cpu(cpu) { }
     };
 
+    // RW = 0  ; Read Only
+    // RW = 1  ; Read and Write
+    // RW = -1 ; Write Only
     template <typename T, typename Fn, int RW=1>
     struct MemoryOperand : Operand
     {
@@ -329,10 +332,11 @@ class M6809
 
         inline T operator ()(uint16_t &addr) {
             addr = Fn()(cpu);
-            return (sizeof(T) == 1) ? cpu.Read8(addr) : cpu.Read16(addr);
+            if (RW >= 0)
+                return (sizeof(T) == 1) ? cpu.Read8(addr) : cpu.Read16(addr);
         }
         void update(uint16_t addr, T data) {
-            if (RW)
+            if (RW != 0)
             {
                 if (sizeof(T) == 1)
                     cpu.Write8(addr, data);
@@ -415,6 +419,14 @@ class M6809
     using ExtendedOperand16  = MemoryOperand<uint16_t, extended>;
     using IndexedOperand8    = MemoryOperand<uint8_t,  indexed>;
     using IndexedOperand16   = MemoryOperand<uint16_t, indexed>;
+
+    // Update only memory operands
+    using DirectOperand8_WO    = MemoryOperand<uint8_t,  direct,   -1>;
+    using DirectOperand16_WO   = MemoryOperand<uint16_t, direct,   -1>;
+    using ExtendedOperand8_WO  = MemoryOperand<uint8_t,  extended, -1>;
+    using ExtendedOperand16_WO = MemoryOperand<uint16_t, extended, -1>;
+    using IndexedOperand8_WO   = MemoryOperand<uint8_t,  indexed,  -1>;
+    using IndexedOperand16_WO  = MemoryOperand<uint16_t, indexed,  -1>;
 
     using DirectEA       = OperandEA<direct>;
     using IndexedEA      = OperandEA<indexed>;
@@ -911,9 +923,10 @@ class M6809
     using op_clra_inherent = opcode<op_clr, RegisterA,        inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
     using op_clrb_inherent = opcode<op_clr, RegisterB,        inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
 
-    using op_clr_direct    = opcode<op_clr, DirectOperand8,   inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
-    using op_clr_indexed   = opcode<op_clr, IndexedOperand8,  inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
-    using op_clr_extended  = opcode<op_clr, ExtendedOperand8, inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    // these memory operands are update only
+    using op_clr_direct    = opcode<op_clr, DirectOperand8_WO,   inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    using op_clr_indexed   = opcode<op_clr, IndexedOperand8_WO,  inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
+    using op_clr_extended  = opcode<op_clr, ExtendedOperand8_WO, inherent, compute_flags<0, FLAG_Z, FLAG_N|FLAG_V|FLAG_C>>;
 
     // CMP
     using op_cmpa_immediate = opcode<op_sub<uint8_t>,   RegisterA_RO,   ImmediateOperand8,  FlagMaths>;
@@ -1139,34 +1152,34 @@ class M6809
     // SEX sign extend A in to B
     using op_sex_inherent   = opcode<op_sex, RegisterB, RegisterA, compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>>;
 
-    // ST (reverse of LD)
-    using op_sta_direct     = opcode<op_copy<uint8_t>,   DirectOperand8,     RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
-    using op_sta_indexed    = opcode<op_copy<uint8_t>,   IndexedOperand8,    RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
-    using op_sta_extended   = opcode<op_copy<uint8_t>,   ExtendedOperand8,   RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    // ST (reverse of LD, the memory locations are update only)
+    using op_sta_direct     = opcode<op_copy<uint8_t>,   DirectOperand8_WO,     RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    using op_sta_indexed    = opcode<op_copy<uint8_t>,   IndexedOperand8_WO,    RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    using op_sta_extended   = opcode<op_copy<uint8_t>,   ExtendedOperand8_WO,   RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
 
-    using op_stb_direct     = opcode<op_copy<uint8_t>,   DirectOperand8,     RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
-    using op_stb_indexed    = opcode<op_copy<uint8_t>,   IndexedOperand8,    RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
-    using op_stb_extended   = opcode<op_copy<uint8_t>,   ExtendedOperand8,   RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    using op_stb_direct     = opcode<op_copy<uint8_t>,   DirectOperand8_WO,     RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    using op_stb_indexed    = opcode<op_copy<uint8_t>,   IndexedOperand8_WO,    RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
+    using op_stb_extended   = opcode<op_copy<uint8_t>,   ExtendedOperand8_WO,   RegisterB,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>>;
 
-    using op_std_direct     = opcode<op_copy<uint16_t>,  DirectOperand16,    RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_std_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16,   RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_std_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16,  RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_std_direct     = opcode<op_copy<uint16_t>,  DirectOperand16_WO,    RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_std_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16_WO,   RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_std_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16_WO,  RegisterD,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
 
-    using op_sts_direct     = opcode<op_copy<uint16_t>,  DirectOperand16,    RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_sts_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16,   RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_sts_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16,  RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sts_direct     = opcode<op_copy<uint16_t>,  DirectOperand16_WO,    RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sts_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16_WO,   RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sts_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16_WO,  RegisterSP,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
 
-    using op_stu_direct     = opcode<op_copy<uint16_t>,  DirectOperand16,    RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_stu_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16,   RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_stu_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16,  RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stu_direct     = opcode<op_copy<uint16_t>,  DirectOperand16_WO,    RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stu_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16_WO,   RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stu_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16_WO,  RegisterUSP, compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
 
-    using op_stx_direct     = opcode<op_copy<uint16_t>,  DirectOperand16,    RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_stx_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16,   RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_stx_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16,  RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stx_direct     = opcode<op_copy<uint16_t>,  DirectOperand16_WO,    RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stx_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16_WO,   RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_stx_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16_WO,  RegisterX,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
 
-    using op_sty_direct     = opcode<op_copy<uint16_t>,  DirectOperand16,    RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_sty_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16,   RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
-    using op_sty_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16,  RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sty_direct     = opcode<op_copy<uint16_t>,  DirectOperand16_WO,    RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sty_indexed    = opcode<op_copy<uint16_t>,  IndexedOperand16_WO,   RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
+    using op_sty_extended   = opcode<op_copy<uint16_t>,  ExtendedOperand16_WO,  RegisterY,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V, uint16_t>>;
 
     // SUB
     using op_suba_immediate = opcode<op_sub<uint8_t>,  RegisterA,         ImmediateOperand8,  FlagMaths>;
