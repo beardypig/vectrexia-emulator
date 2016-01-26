@@ -19,15 +19,16 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef VECTREXIA_VECTREXIA_H
 #define VECTREXIA_VECTREXIA_H
 
-#include <stdint.h>
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdarg>
+#include <cstdio>
 #include <array>
 #include <vector>
 #include <memory>
 #include "cartridge.h"
 #include "sysrom.h"
 #include "m6809.h"
+#include "via6522.h"
 
 
 class Vectrex
@@ -43,7 +44,9 @@ class Vectrex
 
     std::unique_ptr<Cartridge> cartridge_{};
     std::unique_ptr<M6809> cpu_{};
+    std::unique_ptr<VIA6522> via_;
 
+    uint64_t cycles;
 
 public:
     Vectrex() noexcept;
