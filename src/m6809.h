@@ -42,10 +42,16 @@ enum register_task_t {
     REG_PC = 0x80
 };
 
-enum m6809_interrupt_t {
+enum m6809_interrupt_state_t
+{
     IRQ_NORMAL,
     IRQ_WAIT,
     IRQ_SYNC
+};
+
+enum m6809_interrupt_t
+{
+    NONE, IRQ, FIRQ, NMI
 };
 
 struct M6809Registers;
@@ -56,11 +62,12 @@ class M6809
     using write_callback_t = void (*)(intptr_t, uint16_t, uint8_t);
     using opcode_handler_t = void (*)(M6809 &, int &);
 
-    static const uint16_t RESET_VECTOR = 0xfffe;
-    static const uint16_t NMI_VECTOR   = 0xfffc;
+    const uint16_t RESET_VECTOR = 0xfffe;
+    const uint16_t NMI_VECTOR   = 0xfffc;
+    const uint16_t IRQ_VECTOR   = 0xfff8;
+    const uint16_t FIRQ_VECTOR  = 0xfff6;
+
     static const uint16_t SWI1_VECTOR  = 0xfffa;
-    static const uint16_t IRQ_VECTOR   = 0xfff8;
-    static const uint16_t FIRQ_VECTOR  = 0xfff6;
     static const uint16_t SWI2_VECTOR  = 0xfff4;
     static const uint16_t SWI3_VECTOR  = 0xfff2;
 
@@ -111,7 +118,7 @@ class M6809
     write_callback_t write_callback_func;
     intptr_t write_callback_ref;
 
-    m6809_interrupt_t irq_state = IRQ_NORMAL;
+    m6809_interrupt_state_t irq_state = IRQ_NORMAL;
 
     uint16_t *index_mode_register_table[4] = {
             &registers.X,
@@ -534,7 +541,7 @@ class M6809
     struct op_rti {
         // pull the registers and then the pc
         uint16_t operator() (M6809& cpu, const uint8_t &operand) {
-            uint8_t register_mask = (cpu.registers.flags.E) ? 0xff : 0x81;
+            uint8_t register_mask = (cpu.registers.flags.E) ? (uint8_t)0xff : (uint8_t)0x81;
             op_pull<reg_sp, reg_usp>()(cpu, register_mask);
             return cpu.Pull16(cpu.registers.SP);
         }
@@ -1237,7 +1244,7 @@ public:
     void SetWriteCallback(write_callback_t func, intptr_t ref);
 
     // Exceture one instruction and updated the number of cycles that it took
-    m6809_error_t Execute(int &cycles, bool irq, bool firq, bool nmi);
+    m6809_error_t Execute(int &cycles, m6809_interrupt_t irq=NONE);
 
     // flag computation
     template<typename T>

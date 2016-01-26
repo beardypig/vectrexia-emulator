@@ -279,12 +279,44 @@ M6809::M6809()
 
 }
 
-m6809_error_t M6809::Execute(int &cycles, bool irq=false, bool firq=false, bool nmi=false)
+m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
 {
 
     auto dis_addr = registers.PC;
     std::cout << dis_.disasm(dis_addr) << std::endl;
     // std::cout << "  # " << dis_addr - registers.PC << std::endl;
+
+    // if there is an interrupt and the SYNC had been called, then end the sync wait
+    if (irq != NONE && irq_state == IRQ_SYNC) {
+        irq_state = IRQ_NORMAL;
+    }
+
+    // IRQ and NMI are the same, except NMI cannot be masked
+    if ((irq == IRQ && !registers.flags.I) || irq == NMI)
+    {
+        if (irq_state == IRQ_NORMAL) {
+            registers.flags.E = 1;
+            // Push PC,CC
+            op_push<reg_sp, reg_usp>()(*this, 0xff);
+        }
+        registers.CC |= FLAG_I|FLAG_F;
+
+        registers.PC = Read16((irq == IRQ) ? IRQ_VECTOR : NMI_VECTOR);
+        irq_state = IRQ_NORMAL;
+    }
+    // handled if the FIRQ interrupt isn't masked
+    else if (irq == FIRQ && !registers.flags.F)
+    {
+        if (irq_state == IRQ_NORMAL) {
+            registers.flags.E = 0;
+            // Push PC,CC
+            op_push<reg_sp, reg_usp>()(*this, 0x81);
+        }
+        registers.CC |= FLAG_I|FLAG_F;
+
+        registers.PC = Read16(FIRQ_VECTOR);
+        irq_state = IRQ_NORMAL;
+    }
 
 
     // if the IRQ state is WAIT or SYNC, then just clock one cycle
