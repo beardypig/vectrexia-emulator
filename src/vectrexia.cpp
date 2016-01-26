@@ -108,7 +108,6 @@ Vectrex::Vectrex() noexcept
 
 uint8_t Vectrex::Read(uint16_t addr)
 {
-    printf("Reading from addr: $%04x\n", addr);
     // 0000-7FFF: cartridge
     if (addr < 0x8000 && cartridge_) {
         return cartridge_->Read(addr);
