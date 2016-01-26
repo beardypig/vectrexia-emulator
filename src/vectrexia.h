@@ -20,11 +20,14 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_VECTREXIA_H
 
 #include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <array>
 #include <vector>
 #include <memory>
 #include "cartridge.h"
 #include "sysrom.h"
+#include "m6809.h"
 
 
 class Vectrex
@@ -39,10 +42,11 @@ class Vectrex
     std::array<uint8_t, 1024> ram_;
 
     std::unique_ptr<Cartridge> cartridge_;
+    std::unique_ptr<M6809> cpu_;
 
 
 public:
-    Vectrex() = default;
+    Vectrex();
     void Reset();
     long Run(long cycles);
 
@@ -51,6 +55,11 @@ public:
 
     const char *GetName();
     const char *GetVersion();
+
+    uint8_t Read(uint16_t addr);
+    void Write(uint16_t addr, uint8_t data);
+
+    void message(const char *fmt, ...);
 
 };
 

@@ -71,7 +71,7 @@ M6809::M6809()
     opcode_handlers[0x43] = std::addressof(opcodewrap<op_coma_inherent>);
     opcode_handlers[0x53] = std::addressof(opcodewrap<op_comb_inherent>);
     opcode_handlers[0x3C] = std::addressof(opcodewrap<op_cwai_immediate>);
-    //opcode_handlers[0x19] = std::addressof(opcodewrap<op_daa_inherent>);
+    opcode_handlers[0x19] = std::addressof(opcodewrap<op_daa_inherent>);
     opcode_handlers[0x0A] = std::addressof(opcodewrap<op_dec_direct>);
     opcode_handlers[0x7A] = std::addressof(opcodewrap<op_dec_extended>);
     opcode_handlers[0x6A] = std::addressof(opcodewrap<op_dec_indexed>);
@@ -94,9 +94,9 @@ M6809::M6809()
     opcode_handlers[0x0E] = std::addressof(opcodewrap<op_jmp_direct>);
     opcode_handlers[0x7E] = std::addressof(opcodewrap<op_jmp_extended>);
     opcode_handlers[0x6E] = std::addressof(opcodewrap<op_jmp_indexed>);
-    //opcode_handlers[0x9D] = std::addressof(opcodewrap<op_jsr_direct>);
-    //opcode_handlers[0xBD] = std::addressof(opcodewrap<op_jsr_extended>);
-    //opcode_handlers[0xAD] = std::addressof(opcodewrap<op_jsr_indexed>);
+    opcode_handlers[0x9D] = std::addressof(opcodewrap<op_jsr_direct>);
+    opcode_handlers[0xBD] = std::addressof(opcodewrap<op_jsr_extended>);
+    opcode_handlers[0xAD] = std::addressof(opcodewrap<op_jsr_indexed>);
     opcode_handlers[0x96] = std::addressof(opcodewrap<op_lda_direct>);
     opcode_handlers[0xB6] = std::addressof(opcodewrap<op_lda_extended>);
     opcode_handlers[0x86] = std::addressof(opcodewrap<op_lda_immediate>);
@@ -131,7 +131,7 @@ M6809::M6809()
     opcode_handlers[0x64] = std::addressof(opcodewrap<op_lsr_indexed>);
     opcode_handlers[0x44] = std::addressof(opcodewrap<op_lsra_inherent>);
     opcode_handlers[0x54] = std::addressof(opcodewrap<op_lsrb_inherent>);
-    //opcode_handlers[0x3D] = std::addressof(opcodewrap<op_mul_inherent>);
+    opcode_handlers[0x3D] = std::addressof(opcodewrap<op_mul_inherent>);
     opcode_handlers[0x00] = std::addressof(opcodewrap<op_neg_direct>);
     opcode_handlers[0x70] = std::addressof(opcodewrap<op_neg_extended>);
     opcode_handlers[0x60] = std::addressof(opcodewrap<op_neg_indexed>);
@@ -161,8 +161,8 @@ M6809::M6809()
     opcode_handlers[0x66] = std::addressof(opcodewrap<op_ror_indexed>);
     opcode_handlers[0x46] = std::addressof(opcodewrap<op_rora_inherent>);
     opcode_handlers[0x56] = std::addressof(opcodewrap<op_rorb_inherent>);
-    //opcode_handlers[0x3B] = std::addressof(opcodewrap<op_rti_inherent>);
-    //opcode_handlers[0x39] = std::addressof(opcodewrap<op_rts_inherent>);
+    opcode_handlers[0x3B] = std::addressof(opcodewrap<op_rti_inherent>);
+    opcode_handlers[0x39] = std::addressof(opcodewrap<op_rts_inherent>);
     opcode_handlers[0x92] = std::addressof(opcodewrap<op_sbca_direct>);
     opcode_handlers[0xB2] = std::addressof(opcodewrap<op_sbca_extended>);
     opcode_handlers[0x82] = std::addressof(opcodewrap<op_sbca_immediate>);
@@ -199,8 +199,8 @@ M6809::M6809()
     opcode_handlers[0xB3] = std::addressof(opcodewrap<op_subd_extended>);
     opcode_handlers[0x83] = std::addressof(opcodewrap<op_subd_immediate>);
     opcode_handlers[0xA3] = std::addressof(opcodewrap<op_subd_indexed>);
-    //opcode_handlers[0x3F] = std::addressof(opcodewrap<op_swi1_inherent>);
-    //opcode_handlers[0x13] = std::addressof(opcodewrap<op_sync_inherent>);
+    opcode_handlers[0x3F] = std::addressof(opcodewrap<op_swi1_inherent>);
+    opcode_handlers[0x13] = std::addressof(opcodewrap<op_sync_inherent>);
     opcode_handlers[0x1F] = std::addressof(opcodewrap<op_tfr_immediate>);
     opcode_handlers[0x0D] = std::addressof(opcodewrap<op_tst_direct>);
     opcode_handlers[0x7D] = std::addressof(opcodewrap<op_tst_extended>);
@@ -208,8 +208,8 @@ M6809::M6809()
     opcode_handlers[0x4D] = std::addressof(opcodewrap<op_tsta_inherent>);
     opcode_handlers[0x5D] = std::addressof(opcodewrap<op_tstb_inherent>);
 
-    //opcode_handlers_page1[0x3f] = std::addressof(opcodewrap<op_swi2_inherent>);
-    //opcode_handlers_page2[0x3f] = std::addressof(opcodewrap<op_swi3_inherent>);
+    opcode_handlers_page1[0x3f] = std::addressof(opcodewrap<op_swi2_inherent>);
+    opcode_handlers_page2[0x3f] = std::addressof(opcodewrap<op_swi3_inherent>);
     opcode_handlers_page1[0x9f] = std::addressof(opcodewrap<op_sty_direct>);
     opcode_handlers_page1[0xaf] = std::addressof(opcodewrap<op_sty_indexed>);
     opcode_handlers_page1[0xbf] = std::addressof(opcodewrap<op_sty_extended>);
@@ -240,26 +240,60 @@ M6809::M6809()
     opcode_handlers_page2[0xac] = std::addressof(opcodewrap<op_cmps_indexed>);
     opcode_handlers_page2[0xb3] = std::addressof(opcodewrap<op_cmpu_extended>);
     opcode_handlers_page2[0xbc] = std::addressof(opcodewrap<op_cmps_extended>);
-    //Reset();
+
+    // branches
+    opcode_handlers[0x20] = std::addressof(opcodewrap<op_bra_inherent>);
+    opcode_handlers[0x16] = std::addressof(opcodewrap<op_lbra_inherent>);
+    opcode_handlers[0x21] = std::addressof(opcodewrap<op_brn_inherent>);
+    opcode_handlers_page1[0x21] = std::addressof(opcodewrap<op_lbrn_inherent>);
+    opcode_handlers[0x25] = std::addressof(opcodewrap<op_bcs_inherent>);
+    opcode_handlers_page1[0x25] = std::addressof(opcodewrap<op_lbcs_inherent>);
+    opcode_handlers[0x24] = std::addressof(opcodewrap<op_bcc_inherent>);
+    opcode_handlers_page1[0x24] = std::addressof(opcodewrap<op_lbcc_inherent>);
+    opcode_handlers[0x22] = std::addressof(opcodewrap<op_bhi_inherent>);
+    opcode_handlers_page1[0x22] = std::addressof(opcodewrap<op_lbhi_inherent>);
+    opcode_handlers[0x23] = std::addressof(opcodewrap<op_bls_inherent>);
+    opcode_handlers_page1[0x23] = std::addressof(opcodewrap<op_lbls_inherent>);
+    opcode_handlers[0x27] = std::addressof(opcodewrap<op_beq_inherent>);
+    opcode_handlers_page1[0x27] = std::addressof(opcodewrap<op_lbeq_inherent>);
+    opcode_handlers[0x26] = std::addressof(opcodewrap<op_bne_inherent>);
+    opcode_handlers_page1[0x26] = std::addressof(opcodewrap<op_lbne_inherent>);
+    opcode_handlers[0x2E] = std::addressof(opcodewrap<op_bgt_inherent>);
+    opcode_handlers_page1[0x2E] = std::addressof(opcodewrap<op_lbgt_inherent>);
+    opcode_handlers[0x2D] = std::addressof(opcodewrap<op_blt_inherent>);
+    opcode_handlers_page1[0x2D] = std::addressof(opcodewrap<op_lblt_inherent>);
+    opcode_handlers[0x2C] = std::addressof(opcodewrap<op_bge_inherent>);
+    opcode_handlers_page1[0x2C] = std::addressof(opcodewrap<op_lbge_inherent>);
+    opcode_handlers[0x2F] = std::addressof(opcodewrap<op_ble_inherent>);
+    opcode_handlers_page1[0x2F] = std::addressof(opcodewrap<op_lble_inherent>);
+    opcode_handlers[0x2A] = std::addressof(opcodewrap<op_bpl_inherent>);
+    opcode_handlers_page1[0x2A] = std::addressof(opcodewrap<op_lbpl_inherent>);
+    opcode_handlers[0x2B] = std::addressof(opcodewrap<op_bmi_inherent>);
+    opcode_handlers_page1[0x2B] = std::addressof(opcodewrap<op_lbmi_inherent>);
+    opcode_handlers[0x29] = std::addressof(opcodewrap<op_bvs_inherent>);
+    opcode_handlers_page1[0x29] = std::addressof(opcodewrap<op_lbvs_inherent>);
+    opcode_handlers[0x28] = std::addressof(opcodewrap<op_bvc_inherent>);
+    opcode_handlers_page1[0x28] = std::addressof(opcodewrap<op_lbvc_inherent>);
+    opcode_handlers[0x8D] = std::addressof(opcodewrap<op_bsr_relative>);
+    opcode_handlers[0x17] = std::addressof(opcodewrap<op_lbsr_relative>);
+
 }
 
-void M6809::Reset()
+m6809_error_t M6809::Execute(int &cycles, bool irq=false, bool firq=false, bool nmi=false)
 {
-    registers.A = 0;
-    registers.B = 0;
-    registers.X = 0;
-    registers.Y = 0;
-    registers.USP = 0;
-    registers.SP = 0;
-    registers.DP = 0;
-    registers.CC = 0;
 
-    // reset sets the PC to the reset vector found at $FFFE
-    registers.PC = Read16(RESET_VECTOR);
-}
+    auto dis_addr = registers.PC;
+    std::cout << dis_.disasm(dis_addr) << std::endl;
+    // std::cout << "  # " << dis_addr - registers.PC << std::endl;
 
-m6809_error_t M6809::Execute(int &cycles)
-{
+
+    // if the IRQ state is WAIT or SYNC, then just clock one cycle
+    if (irq_state != IRQ_NORMAL)
+    {
+        cycles += 1;
+        return E_SUCCESS;
+    }
+
     uint8_t opcode = NextOpcode();
     cycles += 1;
 
@@ -299,8 +333,6 @@ m6809_error_t M6809::Execute(int &cycles)
             return E_SUCCESS;
         }
         else {
-            //printf("Unknown opcode 0x%02x\n", opcode);
-            //std::cout << "Uknown opcode" << std::hex << opcode << std::endl;
             return E_UNKNOWN_OPCODE;
         }
     }
@@ -310,10 +342,28 @@ void M6809::SetReadCallback(M6809::read_callback_t func, intptr_t ref)
 {
     read_callback_func = func;
     read_callback_ref = ref;
+
+    dis_.SetReadCallback(func, ref);
 }
 
 void M6809::SetWriteCallback(M6809::write_callback_t func, intptr_t ref)
 {
     write_callback_func = func;
     write_callback_ref = ref;
+}
+
+void M6809::Reset()
+{
+    registers.A = 0;
+    registers.B = 0;
+    registers.X = 0;
+    registers.Y = 0;
+    registers.USP = 0;
+    registers.SP = 0;
+    registers.DP = 0;
+    registers.CC = 0;
+
+    // reset sets the PC to the reset vector found at $FFFE
+    registers.PC = Read16(RESET_VECTOR);
+    printf("Reset Vector: $%04x\n", registers.PC);
 }

@@ -52,7 +52,7 @@ TEST(M6809OpCodes, ABX_INHERENT)
 
     registers.B = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
 
     EXPECT_EQ(0x10, registers.X);
 }
@@ -74,7 +74,7 @@ TEST(M6809OpCodes, ADDA_IMMEDIATE)
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
     EXPECT_EQ(0x20, registers.A);
 }
 
@@ -97,7 +97,7 @@ TEST(M6809OpCodes, ADDA_DIRECT)
     EXPECT_CALL(mem, Write(0x0010, 0x25));
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
 
     // register A should remain unchanged.
     EXPECT_EQ(0x10, registers.A);
@@ -124,7 +124,7 @@ TEST(M6809OpCodes, ADDA_EXTENDED)
     EXPECT_CALL(mem, Write(0x1001, 0x25));
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
 
     // register A should remain unchanged.
     EXPECT_EQ(0x10, registers.A);
@@ -148,7 +148,7 @@ TEST(M6809OpCodes, ADDD_IMMEDIATE)
 
     registers.D = 0x2010;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
 
     EXPECT_EQ(registers.PC, 3);
 
@@ -172,7 +172,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE)
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
     EXPECT_EQ(0x00, registers.A);
 }
 
@@ -189,7 +189,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE2)
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
     EXPECT_EQ(0xfe, registers.A);
 }
 
@@ -209,7 +209,7 @@ TEST(M6809OpCodes, BITA_IMMEDIATE)
 
     registers.A = 0xFF;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles, false, false, false));
     EXPECT_EQ(0xFF, registers.A);
     // no flags should be set
     EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
@@ -228,6 +228,6 @@ TEST(M6809OpCodes, ILLEGAL_OP)
     EXPECT_CALL(mem, Read(_))
             .WillOnce(Return(0x05));
 
-    EXPECT_EQ(E_UNKNOWN_OPCODE, cpu.Execute(cycles));
+    EXPECT_EQ(E_UNKNOWN_OPCODE, cpu.Execute(cycles, false, false, false));
 
 }
