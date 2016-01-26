@@ -130,7 +130,7 @@ M6809Disassemble::M6809Disassemble()
     disasm_handlers[0xF8] = std::addressof(opcodewrap<opcode<op_eorb, ExtendedAddressing>>);
     disasm_handlers[0xC8] = std::addressof(opcodewrap<opcode<op_eorb, ImmediateAddressing8>>);
     disasm_handlers[0xE8] = std::addressof(opcodewrap<opcode<op_eorb, IndexedAddressing>>);
-    disasm_handlers[0x1E] = std::addressof(opcodewrap<opcode<op_exg, ImmediateAddressing8>>);
+    disasm_handlers[0x1E] = std::addressof(disasm_exg_tbl<op_exg>);
     disasm_handlers[0x0C] = std::addressof(opcodewrap<opcode<op_inc, DirectAddressing>>);
     disasm_handlers[0x7C] = std::addressof(opcodewrap<opcode<op_inc, ExtendedAddressing>>);
     disasm_handlers[0x6C] = std::addressof(opcodewrap<opcode<op_inc, IndexedAddressing>>);
@@ -246,7 +246,7 @@ M6809Disassemble::M6809Disassemble()
     disasm_handlers[0xA3] = std::addressof(opcodewrap<opcode<op_subd, IndexedAddressing>>);
     disasm_handlers[0x3F] = std::addressof(opcodewrap<opcode<op_swi1, InherentAddressing>>);
     disasm_handlers[0x13] = std::addressof(opcodewrap<opcode<op_sync, InherentAddressing>>);
-    disasm_handlers[0x1F] = std::addressof(opcodewrap<opcode<op_tfr, ImmediateAddressing8>>);
+    disasm_handlers[0x1F] = std::addressof(disasm_exg_tbl<op_tfr>);
     disasm_handlers[0x0D] = std::addressof(opcodewrap<opcode<op_tst, DirectAddressing>>);
     disasm_handlers[0x7D] = std::addressof(opcodewrap<opcode<op_tst, ExtendedAddressing>>);
     disasm_handlers[0x6D] = std::addressof(opcodewrap<opcode<op_tst, IndexedAddressing>>);

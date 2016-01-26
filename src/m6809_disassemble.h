@@ -27,6 +27,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <functional>
 #include <sstream>
 #include <array>
+#include <vector>
 
 class M6809Disassemble
 {
@@ -41,6 +42,7 @@ class M6809Disassemble
     std::array<disasm_handler_t, 0x100> disasm_handlers_page1;
     std::array<disasm_handler_t, 0x100> disasm_handlers_page2;
     const char index_mode_register_table[4] = {'x', 'y', 'u', 's'};
+    const char *exg_register_table[0xc] = {"d", "x", "y", "u", "s", "pc", "INVALID_REG", "s", "a", "b", "cc", "dp"};
 
     inline uint8_t Read8(const uint16_t &addr)
     {
@@ -352,6 +354,15 @@ class M6809Disassemble
         }
     };
 
+    template <typename mnemonic>
+    static std::string disasm_exg_tbl(M6809Disassemble& dis, uint16_t &addr)
+    {
+        auto post_byte = dis.Read8(addr++);
+        auto reg_a = dis.exg_register_table[(post_byte >> 4) & 0xf];
+        auto reg_b = dis.exg_register_table[post_byte & 0x0f];
+        return mnemonic()() + str_format(" %s, %s", reg_a, reg_b);
+    }
+
     template<typename Op>
     static std::string opcodewrap(M6809Disassemble& dis, uint16_t &addr)
     {
@@ -360,7 +371,6 @@ class M6809Disassemble
 
     static std::string disasm_page1(M6809Disassemble& dis, uint16_t &addr);
     static std::string disasm_page2(M6809Disassemble& dis, uint16_t &addr);
-
 
     static std::string str_format(const char *fmt, ...);
 

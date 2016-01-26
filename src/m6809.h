@@ -145,18 +145,8 @@ class M6809
             &registers.SP
     };
 
-    intptr_t exg_register_table[0xc] = {
-            reinterpret_cast<intptr_t >(&registers.D),
-            reinterpret_cast<intptr_t >(&registers.X),
-            reinterpret_cast<intptr_t >(&registers.Y),
-            reinterpret_cast<intptr_t >(&registers.USP),
-            0, 0,
-            reinterpret_cast<intptr_t >(&registers.SP),
-            reinterpret_cast<intptr_t >(&registers.A),
-            reinterpret_cast<intptr_t >(&registers.B),
-            reinterpret_cast<intptr_t >(&registers.CC),
-            reinterpret_cast<intptr_t >(&registers.DP),
-    };
+    uint16_t *exg_register_table_16[6] = { &registers.D, &registers.X, &registers.Y, &registers.USP, &registers.SP, &registers.PC };
+    uint8_t *exg_register_table_8[4] = {  &registers.A, &registers.B, &registers.CC, &registers.DP };
 
     inline uint8_t Read8(const uint16_t &addr)
     {
@@ -591,42 +581,50 @@ class M6809
     };
 
     struct op_exg {
-        uint8_t operator() (const M6809& cpu, const uint8_t &operand) {
-            intptr_t reg_1 = cpu.exg_register_table[operand & 0xf];
-            intptr_t reg_2 = cpu.exg_register_table[(operand >> 4) & 0xf];
+        uint8_t operator() (M6809& cpu, const uint8_t &operand) {
+            auto reg_1_n = (operand >> 4) & 0xf;
+            auto reg_2_n = operand & 0xf;
 
-            auto a_is_8 = (operand & 0x80) >> 7;
-            auto b_is_8 = (operand & 0x8) >> 3;
+            auto a_is_8 = reg_1_n > 5;
+            auto b_is_8 = reg_2_n > 5;
 
             if (a_is_8 && b_is_8)
-                op_swap_registers<uint8_t, uint8_t>()(reinterpret_cast<uint8_t&>(reg_1), reinterpret_cast<uint8_t&>(reg_2));
+                op_swap_registers<uint8_t, uint8_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                                      (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             else if (a_is_8 && !b_is_8)
-                op_swap_registers<uint8_t, uint16_t>()(reinterpret_cast<uint8_t&>(reg_1), reinterpret_cast<uint16_t&>(reg_2));
+                op_swap_registers<uint8_t, uint16_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                                       (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && !b_is_8)
-                op_swap_registers<uint16_t, uint16_t>()(reinterpret_cast<uint16_t&>(reg_1), reinterpret_cast<uint16_t&>(reg_2));
+                op_swap_registers<uint16_t, uint16_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                                        (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && b_is_8)
-                op_swap_registers<uint16_t, uint8_t>()(reinterpret_cast<uint16_t&>(reg_1), reinterpret_cast<uint8_t&>(reg_2));
+                op_swap_registers<uint16_t, uint8_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                                       (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             return 0;
         }
     };
 
     struct op_tfr {
-        uint8_t operator() (const M6809& cpu, const uint8_t &operand) {
-            intptr_t reg_1 = cpu.exg_register_table[operand & 0xf];
-            intptr_t reg_2 = cpu.exg_register_table[(operand >> 4) & 0xf];
+        uint8_t operator() (M6809& cpu, const uint8_t &operand) {
+            auto reg_1_n = (operand >> 4) & 0xf;
+            auto reg_2_n = operand & 0xf;
 
-            auto a_is_8 = (operand & 0x80) >> 7;
-            auto b_is_8 = (operand & 0x8) >> 3;
+            auto a_is_8 = reg_1_n > 5;
+            auto b_is_8 = reg_2_n > 5;
 
             if (a_is_8 && b_is_8)
-                op_reg_assign<uint8_t, uint8_t>()(reinterpret_cast<uint8_t&>(reg_1), reinterpret_cast<uint8_t&>(reg_2));
+                op_reg_assign<uint8_t, uint8_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                                  (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             else if (a_is_8 && !b_is_8)
-                op_reg_assign<uint8_t, uint16_t>()(reinterpret_cast<uint8_t&>(reg_1), reinterpret_cast<uint16_t&>(reg_2));
+                op_reg_assign<uint8_t, uint16_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                                   (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && !b_is_8)
-                op_reg_assign<uint16_t, uint8_t>()(reinterpret_cast<uint16_t&>(reg_1), reinterpret_cast<uint8_t&>(reg_2));
+                op_reg_assign<uint16_t, uint16_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                                    (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && b_is_8)
-                op_reg_assign<uint16_t, uint16_t>()(reinterpret_cast<uint16_t&>(reg_1), reinterpret_cast<uint16_t&>(reg_2));
-            return operand;
+                op_reg_assign<uint16_t, uint8_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                                   (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
+            return 0;
         }
     };
 
