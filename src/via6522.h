@@ -132,7 +132,7 @@ enum {
 class VIA6522
 {
     using port_callback_t = uint8_t (*)(intptr_t);
-    using update_callback_t = void (*)(intptr_t, uint8_t, uint8_t, bool, bool, bool, bool);
+    using update_callback_t = void (*)(intptr_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 
     struct Timer
     {

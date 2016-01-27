@@ -100,12 +100,21 @@ static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
     reinterpret_cast<Vectrex*>(ref)->Write(addr, data);
 }
 
+static void vectrex_peripheral_step(intptr_t ref,
+                                    uint8_t porta, uint8_t portb,
+                                    uint8_t ca1, uint8_t ca2,
+                                    uint8_t cb1, uint8_t cb2)
+{
+    reinterpret_cast<Vectrex*>(ref)->PeripheralStep(porta, portb, ca1, ca2, cb1, cb2);
+}
+
 Vectrex::Vectrex()
 {
     cpu_ = std::make_unique<M6809>();
     via_ = std::make_unique<VIA6522>();
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
+    via_->SetUpdateCallback(vectrex_peripheral_step, reinterpret_cast<intptr_t>(this));
 }
 
 uint8_t Vectrex::Read(uint16_t addr)
@@ -181,4 +190,14 @@ M6809 &Vectrex::GetM6809()
 VIA6522 &Vectrex::GetVIA6522()
 {
     return *via_;
+}
+
+void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t ca2, uint8_t cb1, uint8_t cb2)
+{
+    vector_buffer.BeamStep(porta, portb, ca2, cb2);
+}
+
+VectorFrameBuffer &Vectrex::GetVectorizer()
+{
+    return vector_buffer;
 }

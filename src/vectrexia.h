@@ -29,6 +29,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "sysrom.h"
 #include "m6809.h"
 #include "via6522.h"
+#include "vectorframebuffer.h"
 
 
 class Vectrex
@@ -45,6 +46,7 @@ class Vectrex
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<M6809> cpu_;
     std::unique_ptr<VIA6522> via_;
+    VectorFrameBuffer vector_buffer;
 
     uint64_t cycles;
 
@@ -62,10 +64,13 @@ public:
     uint8_t Read(uint16_t addr);
     void Write(uint16_t addr, uint8_t data);
 
+    void PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t ca2, uint8_t cb1, uint8_t cb2);
+
     void message(const char *fmt, ...);
 
     M6809 &GetM6809();
     VIA6522 &GetVIA6522();
+    VectorFrameBuffer &GetVectorizer();
 
 };
 
