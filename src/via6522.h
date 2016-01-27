@@ -190,7 +190,7 @@ class VIA6522
         }
     };
 
-    struct
+    struct Registers
     {
         union
         {
@@ -295,6 +295,10 @@ public:
 
     uint8_t GetIRQ();
 
+    Registers &GetRegisters();
+    Timer &GetTimer1();
+    Timer &GetTimer2();
+    ShiftRegister &GetShiftregister();
 
 };
 

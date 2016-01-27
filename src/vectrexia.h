@@ -65,6 +65,7 @@ public:
     void message(const char *fmt, ...);
 
     M6809 &GetM6809();
+    VIA6522 &GetVIA6522();
 
 };
 

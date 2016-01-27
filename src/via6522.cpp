@@ -456,3 +456,23 @@ uint8_t VIA6522::GetIRQ()
 {
     return registers.IFR & IRQ_MASK;
 }
+
+VIA6522::Registers &VIA6522::GetRegisters()
+{
+    return registers;
+}
+
+VIA6522::Timer &VIA6522::GetTimer1()
+{
+    return timer1;
+}
+
+VIA6522::Timer &VIA6522::GetTimer2()
+{
+    return timer2;
+}
+
+VIA6522::ShiftRegister &VIA6522::GetShiftregister()
+{
+    return sr;
+}

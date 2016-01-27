@@ -110,7 +110,7 @@ Vectrex::Vectrex()
 
 uint8_t Vectrex::Read(uint16_t addr)
 {
-    printf("Reading from addr: $%04x\n", addr);
+    //printf("Reading from addr: $%04x\n", addr);
     // 0000-7FFF: cartridge
     if (addr < 0x8000 && cartridge_) {
         return cartridge_->Read(addr);
@@ -176,4 +176,9 @@ void Vectrex::message(const char *fmt, ...)
 M6809 &Vectrex::GetM6809()
 {
     return *cpu_;
+}
+
+VIA6522 &Vectrex::GetVIA6522()
+{
+    return *via_;
 }
