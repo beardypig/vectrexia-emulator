@@ -33,7 +33,7 @@ enum m6809_error_t {
     E_UNKNOWN_OPCODE = -1,
     E_UNKNOWN_OPCODE_PAGE1 = -2,
     E_UNKNOWN_OPCODE_PAGE2 = -3,
-    E_ILLEGAL_INDEXING_MODE = -4,
+    E_ILLEGAL_INDEXING_MODE = -4
 };
 
 enum flag_mask_t {
@@ -127,7 +127,6 @@ class M6809
         };
 
     } registers;
-
 
     // memory accessors
     //   callbacks
@@ -334,6 +333,8 @@ class M6809
             addr = Fn()(cpu);
             if (RW >= 0)
                 return (sizeof(T) == 1) ? cpu.Read8(addr) : cpu.Read16(addr);
+            else
+                return 0;
         }
         void update(uint16_t addr, T data) {
             if (RW != 0)
@@ -1183,19 +1184,19 @@ class M6809
 
     // SUB
     using op_suba_immediate = opcode<op_sub<uint8_t>,  RegisterA,         ImmediateOperand8,  FlagMaths>;
-    using op_suba_direct    = opcode<op_sub<uint8_t>,  DirectOperand8,    RegisterA,          FlagMaths>;
-    using op_suba_indexed   = opcode<op_sub<uint8_t>,  IndexedOperand8,   RegisterA,          FlagMaths>;
-    using op_suba_extended  = opcode<op_sub<uint8_t>,  ExtendedOperand8,  RegisterA,          FlagMaths>;
+    using op_suba_direct    = opcode<op_sub<uint8_t>,  RegisterA,         DirectOperand8,     FlagMaths>;
+    using op_suba_indexed   = opcode<op_sub<uint8_t>,  RegisterA,         IndexedOperand8,    FlagMaths>;
+    using op_suba_extended  = opcode<op_sub<uint8_t>,  RegisterA,         ExtendedOperand8,   FlagMaths>;
 
     using op_subb_immediate = opcode<op_sub<uint8_t>,  RegisterB,         ImmediateOperand8,  FlagMaths>;
-    using op_subb_direct    = opcode<op_sub<uint8_t>,  DirectOperand8,    RegisterB,          FlagMaths>;
-    using op_subb_indexed   = opcode<op_sub<uint8_t>,  IndexedOperand8,   RegisterB,          FlagMaths>;
-    using op_subb_extended  = opcode<op_sub<uint8_t>,  ExtendedOperand8,  RegisterB,          FlagMaths>;
+    using op_subb_direct    = opcode<op_sub<uint8_t>,  RegisterB,         DirectOperand8,     FlagMaths>;
+    using op_subb_indexed   = opcode<op_sub<uint8_t>,  RegisterB,         IndexedOperand8,    FlagMaths>;
+    using op_subb_extended  = opcode<op_sub<uint8_t>,  RegisterB,         ExtendedOperand8,   FlagMaths>;
 
     using op_subd_immediate = opcode<op_sub<uint16_t>, RegisterD,         ImmediateOperand16, FlagMaths16>;
-    using op_subd_direct    = opcode<op_sub<uint16_t>, DirectOperand16,   RegisterD,          FlagMaths16>;
-    using op_subd_indexed   = opcode<op_sub<uint16_t>, IndexedOperand16,  RegisterD,          FlagMaths16>;
-    using op_subd_extended  = opcode<op_sub<uint16_t>, ExtendedOperand16, RegisterD,          FlagMaths16>;
+    using op_subd_direct    = opcode<op_sub<uint16_t>, RegisterD,         DirectOperand16,    FlagMaths16>;
+    using op_subd_indexed   = opcode<op_sub<uint16_t>, RegisterD,         IndexedOperand16,   FlagMaths16>;
+    using op_subd_extended  = opcode<op_sub<uint16_t>, RegisterD,         ExtendedOperand16,  FlagMaths16>;
 
     // SWI
     using op_swi1_inherent  = opcode<op_swi<SWI1_VECTOR, true>, RegisterPC, inherent, NoFlags16>;
@@ -1311,7 +1312,6 @@ public:
     }
 
     M6809Registers &getRegisters() { return registers; }
-
 };
 
 #endif //VECTREXIA_M6809_H

@@ -19,7 +19,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include "m6809.h"
 
-
 M6809::M6809()
 {
     opcode_handlers.fill(nullptr);
@@ -299,11 +298,6 @@ M6809::M6809()
 
 m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
 {
-
-    auto dis_addr = registers.PC;
-    std::cout << dis_.disasm(dis_addr) << std::endl;
-    // std::cout << "  # " << dis_addr - registers.PC << std::endl;
-
     // if there is an interrupt and the SYNC had been called, then end the sync wait
     if (irq != NONE && irq_state == IRQ_SYNC) {
         irq_state = IRQ_NORMAL;
@@ -415,5 +409,6 @@ void M6809::Reset()
 
     // reset sets the PC to the reset vector found at $FFFE
     registers.PC = Read16(RESET_VECTOR);
-    printf("Reset Vector: $%04x\n", registers.PC);
+    //printf("Reset Vector: $%04x\n", registers.PC);
 }
+

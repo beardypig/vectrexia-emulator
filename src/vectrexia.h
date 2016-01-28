@@ -61,6 +61,8 @@ public:
 
     void message(const char *fmt, ...);
 
+    M6809 &GetM6809();
+
 };
 
 #endif //VECTREXIA_VECTREXIA_H
