@@ -28,27 +28,7 @@ uint8_t VIA6522::Read(uint8_t reg)
 
     switch (reg & 0xf) {
         case REG_ORB:
-            // combine the ORB and IRB registers
-
-            // if Timer 1 has control of PB7
-            if (registers.ACR & T1_PB7_CONTROL) {
-                // mask PB7 from ORB and use the Timer 1 controlled PB7
-                data = (uint8_t) ((registers.ORB & ~0x80) | pb7);
-            } else {
-                data = registers.ORB;
-            }
-            // clear pins that are marked as input
-            data &= registers.DDRB;
-
-            // if PORTB is in latching mode
-            if (registers.ACR & PB_LATCH_MASK) {
-                //via_debug("Reading PORTB in latched mode\r\n");
-                data |= registers.IRB_latch & ~registers.DDRB;
-            } else {
-                data |= (portb_callback_func) ? portb_callback_func(portb_callback_ref) & ~registers.DDRB : 0;
-                //via_debug("Reading PORTB directly: 0x%02x (0x%02x)\r\n", data, registers.DDRB);
-            }
-
+            data = read_portb();
             break;
 
         case REG_ORA:
@@ -58,19 +38,7 @@ uint8_t VIA6522::Read(uint8_t reg)
                 ca2_state = 0;
             }
         case REG_ORA_NO_HANDSHAKE:
-
-            // mask the output data
-            data = registers.ORA & registers.DDRA;
-            // if PORTA is in latching mode
-            if (registers.ACR & PA_LATCH_MASK) {
-                //via_debug("Reading PORTA in latched mode\r\n");
-                data |= registers.IRA_latch & ~registers.DDRA;
-            } else {
-                data |= (porta_callback_func) ? porta_callback_func(porta_callback_ref) & ~registers.DDRA : 0;
-
-                //via_debug("Reading PORTA directly: 0x%02x (0x%02x)\r\n", data, registers.DDRA);
-            }
-
+            data = read_porta();
             break;
 
             // Timer 1
@@ -162,7 +130,7 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_ORB:
             // Port B lines (CB1, CB2) handshake on a write operation only.
             if ((registers.PCR & CB2_MASK) == CB2_OUTPUT) {
-                cb2_state = false;
+                cb2_state = 0;
             }
 
             registers.ORB = data;
@@ -170,7 +138,7 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_ORA:
             // If CA2 is output
             if ((registers.PCR & CA2_MASK) == CA2_OUTPUT) {
-                ca2_state = false;
+                ca2_state = 1;
             }
         case REG_ORA_NO_HANDSHAKE:
             registers.ORA = data;
@@ -246,8 +214,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_PCR:
             registers.PCR = data;
             // if CA/B2 is in OUT LOW mode, set to low, otherwise high
-            ca2_state = ((registers.PCR & CA2_MASK) == CA2_OUT_LOW);
-            cb2_state = ((registers.PCR & CB2_MASK) == CB2_OUT_LOW);
+            ca2_state = (uint8_t) (((registers.PCR & CA2_MASK) == CA2_OUT_LOW) ? 1 : 0);
+            cb2_state = (uint8_t) (((registers.PCR & CB2_MASK) == CB2_OUT_LOW) ? 1 : 0);
             break;
 
             // Basic Writes
@@ -289,12 +257,12 @@ void VIA6522::Reset()
     registers.IRA_latch = 0;
     registers.IRB_latch = 0;
 
-    ca1_state = false;
-    ca2_state = true;
-    cb1_state = false;
-    cb1_state_sr = false;
-    cb2_state = true;
-    cb2_state_sr = false;
+    ca1_state = 0;
+    ca2_state = 1;
+    cb1_state = 0;
+    cb1_state_sr = 0;
+    cb2_state = 1;
+    cb2_state_sr = 0;
 
     // timer data
     timer1.counter = 0;
@@ -413,7 +381,7 @@ void VIA6522::Execute()
     if (update_callback_func)
     {
         update_callback_func(update_callback_ref,
-                             registers.ORA, portb & registers.DDRB,
+                             read_porta(), read_portb(),
                              ca1_state, ca2_state,
                              // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
                              (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
