@@ -309,7 +309,7 @@ m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
         if (irq_state == IRQ_NORMAL) {
             registers.flags.E = 1;
             // Push PC,CC
-            op_push<reg_sp, reg_usp>()(*this, 0xff);
+            op_push<reg_sp, reg_usp>()(*this, 0xff, cycles);
         }
         registers.CC |= FLAG_I|FLAG_F;
 
@@ -322,7 +322,7 @@ m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
         if (irq_state == IRQ_NORMAL) {
             registers.flags.E = 0;
             // Push PC,CC
-            op_push<reg_sp, reg_usp>()(*this, 0x81);
+            op_push<reg_sp, reg_usp>()(*this, 0x81, cycles);
         }
         registers.CC |= FLAG_I|FLAG_F;
 
@@ -334,17 +334,14 @@ m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
     // if the IRQ state is WAIT or SYNC, then just clock one cycle
     if (irq_state != IRQ_NORMAL)
     {
-        cycles += 1;
         return E_SUCCESS;
     }
 
     uint8_t opcode = NextOpcode();
-    cycles += 1;
 
     if (opcode == 0x10)
     {
         opcode = NextOpcode();
-        cycles += 1;
         opcode_handler_t opcode_handler = opcode_handlers_page1[opcode];
         if (opcode_handler) {
             opcode_handler(*this, cycles);
@@ -358,7 +355,6 @@ m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
     else if (opcode == 0x11)
     {
         opcode = NextOpcode();
-        cycles += 1;
         opcode_handler_t opcode_handler = opcode_handlers_page2[opcode];
         if (opcode_handler) {
             opcode_handler(*this, cycles);
