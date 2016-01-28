@@ -227,8 +227,8 @@ class VIA6522
 
     ShiftRegister sr;
 
-    bool ca1_state, ca2_state;
-    bool cb1_state, cb2_state, cb1_state_sr, cb2_state_sr;
+    uint8_t ca1_state, ca2_state;
+    uint8_t cb1_state, cb2_state, cb1_state_sr, cb2_state_sr;
 
     uint64_t clk;
 
@@ -279,6 +279,41 @@ class VIA6522
         update_ifr();
     }
 
+    inline uint8_t read_porta()
+    {
+        // mask the output data
+        uint8_t ora = registers.ORA & registers.DDRA;
+        // if PORTA is in latching mode
+        if (registers.ACR & PA_LATCH_MASK) {
+            //via_debug("Reading PORTA in latched mode\r\n");
+            ora |= registers.IRA_latch & ~registers.DDRA;
+        } else {
+            ora |= (porta_callback_func) ? porta_callback_func(porta_callback_ref) & ~registers.DDRA : 0;
+        }
+        return ora;
+    }
+
+    inline uint8_t read_portb()
+    {
+        uint8_t orb  = registers.ORB;
+        // if Timer 1 has control of PB7
+        if (registers.ACR & T1_PB7_CONTROL) {
+            // mask PB7 from ORB and use the Timer 1 controlled PB7
+            orb = (uint8_t) ((orb & ~0x80) | pb7);
+        }
+        // clear pins that are marked as input
+        orb &= registers.DDRB;
+
+        // if PORTB is in latching mode
+        if (registers.ACR & PB_LATCH_MASK) {
+            //via_debug("Reading PORTB in latched mode\r\n");
+            orb |= registers.IRB_latch & ~registers.DDRB;
+        } else {
+            orb |= (portb_callback_func) ? portb_callback_func(portb_callback_ref) & ~registers.DDRB : 0;
+        }
+        return orb;
+    }
+
 public:
 
     VIA6522() = default;
@@ -295,7 +330,7 @@ public:
 
     uint8_t GetIRQ();
 
-    Registers &GetRegisters();
+    Registers GetRegisterState();
     Timer &GetTimer1();
     Timer &GetTimer2();
     ShiftRegister &GetShiftregister();
