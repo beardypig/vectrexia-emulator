@@ -257,10 +257,10 @@ class M6809Disassemble
             std::string mode;
             const char reg = dis.index_mode_register_table[(post_byte >> 5) & 0x03];  // bits 5+6
 
-            if (!post_byte & 0x80)
+            if (!(post_byte >> 7))
             {
                 // (+/- 4 bit offset),R
-                return str_format("%s$%x,%c", (post_byte & 0x10) ? "-" : "+", post_byte & 0x0f, reg);
+                return str_format("%02d,%c", (int8_t)((post_byte & 0x0f) - 0x10), reg);
             }
             else
             {
@@ -300,12 +300,12 @@ class M6809Disassemble
                     case 8:
                         // (+/- 7 bit offset), R
                         b8 = dis.Read8(addr++);
-                        mode = str_format("%s$%x,%c", (b8 & 0x80) ? "-" : "+", b8 & 0x7f, reg);
+                        mode = str_format("%d,%c", (int8_t)b8, reg);
                         break;
                     case 9:
                         // (+/- 15 bit offset), R
                         b16 = dis.Read16(addr);
-                        mode = str_format("%s$%x,%c", (b16 & 0x8000) ? "-" : "+", b16 & 0x7fff, reg);
+                        mode = str_format("%d,%c", (int16_t)b16, reg);
                         addr += 2;
                         break;
                     case 0xb:
@@ -315,12 +315,12 @@ class M6809Disassemble
                     case 0xc:
                         // (+/- 7 bit offset), PC
                         b8 = dis.Read8(addr++);
-                        mode = str_format("%s$%x,PC", (b8 & 0x80) ? "-" : "+", b8 & 0x7f);
+                        mode = str_format("%d,PC", (int8_t)b8);
                         break;
                     case 0xd:
                         // (+/- 15 bit offset), PC
                         b16 = dis.Read16(addr);
-                        mode = str_format("%s$%x,PC", (b16 & 0x8000) ? "-" : "+", b16 & 0x7fff);
+                        mode = str_format("%d,PC", (int16_t)b16);
                         addr += 2;
                         break;
                     case 0xf:

@@ -401,7 +401,7 @@ void M6809::Reset()
     registers.USP = 0;
     registers.SP = 0;
     registers.DP = 0;
-    registers.CC = 0;
+    registers.CC = FLAG_I | FLAG_F;
 
     // reset sets the PC to the reset vector found at $FFFE
     registers.PC = Read16(RESET_VECTOR);
