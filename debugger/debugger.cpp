@@ -21,6 +21,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 #include <regex>
 #include <iterator>
+#include "vectorizer.h"
 #include "debugger.h"
 
 static uint8_t read_mem(intptr_t ref, uint16_t addr)
@@ -51,10 +52,11 @@ Debugger::Debugger() : prev_pc(0)
 
     // start the gui
     program_win = std::make_unique<Window>("Program", height - 3, 34, 1, 1);
-    register_win = std::make_unique<Window>("Registers", 10, 41, 12, 36);
-    stack_win = std::make_unique<Window>("Stack", 11, 20, 1, 36);
-    user_stack_win = std::make_unique<Window>("User Stack", 11, 20, 1, 57);
-    via_win = std::make_unique<Window>("VIA 6522", height - 3, 30, 1, 78);
+    register_win = std::make_unique<Window>("Registers", 10, 41, 13, 36);
+    stack_win = std::make_unique<Window>("Stack", 12, 20, 1, 36);
+    user_stack_win = std::make_unique<Window>("User Stack", 12, 20, 1, 57);
+    via_win = std::make_unique<Window>("VIA 6522", 15, 30, 1, 78);
+    vect_win = std::make_unique<Window>("Vector Beam", 7, 30, 16, 78);
 
     command_win = std::make_unique<Window>("", 2, width - 2, height - 2, 1, false);
     help_win = std::make_unique<Window>("Help", height - 2, width - 2, 1, 1);
@@ -81,14 +83,13 @@ void Debugger::UpdatedRegisters()
     register_win->mvprint(4, 2,  "D   : %04x", registers.D);
     register_win->mvprint(5, 2,  "X   : %04x", registers.X);
     register_win->mvprint(6, 2,  "Y   : %04x", registers.Y);
-    register_win->mvprint(2, 20,  "SP  : %04x", registers.SP);
-    register_win->mvprint(3, 20,  "USP : %04x", registers.USP);
-    register_win->mvprint(4, 20,  "DP  : %02x", registers.DP);
+    register_win->mvprint(2, 20, "SP  : %04x", registers.SP);
+    register_win->mvprint(3, 20, "USP : %04x", registers.USP);
+    register_win->mvprint(4, 20, "DP  : %02x", registers.DP);
     register_win->mvprint(5, 20, "PC  : %04x", registers.PC);
     register_win->mvprint(6, 20, "clk : %04d", clk);
-    register_win->mvprint(7, 2, "E F H I N Z V C");
-    register_win->mvprint(8, 2, "%d %d %d %d %d %d %d %d", registers.flags.E, registers.flags.F, registers.flags.H, registers.flags.I, registers.flags.N, registers.flags.Z, registers.flags.V, registers.flags.C);
-
+    register_win->mvprint(7, 7,  "CC   E F H I N Z V C");
+    register_win->mvprint(8, 7,  "%02x = %d %d %d %d %d %d %d %d", registers.CC, registers.flags.E, registers.flags.F, registers.flags.H, registers.flags.I, registers.flags.N, registers.flags.Z, registers.flags.V, registers.flags.C);
 
     register_win->Refresh();
 }
@@ -433,7 +434,7 @@ void Debugger::ShowHelpWindow()
 void Debugger::UpdateVIAView()
 {
     auto via = vectrex.GetVIA6522();
-    auto registers = via.GetRegisters();
+    auto registers = via.GetRegisterState();
     auto timer1 = via.GetTimer1();
     auto timer2 = via.GetTimer2();
     auto sr = via.GetShiftregister();
@@ -456,15 +457,33 @@ void Debugger::UpdateVIAView()
     via_win->mvprint(7, 15, "IFR:  %02x", registers.IFR);
     via_win->mvprint(8, 15, "IER:  %02x", registers.IER);
 
-    via_win->mvprint(11, 2, "Timer1:  %04d (%s%s)", timer1.counter, timer1.enabled ? "on" : "off", timer1.one_shot ? ":1shot" : "");
-    via_win->mvprint(12, 2, "Timer2:  %04d (%s%s)", timer2.counter, timer2.enabled ? "on" : "off", timer2.one_shot ? ":1shot" : "");
-
-    via_win->mvprint(14, 2, "SR:      %04d (%s:%d)", sr.counter, sr.enabled ? "on" : "off", sr.shifted);
+    via_win->mvprint(10, 2, "CA: %d%d CB: %d%d", via.getCA1State(), via.getCA2State(), via.getCB1State(), via.getCB2State());
+    via_win->mvprint(11, 2, "Timer1:  %05d (%s%s)", timer1.counter, timer1.enabled ? "on" : "off", timer1.one_shot ? ":1shot" : "");
+    via_win->mvprint(12, 2, "Timer2:  %05d (%s%s)", timer2.counter, timer2.enabled ? "on" : "off", timer2.one_shot ? ":1shot" : "");
+    via_win->mvprint(13, 2, "SR:         %02d (%s:%d)", sr.counter, sr.enabled ? "on" : "off", sr.shifted);
 
     via_win->Refresh();
 }
 
+void Debugger::UpdateVectorView()
+{
+    Vectorizer &vect = vectrex.GetVectorizer();
+    auto &via = vectrex.GetVIA6522();
+    auto via_registers = via.GetRegisterState();
 
+    vect_win->mvprint(1, 2, "Beam %s",
+                      vect.getBeamState().enabled ? "on" : "off");
+    vect_win->mvprint(2, 2, "Pos:   %d, %d", vect.getBeamState().x - (33000/2), vect.getBeamState().y - (41000/2));
+    vect_win->mvprint(3, 2, "Rate:  %d, %d", vect.getBeamState().rate_x, vect.getBeamState().rate_y);
+    vect_win->mvprint(4, 2, "Count: %d", vect.countVectors());
+    vect_win->mvprint(5, 2, "ZERO: %d, BLANK: %d, RAMP: %d", via.getCA2State(), via.getCB2State(), (via_registers.ORB >> 7));
+
+    //
+    if ((vect.getBeamState().rate_x != 0 || vect.getBeamState().rate_y != 0) && state == RUN && via.getCB2State())
+        state = HALT;
+
+    vect_win->Refresh();
+}
 
 std::string Debugger::str_format(const char *fmt, ...)
 {

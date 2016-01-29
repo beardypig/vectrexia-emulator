@@ -52,6 +52,7 @@ class Debugger
     std::unique_ptr<Window> command_win;
     std::unique_ptr<Window> help_win;
     std::unique_ptr<Window> via_win;
+    std::unique_ptr<Window> vect_win;
 
     int width, height;
     long clk;
@@ -106,6 +107,8 @@ public:
     bool is_ended();
 
     std::string str_format(const char *fmt, ...);
+
+    void UpdateVectorView();
 };
 
 
