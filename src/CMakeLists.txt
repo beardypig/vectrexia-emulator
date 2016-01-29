@@ -8,7 +8,7 @@ add_library(vectrexia_libretro SHARED
         m6809_disassemble.cpp
         m6809.cpp
         via6522.cpp
-        vectorframebuffer.cpp
+        vectorizer.cpp
         )
 
 set_target_properties(vectrexia_libretro PROPERTIES PREFIX "")

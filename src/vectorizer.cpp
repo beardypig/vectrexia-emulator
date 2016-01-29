@@ -1,29 +1,13 @@
-#include "vectorframebuffer.h"
+#include "vectorizer.h"
 
-VectorFrameBuffer::VectorFrameBuffer()
+Vectorizer::Vectorizer()
 {
-    beam.x = VECTREX_VECTOR_WIDTH / 2;
-    beam.y = VECTREX_VECTOR_HEIGHT / 2;
-    beam.rate_x = 0;
-    beam.rate_y = 0;
+    center_beam();
     beam.enabled = false;
-    beam._x_axis = 0x80;
-    beam._y_axis = 0x80;
     beam._z_axis = 0;
-    beam._offset = 0x80;
 }
 
-int VectorFrameBuffer::GetWidth()
-{
-    return width_;
-}
-
-int VectorFrameBuffer::GetHeight()
-{
-    return height_;
-}
-
-void VectorFrameBuffer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
+void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
 {
     // porta is connected to the databus of the sound chip and DAC
     // portb 3+4 and ca1 for sound chip stuff
@@ -34,25 +18,25 @@ void VectorFrameBuffer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uin
     // PB5 - COMPARE (input)
     // PB6 - CART N/C? (input)
     // PB7 - RAMP
-    uint8_t mswitch, select, ramp;
+    uint8_t switch_, select, ramp;
 
-    mswitch = (uint8_t)(portb & 0x1);
+    switch_ = (uint8_t)(portb & 0x1);
     select = (uint8_t)((portb >> 1) & 0x3);
     ramp = (portb >> 7);
 
     // The beams need to move to draw the vectors
     // PORTA is connected to the X Axis integrator, the DAC and the sound chip.
     // The X Axis is always set by PORTA, there is no enable
-    beam._x_axis = (unsigned int)(porta ^ 0x80);
+    beam._x_axis = (uint8_t)(porta ^ 0x80);
 
     // SWITCH (active low), update the rate of the vector beam
-    if (mswitch == 0x00) {
+    if (switch_ == 0x00) {
         switch (select) {
             case 0: // Y Axis integrator
-                beam._y_axis = beam._x_axis;
+                beam._y_axis = (unsigned int)(porta ^ 0x80);
                 break;
             case 1: // X,Y Axis integrator offset
-                beam._offset = beam._x_axis;
+                beam._offset = (unsigned int)(porta ^ 0x80);
                 break;
             case 2: // Z Axis (brightness)
                 beam._z_axis = (uint8_t)(porta > 128 ? 0 : porta);
@@ -69,23 +53,17 @@ void VectorFrameBuffer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uin
     if (!beam.enabled) {
         if (blank && beam_in_range()) {
             beam.enabled = true;
-            //vector_debug("Start drawing a vector: x: %d y: %d (rx: %d ry: %d)\r\n", beam.x, beam.y, beam.rate_x, beam.rate_y);
             // create a new vector
             current_vector = std::make_unique<Vector>(*this);
         }
     } else { // already drawing
         if (!blank) { // turned the beam off, vector has finished
             beam.enabled = false;
-            //printf("Adding vector : (%d, %d) -> (%d, %d)\n", current_vector->x0, current_vector->y0, current_vector->x1, current_vector->y1);
-            vectors_.insert(std::move(current_vector));
-            //printf("Total vectors: %d\n", vectors_.size());
+            vectors_.insert(*current_vector);
             current_vector.release();
-        } else if (current_vector->rate_x != beam.rate_x ||
-                   current_vector->rate_y != beam.rate_y) {
+        } else if (current_vector->rate_x != beam.rate_x || current_vector->rate_y != beam.rate_y) {
             // vector parameters have changed, store the current vector and start a new one
-            //printf("Adding vector : (%d, %d) -> (%d, %d)\n", current_vector->x0, current_vector->y0, current_vector->x1, current_vector->y1);
-            vectors_.insert(std::move(current_vector));
-            //printf("Total vectors: %d\n", vectors_.size());
+            vectors_.insert(*current_vector);
             current_vector = std::make_unique<Vector>(*this);
         }
     }
@@ -106,19 +84,19 @@ void VectorFrameBuffer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uin
     }
 }
 
-bool VectorFrameBuffer::beam_in_range()
+bool Vectorizer::beam_in_range()
 {
     return beam.x >= 0 && beam.x < VECTREX_VECTOR_WIDTH && \
            beam.y >= 0 && beam.y < VECTREX_VECTOR_HEIGHT;
 }
 
-void VectorFrameBuffer::integrate_axis()
+void Vectorizer::integrate_axis()
 {
-    beam.x = std::min(std::max(beam.x + beam.rate_x, 0), VECTREX_VECTOR_WIDTH); // limit to 0 - MAX_WIDTH
-    beam.y = std::min(std::max(beam.y + beam.rate_y, 0), VECTREX_VECTOR_HEIGHT);
+    beam.x = std::min(std::max(beam.x + beam.rate_x, 0), VECTREX_VECTOR_WIDTH-1); // limit to 0 - MAX_WIDTH
+    beam.y = std::min(std::max(beam.y + beam.rate_y, 0), VECTREX_VECTOR_HEIGHT-1);
 }
 
-void VectorFrameBuffer::center_beam()
+void Vectorizer::center_beam()
 {
     beam.x = VECTREX_VECTOR_WIDTH / 2;
     beam.y = VECTREX_VECTOR_HEIGHT / 2;
@@ -131,7 +109,7 @@ void VectorFrameBuffer::center_beam()
 }
 
 // Create a new VectrexVector from the current BeamState
-VectorFrameBuffer::Vector::Vector(VectorFrameBuffer &vbf)
+Vectorizer::Vector::Vector(Vectorizer & vbf)
 {
     x0 = vbf.beam.x;
     y0 = vbf.beam.y;
@@ -143,7 +121,7 @@ VectorFrameBuffer::Vector::Vector(VectorFrameBuffer &vbf)
     rate_y = vbf.beam.rate_y;
 }
 
-const VectorFrameBuffer::BeamState &VectorFrameBuffer::getBeamState()
+const Vectorizer::BeamState &Vectorizer::getBeamState()
 {
     return beam;
 }

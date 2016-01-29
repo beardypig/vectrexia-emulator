@@ -197,7 +197,7 @@ void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t 
     vector_buffer.BeamStep(porta, portb, ca2, cb2);
 }
 
-VectorFrameBuffer &Vectrex::GetVectorizer()
+Vectorizer &Vectrex::GetVectorizer()
 {
     return vector_buffer;
 }
