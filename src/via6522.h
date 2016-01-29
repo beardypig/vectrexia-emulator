@@ -152,7 +152,7 @@ class VIA6522
             // a CB1 positive edge caused the data from CB2 is shifted in/out to/from the shift register
             // bit 4 of the ACR controls the direction of the shift.
             if (enabled) {
-                if (via6522.cb1_state_sr == 0 && edge == 1) {   // positive edge
+                if (!via6522.cb1_state_sr && edge) {   // positive edge
                     if ((via6522.registers.ACR & SR_MASK) != SR_OUT_T2_FREE) { // in free run mode, the counter is ignored.
                         shifted++; // increment bit counter
                     }
@@ -172,7 +172,7 @@ class VIA6522
                         via6522.registers.SR <<= 1;
                         // if CB2 is set to output the shift in 0s, else shift in the CB2 state - in the Vectrex CB2 is
                         // always an output.
-                        via6522.registers.SR |= (unsigned char) (via6522.cb2_state) & \
+                        via6522.registers.SR |= (uint8_t) (via6522.cb2_state) & \
                                                     (via6522.registers.PCR & CB2_IN_OUT) ? 0x01 : 0x00;
                     }
 
@@ -186,7 +186,6 @@ class VIA6522
                 // when disable the last state should be HIGH
                 via6522.cb1_state_sr = edge;
             }
-
         }
     };
 
@@ -295,7 +294,7 @@ class VIA6522
 
     inline uint8_t read_portb()
     {
-        uint8_t orb  = registers.ORB;
+        uint8_t orb = registers.ORB;
         // if Timer 1 has control of PB7
         if (registers.ACR & T1_PB7_CONTROL) {
             // mask PB7 from ORB and use the Timer 1 controlled PB7
@@ -330,6 +329,10 @@ public:
 
     uint8_t GetIRQ();
 
+    uint8_t getCA1State() { return ca1_state; }
+    uint8_t getCA2State() { return ca2_state; }
+    uint8_t getCB1State() { return (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr; }
+    uint8_t getCB2State() { return (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state; };
 };
 
 #endif //VECTREXIA_VIA6522_H
