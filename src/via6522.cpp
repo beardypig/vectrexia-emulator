@@ -54,10 +54,10 @@ uint8_t VIA6522::Read(uint8_t reg)
             // clear the timer 1 interrupt
             set_ifr(TIMER1_INT, 0);
 
-            data = (unsigned char)(timer1.counter & 0xff);
+            data = (uint8_t)(timer1.counter & 0xff);
             break;
         case REG_T1CH:  // timer 1 high-order counter
-            data = (unsigned char)(timer1.counter >> 8);
+            data = (uint8_t)(timer1.counter >> 8);
             break;
         case REG_T1LL:  // timer 1 low-order latch
             data = registers.T1LL;
@@ -75,10 +75,10 @@ uint8_t VIA6522::Read(uint8_t reg)
             // clear the timer 2 interrupt
             set_ifr(TIMER2_INT, 0);
 
-            data = (unsigned char)(timer2.counter & 0xff);
+            data = (uint8_t)(timer2.counter & 0xff);
             break;
         case REG_T2CH:  // timer 2 high-order counter
-            data = (unsigned char)(timer2.counter >> 8);
+            data = (uint8_t)(timer2.counter >> 8);
             break;
 
             // Shift Register
@@ -203,8 +203,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_IFR:
             // interrupt flag register
             set_ifr(data, 0);
-
             break;
+
         case REG_IER:
             // interrupt enable register
             // enable or disable interrupts based on the MSB and using the rest of the data as a mask
@@ -214,8 +214,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_PCR:
             registers.PCR = data;
             // if CA/B2 is in OUT LOW mode, set to low, otherwise high
-            ca2_state = (uint8_t) (((registers.PCR & CA2_MASK) == CA2_OUT_LOW) ? 1 : 0);
-            cb2_state = (uint8_t) (((registers.PCR & CB2_MASK) == CB2_OUT_LOW) ? 1 : 0);
+            ca2_state = (uint8_t) (((registers.PCR & CA2_MASK) == CA2_OUT_LOW) ? 0 : 1);
+            cb2_state = (uint8_t) (((registers.PCR & CB2_MASK) == CB2_OUT_LOW) ? 0 : 1);
             break;
 
             // Basic Writes
@@ -367,21 +367,12 @@ void VIA6522::Execute()
         sr.counter = registers.T2CL;
     }
 
-
-    // if Timer 1 has control of PB7
-    if (registers.ACR & T1_PB7_CONTROL) {
-        // mask PB7 from ORB and use the Timer 1 controlled PB7
-        portb = (uint8_t) ((registers.ORB & ~0x80) | pb7);
-    } else {
-        portb = registers.ORB;
-    }
-
     //via_debug("CA2: %d\r\n", registers.ca2_state);
 
     if (update_callback_func)
     {
         update_callback_func(update_callback_ref,
-                             read_porta(), read_portb(),
+                             registers.ORA, read_portb(),
                              ca1_state, ca2_state,
                              // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
                              (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
@@ -397,7 +388,6 @@ void VIA6522::Execute()
     // Same for PORTB
     if ((registers.PCR & CB2_MASK) == CB2_OUT_PULSE)
         cb2_state = 1;
-
 
     clk++;
 }
@@ -447,12 +437,12 @@ VIA6522::Registers VIA6522::GetRegisterState()
 
     register_state.ORB = read_portb();
     register_state.ORA = read_porta();
-    register_state.T1CL = (unsigned char)(timer1.counter & 0xff);
-    register_state.T1CH = (unsigned char)(timer1.counter >> 8);
+    register_state.T1CL = (uint8_t)(timer1.counter & 0xff);
+    register_state.T1CH = (uint8_t)(timer1.counter >> 8);
     register_state.T1LL = registers.T1LL;
     register_state.T1LH = registers.T1LH;
-    register_state.T2CL = (unsigned char)(timer2.counter & 0xff);
-    register_state.T2CH = (unsigned char)(timer2.counter >> 8);
+    register_state.T2CL = (uint8_t)(timer2.counter & 0xff);
+    register_state.T2CH = (uint8_t)(timer2.counter >> 8);
     register_state.SR = registers.SR;
     register_state.IER = registers.IER | IRQ_MASK;
     register_state.DDRB = registers.DDRB;
