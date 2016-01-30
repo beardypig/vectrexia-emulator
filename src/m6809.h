@@ -408,6 +408,17 @@ class M6809
         void update(uint16_t addr, uint16_t data) {}
     };
 
+    template <typename T, int value>
+    struct OperandConst : Operand
+    {
+        OperandConst(M6809 &cpu, int &cycles) : Operand(cpu, cycles) {}
+
+        inline T operator ()(uint16_t &addr) {
+            return value;
+        }
+        void update(uint16_t addr, uint16_t data) {}
+    };
+
     /*
      * Alaises for Registers and memory addressing modes
      */
@@ -560,8 +571,6 @@ class M6809
         }
     };
     struct op_mul { uint16_t operator() (const M6809& cpu, const uint8_t &operand) { return cpu.registers.A * cpu.registers.B; } };
-    struct op_dec { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return (uint8_t) (operand - 1); } };
-    struct op_inc { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return (uint8_t) (operand + 1); } };
     struct op_clr { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return 0; } };
     struct op_asr { uint8_t operator() (const M6809& cpu, const uint8_t &operand)
         { return (uint8_t) (((operand >> 1) & 0x7f) | (operand & 0x80)); }
@@ -1040,12 +1049,12 @@ class M6809
     using op_daa_inherent   = opcode<op_daa,            RegisterA,          inherent,           compute_flags<FLAG_C|FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
 
     // DEC
-    using op_deca_inherent  = opcode<op_dec,            RegisterA,          inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
-    using op_decb_inherent  = opcode<op_dec,            RegisterB,          inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
+    using op_deca_inherent  = opcode<op_sub<uint8_t>,   RegisterA,          OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N, 0, 0, 1>, 2>;
+    using op_decb_inherent  = opcode<op_sub<uint8_t>,   RegisterB,          OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N, 0, 0, 1>, 2>;
 
-    using op_dec_direct     = opcode<op_dec,            DirectOperand8,     inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
-    using op_dec_indexed    = opcode<op_dec,            IndexedOperand8,    inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
-    using op_dec_extended   = opcode<op_dec,            ExtendedOperand8,   inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 7>;
+    using op_dec_direct     = opcode<op_sub<uint8_t>,   DirectOperand8,     OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N, 0, 0, 1>, 6>;
+    using op_dec_indexed    = opcode<op_sub<uint8_t>,   IndexedOperand8,    OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N, 0, 0, 1>, 6>;
+    using op_dec_extended   = opcode<op_sub<uint8_t>,   ExtendedOperand8,   OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N, 0, 0, 1>, 7>;
 
     // EOR
     using op_eora_immediate  = opcode<op_eor,           RegisterA,          ImmediateOperand8,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
@@ -1062,12 +1071,12 @@ class M6809
     using op_exg_immediate  = opcode<op_exg, ImmediateOperand8, inherent, compute_flags<>, 8>;
 
     // INC
-    using op_inca_inherent  = opcode<op_inc,            RegisterA,          inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
-    using op_incb_inherent  = opcode<op_inc,            RegisterB,          inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
+    using op_inca_inherent  = opcode<op_add<uint8_t>,   RegisterA,          OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
+    using op_incb_inherent  = opcode<op_add<uint8_t>,   RegisterB,          OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 2>;
 
-    using op_inc_direct     = opcode<op_inc,            DirectOperand8,     inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
-    using op_inc_indexed    = opcode<op_inc,            IndexedOperand8,    inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
-    using op_inc_extended   = opcode<op_inc,            ExtendedOperand8,   inherent,           compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 7>;
+    using op_inc_direct     = opcode<op_add<uint8_t>,   DirectOperand8,     OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
+    using op_inc_indexed    = opcode<op_add<uint8_t>,   IndexedOperand8,    OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 6>;
+    using op_inc_extended   = opcode<op_add<uint8_t>,   ExtendedOperand8,   OperandConst<uint8_t, 1>,    compute_flags<FLAG_V|FLAG_Z|FLAG_N>, 7>;
 
     // JMP - copies the EA in to the PC register
     using op_jmp_direct     = opcode<op_copy<uint16_t>, RegisterPC, DirectEA,   NoFlags16, 3>;
@@ -1085,9 +1094,9 @@ class M6809
 
     // LD
     using op_lda_immediate  = opcode<op_copy<uint8_t>,   RegisterA,         ImmediateOperand8,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
-    using op_lda_direct     = opcode<op_copy<uint8_t>,   RegisterA,         DirectOperand8,     compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
-    using op_lda_indexed    = opcode<op_copy<uint8_t>,   RegisterA,         IndexedOperand8,    compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
-    using op_lda_extended   = opcode<op_copy<uint8_t>,   RegisterA,         ExtendedOperand8,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
+    using op_lda_direct     = opcode<op_copy<uint8_t>,   RegisterA,         DirectOperand8,     compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 4>;
+    using op_lda_indexed    = opcode<op_copy<uint8_t>,   RegisterA,         IndexedOperand8,    compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 4>;
+    using op_lda_extended   = opcode<op_copy<uint8_t>,   RegisterA,         ExtendedOperand8,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 5>;
 
     using op_ldb_immediate  = opcode<op_copy<uint8_t>,   RegisterB,         ImmediateOperand8,  compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 2>;
     using op_ldb_direct     = opcode<op_copy<uint8_t>,   RegisterB,         DirectOperand8,     compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 4>;
