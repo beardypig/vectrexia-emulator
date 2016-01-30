@@ -140,10 +140,10 @@ std::array<uint16_t, 135300> Vectorizer::getVectorBuffer()
         y0 = (float)vect->y0 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
         y1 = (float)vect->y1 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
 
-        if (vect->intensity == 128)
+        if (vect->intensity >= 0.5)
             continue;
 
-        Line((int)x0, (int)y0, (int)x1, (int)y1, 200);
+        draw_line((int) x0, (int) y0, (int) x1, (int) y1, make_colour(vect->intensity));
         c++;
     }
 
@@ -151,7 +151,7 @@ std::array<uint16_t, 135300> Vectorizer::getVectorBuffer()
     return framebuffer;
 }
 
-void Vectorizer::Line(int x0, int y0, int x1, int y1, uint8_t col)
+void Vectorizer::draw_line(int x0, int y0, int x1, int y1, uint16_t col)
 {
     int dx = abs(x1-x0);
     int dy = abs(y1-y0);
@@ -162,7 +162,7 @@ void Vectorizer::Line(int x0, int y0, int x1, int y1, uint8_t col)
 
     while(1)
     {
-        framebuffer[(x0 * 330) + y0] = col;
+        framebuffer[(y0 * 330) + x0] = col;
 
         if (x0 == x1 && y0 == y1)
             break;
