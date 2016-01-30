@@ -20,6 +20,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <bitset>
 #include <memory>
 #include <array>
+#include <cmath>
 #include "vectrexia.h"
 #include "cartridge.h"
 
@@ -200,4 +201,9 @@ void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t 
 Vectorizer &Vectrex::GetVectorizer()
 {
     return vector_buffer;
+}
+
+std::array<uint16_t, 135300> Vectrex::getFramebuffer()
+{
+    return vector_buffer.getVectorBuffer();
 }

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <array>
 #include <set>
 #include <memory>
 
@@ -71,6 +72,7 @@ class Vectorizer
 
     std::set<Vector, VectorCompare> vectors_;
     std::unique_ptr<Vector> current_vector;
+    std::array<uint16_t, 135300> framebuffer;
 
     bool beam_in_range();
     void integrate_axis();
@@ -83,6 +85,10 @@ public:
     const BeamState& getBeamState();
 
     size_t countVectors() { return vectors_.size(); }
+
+    std::array<uint16_t, 135300> getVectorBuffer();
+
+    void Line(int x0, int y0, int x1, int y1, uint8_t col);
 };
 
 

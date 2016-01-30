@@ -1,3 +1,5 @@
+#include <cmath>
+#include <cstdlib>
 #include "vectorizer.h"
 
 Vectorizer::Vectorizer()
@@ -124,4 +126,58 @@ Vectorizer::Vector::Vector(Vectorizer & vbf)
 const Vectorizer::BeamState &Vectorizer::getBeamState()
 {
     return beam;
+}
+
+std::array<uint16_t, 135300> Vectorizer::getVectorBuffer()
+{
+    float x0, x1, y0, y1;
+    int c = 0;
+    std::set<Vectorizer::Vector, Vectorizer::VectorCompare>::iterator vect;
+    for(vect = vectors_.begin(); vect != vectors_.end(); vect++)
+    {
+        x0 = (float)vect->x0 / (float)VECTREX_VECTOR_WIDTH * 330.0f;
+        x1 = (float)vect->x1 / (float)VECTREX_VECTOR_WIDTH * 330.0f;
+        y0 = (float)vect->y0 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
+        y1 = (float)vect->y1 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
+
+        if (vect->intensity == 128)
+            continue;
+
+        Line((int)x0, (int)y0, (int)x1, (int)y1, 200);
+        c++;
+    }
+
+    printf("Drew %d vectors...\n", c);
+    return framebuffer;
+}
+
+void Vectorizer::Line(int x0, int y0, int x1, int y1, uint8_t col)
+{
+    int dx = abs(x1-x0);
+    int dy = abs(y1-y0);
+    int sx = x0 < x1 ? 1 : -1;
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx - dy;
+    int e2;
+
+    while(1)
+    {
+        framebuffer[(x0 * 330) + y0] = col;
+
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        e2 = 2 * err;
+        if (e2 > -dy)
+        {
+            err = err - dy;
+            x0 = x0 + sx;
+        }
+
+        if (e2 < dx)
+        {
+            err = err + dx;
+            y0 = y0 + sy;
+        }
+    }
 }

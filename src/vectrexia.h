@@ -72,6 +72,8 @@ public:
     VIA6522 &GetVIA6522();
     Vectorizer &GetVectorizer();
 
+    std::array<uint16_t, 135300> getFramebuffer();
+
 };
 
 #endif //VECTREXIA_VECTREXIA_H

@@ -158,6 +158,13 @@ void retro_run(void)
         audio_cb(1, 1);
     }
 
+    auto fb = vectrex->getFramebuffer();
+
+    for(int i = 0; i < 330*410; i++)
+    {
+        framebuffer[i] = fb[i];
+    }
+
     video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);
 
 }
