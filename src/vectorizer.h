@@ -9,8 +9,8 @@
 
 class Vectorizer
 {
-    const int VECTREX_VECTOR_WIDTH = 33000;
-    const int VECTREX_VECTOR_HEIGHT = 41000;
+    const int VECTOR_WIDTH = 33000;
+    const int VECTOR_HEIGHT = 41000;
 
     struct BeamState
     {

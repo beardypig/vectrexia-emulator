@@ -78,7 +78,7 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
 
     //printf("Beam state: x=%d, y=%d\n", beam.x, beam.y);
 
-    // if the vector beam is still on then continue drawing this vector
+    // if the vector beam is still on, then continue drawing this vector
     if (blank && current_vector) {
         // update the end of the current vector
         current_vector->x1 = beam.x;
@@ -88,20 +88,20 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
 
 bool Vectorizer::beam_in_range()
 {
-    return beam.x >= 0 && beam.x < VECTREX_VECTOR_WIDTH && \
-           beam.y >= 0 && beam.y < VECTREX_VECTOR_HEIGHT;
+    return beam.x >= 0 && beam.x < VECTOR_WIDTH && \
+           beam.y >= 0 && beam.y < VECTOR_HEIGHT;
 }
 
 void Vectorizer::integrate_axis()
 {
-    beam.x = std::min(std::max(beam.x + beam.rate_x, 0), VECTREX_VECTOR_WIDTH-1); // limit to 0 - MAX_WIDTH
-    beam.y = std::min(std::max(beam.y + beam.rate_y, 0), VECTREX_VECTOR_HEIGHT-1);
+    beam.x = std::min(std::max(beam.x + beam.rate_x, 0), VECTOR_WIDTH - 1); // limit to 0 - MAX_WIDTH
+    beam.y = std::min(std::max(beam.y + beam.rate_y, 0), VECTOR_HEIGHT - 1);
 }
 
 void Vectorizer::center_beam()
 {
-    beam.x = VECTREX_VECTOR_WIDTH / 2;
-    beam.y = VECTREX_VECTOR_HEIGHT / 2;
+    beam.x = VECTOR_WIDTH / 2;
+    beam.y = VECTOR_HEIGHT / 2;
     beam.rate_x = 0;
     beam.rate_y = 0;
 
@@ -135,13 +135,13 @@ std::array<uint16_t, 135300> Vectorizer::getVectorBuffer()
     std::set<Vectorizer::Vector, Vectorizer::VectorCompare>::iterator vect;
     for(vect = vectors_.begin(); vect != vectors_.end(); vect++)
     {
-        x0 = (float)vect->x0 / (float)VECTREX_VECTOR_WIDTH * 330.0f;
-        x1 = (float)vect->x1 / (float)VECTREX_VECTOR_WIDTH * 330.0f;
-        y0 = (float)vect->y0 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
-        y1 = (float)vect->y1 / (float)VECTREX_VECTOR_HEIGHT * 410.0f;
+        x0 = (float)vect->x0 / (float) VECTOR_WIDTH * 330.0f;
+        x1 = (float)vect->x1 / (float) VECTOR_WIDTH * 330.0f;
+        y0 = (float)vect->y0 / (float) VECTOR_HEIGHT * 410.0f;
+        y1 = (float)vect->y1 / (float) VECTOR_HEIGHT * 410.0f;
 
         if (vect->intensity >= 0.5)
-            continue;
+            continue;\
 
         draw_line((int) x0, (int) y0, (int) x1, (int) y1, make_colour(vect->intensity));
         c++;
