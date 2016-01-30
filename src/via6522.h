@@ -218,11 +218,11 @@ class VIA6522
                 IRB,
                 IRA_latch,
                 IRB_latch;
+        uint8_t PB7;
     } registers;
 
     Timer timer1;
     Timer timer2;
-    uint8_t pb7;
 
     ShiftRegister sr;
 
@@ -298,7 +298,7 @@ class VIA6522
         // if Timer 1 has control of PB7
         if (registers.ACR & T1_PB7_CONTROL) {
             // mask PB7 from ORB and use the Timer 1 controlled PB7
-            orb = (uint8_t) ((orb & ~0x80) | pb7);
+            orb = (uint8_t) ((orb & ~0x80) | registers.PB7);
         }
         // clear pins that are marked as input
         orb &= registers.DDRB;
