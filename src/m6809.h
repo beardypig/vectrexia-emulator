@@ -242,7 +242,8 @@ class M6809
             {
                 // (+/- 4 bit offset),R
                 cycles += 1;
-                return reg + (int8_t)((post_byte & 0xf) - 0x10);
+                return (uint16_t) (reg + (int8_t)((post_byte & 0xf) - (post_byte & 0x10)));
+
             }
             else
             {
@@ -572,8 +573,13 @@ class M6809
     };
     struct op_mul { uint16_t operator() (const M6809& cpu, const uint8_t &operand) { return cpu.registers.A * cpu.registers.B; } };
     struct op_clr { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return 0; } };
-    struct op_asr { uint8_t operator() (const M6809& cpu, const uint8_t &operand)
-        { return (uint8_t) (((operand >> 1) & 0x7f) | (operand & 0x80)); }
+    struct op_asr { uint8_t operator() (M6809& cpu, const uint8_t &operand)
+        {
+            //special case for asr flag
+            cpu.registers.CC &= ~FLAG_C;
+            cpu.registers.CC |= FLAG_C * (operand & 1);
+            return (uint8_t) (((operand >> 1) & 0x7f) | (operand & 0x80));
+        }
     };
     struct op_com { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return ~operand; } };
     struct op_lsl { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand << 1; } };
@@ -679,34 +685,10 @@ class M6809
             uint16_t &sp = SP()(cpu, 0);
             // the stack pointer to push to the stack
             uint16_t &psp = Push_SP()(cpu, 0);
-            if (operand & REG_CC)
+
+            if (operand & REG_PC)
             {
-                cpu.Push8(sp, cpu.registers.CC);
-                cycles += 1;
-            }
-            if (operand & REG_A)
-            {
-                cpu.Push8(sp, cpu.registers.A);
-                cycles += 1;
-            }
-            if (operand & REG_B)
-            {
-                cpu.Push8(sp, cpu.registers.B);
-                cycles += 1;
-            }
-            if (operand & REG_DP)
-            {
-                cpu.Push8(sp, cpu.registers.DP);
-                cycles += 1;
-            }
-            if (operand & REG_X)
-            {
-                cpu.Push16(sp, cpu.registers.X);
-                cycles += 2;
-            }
-            if (operand & REG_Y)
-            {
-                cpu.Push16(sp, cpu.registers.Y);
+                cpu.Push16(sp, cpu.registers.PC);
                 cycles += 2;
             }
             if (operand & REG_SP)
@@ -714,10 +696,35 @@ class M6809
                 cpu.Push16(sp, psp);
                 cycles += 2;
             }
-            if (operand & REG_PC)
+            if (operand & REG_Y)
             {
-                cpu.Push16(sp, cpu.registers.PC);
+                cpu.Push16(sp, cpu.registers.Y);
                 cycles += 2;
+            }
+            if (operand & REG_X)
+            {
+                cpu.Push16(sp, cpu.registers.X);
+                cycles += 2;
+            }
+            if (operand & REG_DP)
+            {
+                cpu.Push8(sp, cpu.registers.DP);
+                cycles += 1;
+            }
+            if (operand & REG_B)
+            {
+                cpu.Push8(sp, cpu.registers.B);
+                cycles += 1;
+            }
+            if (operand & REG_A)
+            {
+                cpu.Push8(sp, cpu.registers.A);
+                cycles += 1;
+            }
+            if (operand & REG_CC)
+            {
+                cpu.Push8(sp, cpu.registers.CC);
+                cycles += 1;
             }
             return 0;
         }
@@ -971,12 +978,12 @@ class M6809
 
     // ASL (see LSL)
     // ASR
-    using op_asra_inherent = opcode<op_asr,             RegisterA,          inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>, 2>;
-    using op_asrb_inherent = opcode<op_asr,             RegisterB,          inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>, 2>;
+    using op_asra_inherent = opcode<op_asr,             RegisterA,          inherent,           compute_flags<FLAG_N|FLAG_Z>, 2>;
+    using op_asrb_inherent = opcode<op_asr,             RegisterB,          inherent,           compute_flags<FLAG_N|FLAG_Z>, 2>;
 
-    using op_asr_direct    = opcode<op_asr,             DirectOperand8,     inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>, 6>;
-    using op_asr_indexed   = opcode<op_asr,             IndexedOperand8,    inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>, 6>;
-    using op_asr_extended  = opcode<op_asr,             ExtendedOperand8,   inherent,           compute_flags<FLAGS_MATH & ~(FLAG_V)>, 7>;
+    using op_asr_direct    = opcode<op_asr,             DirectOperand8,     inherent,           compute_flags<FLAG_N|FLAG_Z>, 6>;
+    using op_asr_indexed   = opcode<op_asr,             IndexedOperand8,    inherent,           compute_flags<FLAG_N|FLAG_Z>, 6>;
+    using op_asr_extended  = opcode<op_asr,             ExtendedOperand8,   inherent,           compute_flags<FLAG_N|FLAG_Z>, 7>;
 
     // BIT - bitwise AND, update flags but don't store the result
     using op_bita_immediate = opcode<op_and, RegisterA_RO, ImmediateOperand8, LogicFlags, 2>;
@@ -1166,14 +1173,14 @@ class M6809
 
     // OR
     using op_ora_immediate  = opcode<op_or,             RegisterA,          ImmediateOperand8,  LogicFlags, 2>;
-    using op_ora_direct     = opcode<op_or,             DirectOperand8,     RegisterA,          LogicFlags, 4>;
-    using op_ora_indexed    = opcode<op_or,             IndexedOperand8,    RegisterA,          LogicFlags, 4>;
-    using op_ora_extended   = opcode<op_or,             ExtendedOperand8,   RegisterA,          LogicFlags, 5>;
+    using op_ora_direct     = opcode<op_or,             RegisterA,          DirectOperand8,     LogicFlags, 4>;
+    using op_ora_indexed    = opcode<op_or,             RegisterA,          IndexedOperand8,    LogicFlags, 4>;
+    using op_ora_extended   = opcode<op_or,             RegisterA,          ExtendedOperand8,   LogicFlags, 5>;
 
     using op_orb_immediate  = opcode<op_or,             RegisterB,          ImmediateOperand8,  LogicFlags, 2>;
-    using op_orb_direct     = opcode<op_or,             DirectOperand8,     RegisterB,          LogicFlags, 4>;
-    using op_orb_indexed    = opcode<op_or,             IndexedOperand8,    RegisterB,          LogicFlags, 4>;
-    using op_orb_extended   = opcode<op_or,             ExtendedOperand8,   RegisterB,          LogicFlags, 5>;
+    using op_orb_direct     = opcode<op_or,             RegisterB,          DirectOperand8,     LogicFlags, 4>;
+    using op_orb_indexed    = opcode<op_or,             RegisterB,          IndexedOperand8,    LogicFlags, 4>;
+    using op_orb_extended   = opcode<op_or,             RegisterB,          ExtendedOperand8,   LogicFlags, 5>;
 
     // ORCC - do not update the flags, they are affected by the immediate value
     using op_orcc_immediate = opcode<op_or,             RegisterCC,         ImmediateOperand8, compute_flags<>, 3>;

@@ -260,7 +260,7 @@ class M6809Disassemble
             if (!(post_byte >> 7))
             {
                 // (+/- 4 bit offset),R
-                return str_format("%02d,%c", (int8_t)((post_byte & 0x0f) - 0x10), reg);
+                return str_format("%02d,%c", (int8_t)((post_byte & 0xf) - (post_byte & 0x10)), reg);
             }
             else
             {
