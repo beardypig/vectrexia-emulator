@@ -20,6 +20,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 #include <via6522.h>
 #include <stddef.h>
+#include <stdio.h>
 #include "via6522.h"
 
 uint8_t VIA6522::Read(uint8_t reg)
@@ -49,7 +50,7 @@ uint8_t VIA6522::Read(uint8_t reg)
 
             // Set PB7 if Timer 1 has control of PB7
             if (registers.ACR & T1_PB7_CONTROL)
-                pb7 = 0x80;
+                registers.PB7 = 0x80;
 
             // clear the timer 1 interrupt
             set_ifr(TIMER1_INT, 0);
@@ -159,8 +160,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
             timer1.one_shot = false;
             // Does Timer 1 control PB7
             if ((registers.ACR & T1_MASK) == T1_PB7_CONTROL)
-                // set timer 1's pb7 state to low
-                pb7 = 0;
+                // set timer 1's registers.PB7 state to low
+                registers.PB7 = 0;
 
             // clear the timer 1 interrupt
             set_ifr(TIMER1_INT, 0);
@@ -271,7 +272,7 @@ void VIA6522::Reset()
     timer2.counter = 0;
     timer2.enabled = false;
     timer2.one_shot = false;
-    pb7 = 0x80;
+    registers.PB7 = 0x80;
 
     // shift register
     sr.enabled = false;
@@ -283,8 +284,6 @@ void VIA6522::Reset()
 
 void VIA6522::Execute()
 {
-    uint8_t portb;
-
     // Timers
     if (timer1.enabled) {
         // decrement the counter and test if it has rolled over
@@ -297,8 +296,8 @@ void VIA6522::Execute()
                 //via_debug_timer("Timer 1 has triggered\r\n");
                 // toggle PB7 (ACR & 0x80)
                 if (registers.ACR & T1_PB7_CONTROL) {
-                    //via_debug_timer2(", PB7=0x%02x", via6522.pb7);
-                    pb7 ^= 0x80;
+                    //via_debug_timer2(", PB7=0x%02x", via6522.registers.PB7);
+                    registers.PB7 ^= 0x80;
                 }
                 //via_debug_timer("\r\n");
 
@@ -313,7 +312,7 @@ void VIA6522::Execute()
                     if (registers.ACR & T1_PB7_CONTROL) {
                         //via_debug_timer2(", PB7 set");
                         // restore PB7 to 1, it was set to 0 by writing to T1C-H
-                        pb7 = 0x80;
+                        registers.PB7 = 0x80;
                     }
                     //via_debug_timer2("\r\n");
                     timer1.one_shot = true;
@@ -371,8 +370,17 @@ void VIA6522::Execute()
 
     if (update_callback_func)
     {
+        uint8_t portb;
+        // if Timer 1 has control of PB7
+        if (registers.ACR & T1_PB7_CONTROL) {
+            // mask PB7 from ORB and use the Timer 1 controlled PB7
+            portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
+        } else {
+            portb = registers.ORB;
+        }
+
         update_callback_func(update_callback_ref,
-                             registers.ORA, read_portb(),
+                             registers.ORA, portb & registers.DDRB,
                              ca1_state, ca2_state,
                              // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
                              (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
@@ -434,8 +442,18 @@ VIA6522::Registers VIA6522::GetRegisterState()
 {
 
     Registers register_state;
+    uint8_t portb;
 
-    register_state.ORB = read_portb();
+    // if Timer 1 has control of PB7
+    if (registers.ACR & T1_PB7_CONTROL) {
+        // mask PB7 from ORB and use the Timer 1 controlled PB7
+        portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
+    } else
+    {
+        portb = registers.ORB;
+    }
+
+    register_state.ORB = portb;
     register_state.ORA = read_porta();
     register_state.T1CL = (uint8_t)(timer1.counter & 0xff);
     register_state.T1CH = (uint8_t)(timer1.counter >> 8);
@@ -450,6 +468,7 @@ VIA6522::Registers VIA6522::GetRegisterState()
     register_state.ACR = registers.ACR;
     register_state.PCR = registers.PCR;
     register_state.IFR = registers.IFR;
+    register_state.PB7 = registers.PB7;
 
     return register_state;
 }
