@@ -143,6 +143,7 @@ void Debugger::Run()
         UpdateProgramView();
         UpdateStackViews();
         UpdateVIAView();
+        UpdateVectorView();
 
         // run for at least one cycle
         if (state == RUN || state == STEP || state == MEGA_STEP)
@@ -183,6 +184,7 @@ void Debugger::Run()
         stack_win->hide();
         user_stack_win->hide();
         via_win->hide();
+        vect_win->hide();
 
         ShowHelpWindow();
     }
@@ -197,13 +199,14 @@ void Debugger::SetMode(debug_mode_t mode)
 
 Debugger::~Debugger()
 {
-    register_win = nullptr;
-    program_win = nullptr;
-    stack_win = nullptr;
-    user_stack_win = nullptr;
-    command_win = nullptr;
-    help_win = nullptr;
-    via_win = nullptr;
+    register_win.release();
+    program_win.release();
+    stack_win.release();
+    user_stack_win.release();
+    command_win.release();
+    help_win.release();
+    via_win.release();
+    vect_win.release();
     endwin();
 }
 
@@ -471,6 +474,7 @@ void Debugger::UpdateVectorView()
     auto &via = vectrex.GetVIA6522();
     auto via_registers = via.GetRegisterState();
 
+    vect_win->Clear();
     vect_win->mvprint(1, 2, "Beam %s",
                       vect.getBeamState().enabled ? "on" : "off");
     vect_win->mvprint(2, 2, "Pos:   %d, %d", vect.getBeamState().x - (33000/2), vect.getBeamState().y - (41000/2));
