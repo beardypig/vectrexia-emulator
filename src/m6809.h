@@ -78,7 +78,7 @@ class M6809
 {
     using read_callback_t = uint8_t (*)(intptr_t, uint16_t);
     using write_callback_t = void (*)(intptr_t, uint16_t, uint8_t);
-    using opcode_handler_t = void (*)(M6809 &, int &);
+    using opcode_handler_t = void (*)(M6809 &, uint64_t &);
 
     const uint16_t RESET_VECTOR = 0xfffe;
     const uint16_t NMI_VECTOR   = 0xfffc;
@@ -224,13 +224,13 @@ class M6809
      * Memory addressing implementations
      */
     struct immediate { };
-    struct direct { uint16_t operator()(M6809& cpu, int &cycles) { return (cpu.registers.DP << 8) | cpu.ReadPC8(); } };
+    struct direct { uint16_t operator()(M6809& cpu, uint64_t &cycles) { return (cpu.registers.DP << 8) | cpu.ReadPC8(); } };
     template<typename T>
-    struct relative { uint16_t operator()(M6809& cpu, int &cycles) {
+    struct relative { uint16_t operator()(M6809& cpu, uint64_t &cycles) {
             return cpu.registers.PC + static_cast<T>((sizeof(T) == 1) ? cpu.ReadPC8() : cpu.ReadPC16()) + sizeof(T);
         } };
-    struct extended { uint16_t operator()(M6809& cpu, int &cycles) { return cpu.ReadPC16(); } };
-    struct indexed { uint16_t operator()(M6809& cpu, int &cycles) {
+    struct extended { uint16_t operator()(M6809& cpu, uint64_t &cycles) { return cpu.ReadPC16(); } };
+    struct indexed { uint16_t operator()(M6809& cpu, uint64_t &cycles) {
             uint16_t ea;
             uint8_t post_byte = cpu.ReadPC8();
 
@@ -337,8 +337,8 @@ class M6809
     struct Operand
     {
         M6809 &cpu;
-        int &cycles;
-        Operand(M6809 &cpu, int &cycles) : cpu(cpu), cycles(cycles) { }
+        uint64_t &cycles;
+        Operand(M6809 &cpu, uint64_t &cycles) : cpu(cpu), cycles(cycles) { }
     };
 
     // RW = 0  ; Read Only
@@ -347,7 +347,7 @@ class M6809
     template <typename T, typename Fn, int RW=1>
     struct MemoryOperand : Operand
     {
-        MemoryOperand(M6809 &cpu, int &cycles) : Operand(cpu, cycles) {}
+        MemoryOperand(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
 
         inline T operator ()(uint16_t &addr) {
             addr = Fn()(cpu, cycles);
@@ -371,7 +371,7 @@ class M6809
     template <typename T, int RW>
     struct MemoryOperand<T, immediate, RW> : Operand
     {
-        MemoryOperand(M6809 &cpu, int &cycles) : Operand(cpu, cycles) {}
+        MemoryOperand(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
 
         inline T operator ()(uint16_t &addr) {
             if (sizeof(T) == 1)
@@ -385,7 +385,7 @@ class M6809
     template <typename T, typename Fn, int RW=1>
     struct Register : Operand
     {
-        Register(M6809 &cpu, int &cycles) : Operand(cpu, cycles) { }
+        Register(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) { }
 
         inline T &operator() (uint16_t &addr) {
             return Fn()(cpu, addr);
@@ -401,7 +401,7 @@ class M6809
     template <typename Fn>
     struct OperandEA : Operand
     {
-        OperandEA(M6809 &cpu, int &cycles) : Operand(cpu, cycles) {}
+        OperandEA(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
 
         inline uint16_t operator ()(uint16_t &addr) {
             return Fn()(cpu, cycles);
@@ -412,7 +412,7 @@ class M6809
     template <typename T, int value>
     struct OperandConst : Operand
     {
-        OperandConst(M6809 &cpu, int &cycles) : Operand(cpu, cycles) {}
+        OperandConst(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
 
         inline T operator ()(uint16_t &addr) {
             return value;
@@ -487,10 +487,8 @@ class M6809
             if (FlagUpdateMask & FLAG_C) cpu.ComputeCarryFlag<T, subtract>(cpu.registers.CC, operand_a, operand_b, result);
             if (FlagUpdateMask & FLAG_M)
             {
-                if (cpu.registers.B & 0x80)
-                {
-                    cpu.registers.CC |= FLAG_C;
-                }
+                cpu.registers.CC &= ~FLAG_C;
+                cpu.registers.CC |= FLAG_C * ((cpu.registers.B >> 7) & 1);
             }
         }
     };
@@ -523,8 +521,14 @@ class M6809
     struct op_eor { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b) { return operand_a ^ operand_b; } };
     struct op_and { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b) { return operand_a & operand_b; } };
     struct op_or { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b) { return operand_a | operand_b; } };
-    struct op_sex { uint8_t operator() (const M6809& cpu, const uint8_t &operand_a, const uint8_t &operand_b)
-        { return (uint8_t) ((~(operand_b & 0x80) + 1) | (operand_b & 0xff)); }
+    struct op_sex { uint16_t operator() (M6809& cpu, const uint16_t &operand_a, const uint8_t &operand_b)
+        {
+            auto res = (uint16_t) ((~(operand_b & 0x80) + 1) | (operand_b & 0xff));
+            // special case for N and Z flags
+            ComputeNegativeFlag<uint8_t>(cpu.registers.CC, cpu.registers.A);
+            ComputeZeroFlag<uint16_t>(cpu.registers.CC, cpu.registers.D);
+            return res;
+        }
     };
     // Push PC on to the SP, and set the PC to the operand
     template <typename T=uint16_t>
@@ -545,7 +549,7 @@ class M6809
 
     // This is a special case where the operation sets a pseudo flag to tell the cpu to wait for an interrupt
     struct op_cwai {
-        uint8_t operator() (M6809& cpu, const uint8_t &operand, int &cycles) {
+        uint8_t operator() (M6809& cpu, const uint8_t &operand, uint64_t &cycles) {
             cpu.registers.CC &= operand;
             cpu.irq_state = IRQ_WAIT;
             cpu.registers.flags.E = 1;
@@ -584,10 +588,11 @@ class M6809
     struct op_com { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return ~operand; } };
     struct op_lsl {
         uint8_t operator() (M6809& cpu, const uint8_t &operand) {
-            // special case for the C and H flags for LSL/ASL
+            // special case for the H,V and C flags for LSL/ASL
             uint8_t res = operand << 1;
             ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
             ComputeHalfCarryFlag(cpu.registers.CC, operand, operand, res);
+            ComputeOverflowFlag(cpu.registers.CC, operand, operand, res);
             return res;
         }
     };
@@ -610,7 +615,7 @@ class M6809
     struct op_rts { uint16_t operator() (M6809& cpu, const uint8_t &operand) { return cpu.Pull16(cpu.registers.SP); } };
     struct op_rti {
         // pull the registers and then the pc
-        uint16_t operator() (M6809& cpu, const uint8_t &operand, int &cycles) {
+        uint16_t operator() (M6809& cpu, const uint8_t &operand, uint64_t &cycles) {
             uint8_t register_mask = (cpu.registers.flags.E) ? (uint8_t)0xff : (uint8_t)0x81;
             op_pull<reg_sp, reg_usp>()(cpu, register_mask, cycles);
             return cpu.registers.PC;
@@ -694,7 +699,7 @@ class M6809
     template <typename SP, typename Push_SP=SP>
     struct op_push
     {
-        uint8_t operator() (M6809& cpu, const uint8_t &operand, int &cycles)
+        uint8_t operator() (M6809& cpu, const uint8_t &operand, uint64_t &cycles)
         {
             // operand contains a bitmask of the registers to push
             uint16_t &sp = SP()(cpu, 0);
@@ -749,7 +754,7 @@ class M6809
     template <typename SP, typename Pull_SP=SP>
     struct op_pull
     {
-        uint8_t operator() (M6809& cpu, uint8_t &operand, int &cycles)
+        uint8_t operator() (M6809& cpu, uint8_t &operand, uint64_t &cycles)
         {
             // operand contains a bitmask of the registers to push
             uint16_t &sp = SP()(cpu, 0);
@@ -803,7 +808,7 @@ class M6809
     template <uint16_t vector, bool set_fi=false>
     struct op_swi
     {
-        uint16_t operator()(M6809& cpu, const uint16_t &operand, int &cycles)
+        uint16_t operator()(M6809& cpu, const uint16_t &operand, uint64_t &cycles)
         {
             cpu.registers.CC |= 1 * FLAG_E;
             op_push<reg_sp, reg_usp>()(cpu, 0xff, cycles);  // push all the registers and the usp
@@ -820,14 +825,15 @@ class M6809
     struct op_bra_carry { bool operator ()(M6809 &cpu) { return !cpu.registers.flags.C; } }; // carry clear
     struct op_bra_less { bool operator ()(M6809 &cpu) { return !(cpu.registers.flags.Z | cpu.registers.flags.C); } };
     struct op_bra_equal { bool operator ()(M6809 &cpu) { return cpu.registers.flags.Z; } };
-    struct op_bra_greater_eq { bool operator ()(M6809 &cpu) { return cpu.registers.flags.N ^ cpu.registers.flags.V; } };
-    struct op_bra_greater { bool operator ()(M6809 &cpu) { return cpu.registers.flags.Z | (cpu.registers.flags.N ^ cpu.registers.flags.V); } };
+    struct op_bra_less_than { bool operator ()(M6809 &cpu) { return cpu.registers.flags.N ^ cpu.registers.flags.V; } };
+    struct op_bra_less_eq
+    { bool operator ()(M6809 &cpu) { return cpu.registers.flags.Z | (cpu.registers.flags.N ^ cpu.registers.flags.V); } };
     struct op_bra_plus { bool operator ()(M6809 &cpu) { return !cpu.registers.flags.N; } };
     struct op_bra_overflow { bool operator ()(M6809 &cpu) { return cpu.registers.flags.V; } };
 
     template <typename Test, typename T, bool Negate=false>
     struct op_bra {
-        uint16_t operator()(M6809 &cpu, uint16_t &pc, int &cycles)
+        uint16_t operator()(M6809 &cpu, uint16_t &pc, uint64_t &cycles)
         {
             T offset = (sizeof(T) == 1) ? cpu.ReadPC8() : cpu.ReadPC16();
             auto test = Test()(cpu);
@@ -864,7 +870,7 @@ class M6809
     template<typename Fn, typename OpA=inherent, typename OpB=inherent, typename Flags=compute_flags<>, int clocks=2>
     struct opcode
     {
-        void operator() (M6809& cpu, int &cycles)
+        void operator() (M6809& cpu, uint64_t &cycles)
         {
             uint16_t operand_addr_a = 0;
             uint16_t operand_addr_b = 0;
@@ -888,7 +894,7 @@ class M6809
     template<typename Fn, typename OpA, typename Flags, int clocks>
     struct opcode<Fn, OpA, inherent, Flags, clocks>
     {
-        void operator() (M6809& cpu, int &cycles)
+        void operator() (M6809& cpu, uint64_t &cycles)
         {
             uint16_t operand_addr = 0;
             auto operand = OpA(cpu, cycles);
@@ -906,7 +912,7 @@ class M6809
     template<typename Fn, typename Flags, int clocks>
     struct opcode<Fn, inherent, inherent, Flags, clocks>
     {
-        void operator() (M6809& cpu, int &cycles)
+        void operator() (M6809& cpu, uint64_t &cycles)
         {
             auto result = Fn()(cpu);
             decltype(result) zero = 0;
@@ -919,7 +925,7 @@ class M6809
     template<typename Fn, typename OpA=inherent, typename OpB=inherent, typename Flags=compute_flags<>, int clocks=0>
     struct opcode_count
     {
-        void operator() (M6809& cpu, int &cycles)
+        void operator() (M6809& cpu, uint64_t &cycles)
         {
             uint16_t operand_addr = 0;
             auto operand = OpA(cpu, cycles);
@@ -935,7 +941,7 @@ class M6809
     };
 
     template<typename Op>
-    static void opcodewrap (M6809& cpu, int &cycles)
+    static void opcodewrap (M6809& cpu, uint64_t &cycles)
     {
         Op()(cpu, cycles);
     }
@@ -963,19 +969,19 @@ class M6809
 
     // ADD
     using op_adda_immediate = opcode<op_add<uint8_t>,   RegisterA,          ImmediateOperand8,  FlagMaths, 2>;
-    using op_adda_direct    = opcode<op_add<uint8_t>,   DirectOperand8,     RegisterA,          FlagMaths, 4>;
-    using op_adda_indexed   = opcode<op_add<uint8_t>,   IndexedOperand8,    RegisterA,          FlagMaths, 4>;
-    using op_adda_extended  = opcode<op_add<uint8_t>,   ExtendedOperand8,   RegisterA,          FlagMaths, 5>;
+    using op_adda_direct    = opcode<op_add<uint8_t>,   RegisterA,          DirectOperand8,     FlagMaths, 4>;
+    using op_adda_indexed   = opcode<op_add<uint8_t>,   RegisterA,          IndexedOperand8,    FlagMaths, 4>;
+    using op_adda_extended  = opcode<op_add<uint8_t>,   RegisterA,          ExtendedOperand8,   FlagMaths, 5>;
 
     using op_addb_immediate = opcode<op_add<uint8_t>,   RegisterB,          ImmediateOperand8,  FlagMaths, 2>;
-    using op_addb_direct    = opcode<op_add<uint8_t>,   DirectOperand8,     RegisterB,          FlagMaths, 4>;
-    using op_addb_indexed   = opcode<op_add<uint8_t>,   IndexedOperand8,    RegisterB,          FlagMaths, 4>;
-    using op_addb_extended  = opcode<op_add<uint8_t>,   ExtendedOperand8,   RegisterB,          FlagMaths, 5>;
+    using op_addb_direct    = opcode<op_add<uint8_t>,   RegisterB,          DirectOperand8,     FlagMaths, 4>;
+    using op_addb_indexed   = opcode<op_add<uint8_t>,   RegisterB,          IndexedOperand8,    FlagMaths, 4>;
+    using op_addb_extended  = opcode<op_add<uint8_t>,   RegisterB,          ExtendedOperand8,   FlagMaths, 5>;
 
     using op_addd_immediate = opcode<op_add<uint16_t>,  RegisterD,          ImmediateOperand16, FlagMaths16, 4>;
-    using op_addd_direct    = opcode<op_add<uint16_t>,  DirectOperand16,    RegisterD,          FlagMaths16, 6>;
-    using op_addd_indexed   = opcode<op_add<uint16_t>,  IndexedOperand16,   RegisterD,          FlagMaths16, 6>;
-    using op_addd_extended  = opcode<op_add<uint16_t>,  ExtendedOperand16,  RegisterD,          FlagMaths16, 7>;
+    using op_addd_direct    = opcode<op_add<uint16_t>,  RegisterD,          DirectOperand16,    FlagMaths16, 6>;
+    using op_addd_indexed   = opcode<op_add<uint16_t>,  RegisterD,          IndexedOperand16,   FlagMaths16, 6>;
+    using op_addd_extended  = opcode<op_add<uint16_t>,  RegisterD,          ExtendedOperand16,  FlagMaths16, 7>;
 
     // AND
     using op_anda_immediate = opcode<op_and,            RegisterA,          ImmediateOperand8,  LogicFlags, 2>;
@@ -1157,12 +1163,12 @@ class M6809
     using op_leay_indexed   = opcode<op_copy<uint16_t>,  RegisterY,         IndexedEA,          compute_flags<FLAG_Z, 0, 0, 0, uint16_t>, 4>;
 
     // LSL - also updated C and H flags
-    using op_lsla_inherent  = opcode<op_lsl,             RegisterA,          inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 2>;
-    using op_lslb_inherent  = opcode<op_lsl,             RegisterB,          inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 2>;
+    using op_lsla_inherent  = opcode<op_lsl,             RegisterA,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
+    using op_lslb_inherent  = opcode<op_lsl,             RegisterB,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
 
-    using op_lsl_direct     = opcode<op_lsl,             DirectOperand8,     inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 6>;
-    using op_lsl_indexed    = opcode<op_lsl,             IndexedOperand8,    inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 6>;
-    using op_lsl_extended   = opcode<op_lsl,             ExtendedOperand8,   inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 7>;
+    using op_lsl_direct     = opcode<op_lsl,             DirectOperand8,     inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_lsl_indexed    = opcode<op_lsl,             IndexedOperand8,    inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_lsl_extended   = opcode<op_lsl,             ExtendedOperand8,   inherent,          compute_flags<FLAG_N | FLAG_Z>, 7>;
 
     // LSR - also updated C flag
     using op_lsra_inherent  = opcode<op_lsr,             RegisterA,          inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 2>;
@@ -1242,7 +1248,7 @@ class M6809
     using op_sbcb_extended  = opcode<op_sbc,            ExtendedOperand8,   RegisterB,          FlagMaths, 5>;
 
     // SEX sign extend A in to B
-    using op_sex_inherent   = opcode<op_sex, RegisterB, RegisterA, compute_flags<FLAG_N|FLAG_Z, 0, FLAG_V>, 2>;
+    using op_sex_inherent   = opcode<op_sex, RegisterD, RegisterA, compute_flags<0, 0, FLAG_V, 0, uint16_t, uint8_t>, 2>;
 
     // ST (reverse of LD, the memory locations are update only)
     using op_sta_direct     = opcode<op_copy<uint8_t>,   DirectOperand8_WO,     RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 4>;
@@ -1318,10 +1324,10 @@ class M6809
     using op_bls_inherent   = opcode_count<op_bra_short<op_bra_less, true>,       RegisterPC,   inherent,  NoFlags16, 3>;
     using op_beq_inherent   = opcode_count<op_bra_short<op_bra_equal>,            RegisterPC,   inherent,  NoFlags16, 3>;
     using op_bne_inherent   = opcode_count<op_bra_short<op_bra_equal, true>,      RegisterPC,   inherent,  NoFlags16, 3>;
-    using op_bgt_inherent   = opcode_count<op_bra_short<op_bra_greater>,          RegisterPC,   inherent,  NoFlags16, 3>;
-    using op_blt_inherent   = opcode_count<op_bra_short<op_bra_greater, true>,    RegisterPC,   inherent,  NoFlags16, 3>;
-    using op_bge_inherent   = opcode_count<op_bra_short<op_bra_greater_eq>,       RegisterPC,   inherent,  NoFlags16, 3>;
-    using op_ble_inherent   = opcode_count<op_bra_short<op_bra_greater_eq, true>, RegisterPC,   inherent,  NoFlags16, 3>;
+    using op_bgt_inherent   = opcode_count<op_bra_short<op_bra_less_eq, true>,    RegisterPC,   inherent,  NoFlags16, 3>;
+    using op_ble_inherent   = opcode_count<op_bra_short<op_bra_less_eq>,          RegisterPC,   inherent,  NoFlags16, 3>;
+    using op_bge_inherent   = opcode_count<op_bra_short<op_bra_less_than, true>,  RegisterPC,   inherent,  NoFlags16, 3>;
+    using op_blt_inherent   = opcode_count<op_bra_short<op_bra_less_than>,        RegisterPC,   inherent,  NoFlags16, 3>;
     using op_bpl_inherent   = opcode_count<op_bra_short<op_bra_plus>,             RegisterPC,   inherent,  NoFlags16, 3>;
     using op_bmi_inherent   = opcode_count<op_bra_short<op_bra_plus, true>,       RegisterPC,   inherent,  NoFlags16, 3>;
     using op_bvs_inherent   = opcode_count<op_bra_short<op_bra_overflow>,         RegisterPC,   inherent,  NoFlags16, 3>;
@@ -1335,10 +1341,10 @@ class M6809
     using op_lbls_inherent  = opcode_count<op_bra_long<op_bra_less, true>,        RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbeq_inherent  = opcode_count<op_bra_long<op_bra_equal>,             RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbne_inherent  = opcode_count<op_bra_long<op_bra_equal, true>,       RegisterPC,   inherent, NoFlags16, 5>;
-    using op_lbgt_inherent  = opcode_count<op_bra_long<op_bra_greater>,           RegisterPC,   inherent, NoFlags16, 5>;
-    using op_lblt_inherent  = opcode_count<op_bra_long<op_bra_greater, true>,     RegisterPC,   inherent, NoFlags16, 5>;
-    using op_lbge_inherent  = opcode_count<op_bra_long<op_bra_greater_eq>,        RegisterPC,   inherent, NoFlags16, 5>;
-    using op_lble_inherent  = opcode_count<op_bra_long<op_bra_greater_eq, true>,  RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lbgt_inherent  = opcode_count<op_bra_long<op_bra_less_eq, true>,     RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lble_inherent  = opcode_count<op_bra_long<op_bra_less_eq>,           RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lbge_inherent  = opcode_count<op_bra_long<op_bra_less_than, true>,   RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lblt_inherent  = opcode_count<op_bra_long<op_bra_less_than>,         RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbpl_inherent  = opcode_count<op_bra_long<op_bra_plus>,              RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbmi_inherent  = opcode_count<op_bra_long<op_bra_plus, true>,        RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbvs_inherent  = opcode_count<op_bra_long<op_bra_overflow>,          RegisterPC,   inherent, NoFlags16, 5>;
@@ -1358,7 +1364,7 @@ public:
     void SetWriteCallback(write_callback_t func, intptr_t ref);
 
     // Exceture one instruction and updated the number of cycles that it took
-    m6809_error_t Execute(int &cycles, m6809_interrupt_t irq=NONE);
+    m6809_error_t Execute(uint64_t &cycles, m6809_interrupt_t irq=NONE);
 
     // flag computation
     template<typename T>

@@ -296,7 +296,7 @@ M6809::M6809()
 
 }
 
-m6809_error_t M6809::Execute(int &cycles, m6809_interrupt_t irq)
+m6809_error_t M6809::Execute(uint64_t &cycles, m6809_interrupt_t irq)
 {
     // if there is an interrupt and the SYNC had been called, then end the sync wait
     if (irq != NONE && irq_state == IRQ_SYNC) {

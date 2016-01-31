@@ -15,7 +15,7 @@ public:
 
 static uint8_t read_mem(intptr_t ref, uint16_t addr)
 {
-    reinterpret_cast<MockMemory*>(ref)->Read(addr);
+    return reinterpret_cast<MockMemory*>(ref)->Read(addr);
 }
 
 static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
@@ -48,7 +48,7 @@ TEST(M6809OpCodes, ABX_INHERENT)
     EXPECT_CALL(mem, Read(_))
             .WillOnce(Return(0x3a));
 
-    int cycles;
+    uint64_t cycles;
 
     registers.B = 0x10;
 
@@ -64,7 +64,7 @@ TEST(M6809OpCodes, ABX_INHERENT)
 TEST(M6809OpCodes, ADDA_IMMEDIATE)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -81,7 +81,7 @@ TEST(M6809OpCodes, ADDA_IMMEDIATE)
 TEST(M6809OpCodes, ADDA_DIRECT)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -107,7 +107,7 @@ TEST(M6809OpCodes, ADDA_DIRECT)
 TEST(M6809OpCodes, ADDA_EXTENDED)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -137,7 +137,7 @@ TEST(M6809OpCodes, ADDA_EXTENDED)
 TEST(M6809OpCodes, ADDD_IMMEDIATE)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -162,7 +162,7 @@ TEST(M6809OpCodes, ADDD_IMMEDIATE)
 TEST(M6809OpCodes, SUBA_IMMEDIATE)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -179,7 +179,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE)
 TEST(M6809OpCodes, SUBA_IMMEDIATE2)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -199,7 +199,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE2)
 TEST(M6809OpCodes, BITA_IMMEDIATE)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
@@ -221,7 +221,7 @@ TEST(M6809OpCodes, BITA_IMMEDIATE)
 TEST(M6809OpCodes, ILLEGAL_OP)
 {
     MockMemory mem;
-    int cycles;
+    uint64_t cycles;
     M6809 cpu = OpCodeTestHelper(mem);
     auto &registers = cpu.getRegisters();
 
