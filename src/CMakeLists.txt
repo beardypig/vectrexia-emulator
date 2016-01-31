@@ -9,6 +9,7 @@ add_library(vectrexia_libretro SHARED
         m6809.cpp
         via6522.cpp
         vectorizer.cpp
+        ay38910.cpp
         )
 
 set_target_properties(vectrexia_libretro PROPERTIES PREFIX "")

@@ -182,52 +182,51 @@ void retro_run(void)
     input_poll_cb();
     /* Player 1 */
 
-    uint8_t pot0, pot1, pot2, pot3;
-    uint8_t sw0, sw1, sw2, sw3, sw4, sw5, sw6, sw7;
+    uint8_t p1_x, p1_y, p2_x, p2_y;
+    uint8_t p1_b1, p1_b2, p1_b3, p1_b4, p2_b1, p2_b2, p2_b3, p2_b4;
 
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT))
-        pot0 = 0x00;
+        p1_x = 0x00;
     else if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
-        pot0 = 0xff;
+        p1_x = 0xff;
     else
-        pot0 = 0x80;
+        p1_x = 0x80;
 
     if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP))
-        pot1 = 0xff;
+        p1_y = 0xff;
     else if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN ))
-        pot1 = 0x00;
+        p1_y = 0x00;
     else
-        pot1 = 0x80;
+        p1_y = 0x80;
 
-
-    sw0 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 0 : 1);
-    sw1 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 0 : 1);
-    sw2 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 0 : 1);
-    sw3 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 0 : 1);
+    p1_b1 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 0 : 1);
+    p1_b2 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 0 : 1);
+    p1_b3 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 0 : 1);
+    p1_b4 = (unsigned char) (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 0 : 1);
 
     /* Player 2 */
-    if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT   ))
-        pot2 = 0x00;
+    if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT))
+        p2_x = 0x00;
     else if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT))
-        pot2 = 0xff;
+        p2_x = 0xff;
     else
-        pot2 = 0x80;
+        p2_x = 0x80;
 
     if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP))
-        pot3 = 0xff;
+        p2_y = 0xff;
     else if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN ))
-        pot3 = 0x00;
+        p2_y = 0x00;
     else
-        pot3 = 0x80;
+        p2_y = 0x80;
 
-    sw4 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 0 : 1);
-    sw5 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 0 : 1);
-    sw6 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 0 : 1);
-    sw7 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 0 : 1);
+    p2_b1 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 0 : 1);
+    p2_b2 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 0 : 1);
+    p2_b3 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 0 : 1);
+    p2_b4 = (unsigned char) (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 0 : 1);
 
     // TODO: fix this up :)
-    vectrex->SetPlayerOne(pot0, pot1, sw0, sw1, sw2, sw4);
-    vectrex->SetPlayerTwo(pot2, pot3, sw5, sw5, sw6, sw7);
+    vectrex->SetPlayerOne(p1_x, p1_y, p1_b1, p1_b2, p1_b3, p1_b4);
+    vectrex->SetPlayerTwo(p2_x, p2_y, p2_b1, p2_b2, p2_b3, p2_b4);
 
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
     vectrex->Run(30000);
