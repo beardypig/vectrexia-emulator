@@ -282,7 +282,7 @@ void VIA6522::Reset()
     clk = 0;
 }
 
-void VIA6522::Execute()
+void VIA6522::Step()
 {
     // Timers
     if (timer1.enabled) {

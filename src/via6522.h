@@ -316,7 +316,7 @@ class VIA6522
 public:
 
     VIA6522() = default;
-    void Execute();
+    void Step();
     void Reset();
 
     // Set callbacks for read and write, must be a static function
