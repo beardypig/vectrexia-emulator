@@ -60,7 +60,7 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
             current_vector = std::make_unique<Vector>(*this);
         }
     } else { // already drawing
-        if (!blank) { // turned the beam off, vector has finished
+        if (!blank && current_vector) { // turned the beam off, vector has finished
             beam.enabled = false;
             current_vector->end_cycle = cycles;
             vectors_.push_back(*current_vector);

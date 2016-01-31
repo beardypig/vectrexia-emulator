@@ -34,25 +34,22 @@ class Vectorizer
         Vector(Vectorizer &vbf);
     };
 
-    std::vector<Vector> vectors_;
     std::unique_ptr<Vector> current_vector;
     std::array<float, 135300> framebuffer;
     uint64_t cycles = 0;
-
     bool beam_in_range();
+
     void integrate_axis();
     void center_beam();
     void draw_line(int x0, int y0, int x1, int y1, float starti, float endi);
-
 public:
+
+    std::vector<Vector> vectors_;
 
     Vectorizer();
     void BeamStep(unsigned char porta, unsigned char portb, unsigned char zero, unsigned char blank);
-
     const BeamState& getBeamState();
-
     size_t countVectors() { return vectors_.size(); }
-
     std::array<float, 135300> getVectorBuffer();
 };
 
