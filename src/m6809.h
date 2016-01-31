@@ -260,14 +260,14 @@ class M6809
                         reg += 1 + (post_byte & 1);
                         break;
                     case 3:
-                        // ,--R
+                        // ,--R 
                         cycles += 1;
                     case 2:
                         // ,-R
                         cycles += 2;
+                        reg -= (1 + (post_byte & 1));
                         ea = reg;
                         // register is decremented by 1 or 2
-                        reg += 1 + (post_byte & 1);
                         break;
                     case 4:
                         // ,R
@@ -582,8 +582,23 @@ class M6809
         }
     };
     struct op_com { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return ~operand; } };
-    struct op_lsl { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand << 1; } };
-    struct op_lsr { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand >> 1; } };
+    struct op_lsl {
+        uint8_t operator() (M6809& cpu, const uint8_t &operand) {
+            // special case for the C and H flags for LSL/ASL
+            uint8_t res = operand << 1;
+            ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
+            ComputeHalfCarryFlag(cpu.registers.CC, operand, operand, res);
+            return res;
+        }
+    };
+    struct op_lsr {
+        uint8_t operator() (M6809& cpu, const uint8_t &operand) {
+            // special case for the C flag for LSR
+            cpu.registers.CC &= ~FLAG_C;
+            cpu.registers.CC |= FLAG_C * (operand & 1);
+            return operand >> 1;
+        }
+    };
     struct op_neg { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return (uint8_t) (~operand + 1); } };
     struct op_tst { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand; } };
     struct op_ror { uint8_t operator() (const M6809& cpu, const uint8_t &operand)
@@ -964,14 +979,14 @@ class M6809
 
     // AND
     using op_anda_immediate = opcode<op_and,            RegisterA,          ImmediateOperand8,  LogicFlags, 2>;
-    using op_anda_direct    = opcode<op_and,            DirectOperand8,     RegisterA,          LogicFlags, 4>;
-    using op_anda_indexed   = opcode<op_and,            IndexedOperand8,    RegisterA,          LogicFlags, 4>;
-    using op_anda_extended  = opcode<op_and,            ExtendedOperand8,   RegisterA,          LogicFlags, 5>;
+    using op_anda_direct    = opcode<op_and,            RegisterA,          DirectOperand8,     LogicFlags, 4>;
+    using op_anda_indexed   = opcode<op_and,            RegisterA,          IndexedOperand8,    LogicFlags, 4>;
+    using op_anda_extended  = opcode<op_and,            RegisterA,          ExtendedOperand8,   LogicFlags, 5>;
 
     using op_andb_immediate = opcode<op_and,            RegisterB,          ImmediateOperand8,  LogicFlags, 2>;
-    using op_andb_direct    = opcode<op_and,            DirectOperand8,     RegisterB,          LogicFlags, 4>;
-    using op_andb_indexed   = opcode<op_and,            IndexedOperand8,    RegisterB,          LogicFlags, 4>;
-    using op_andb_extended  = opcode<op_and,            ExtendedOperand8,   RegisterB,          LogicFlags, 5>;
+    using op_andb_direct    = opcode<op_and,            RegisterB,          DirectOperand8,     LogicFlags, 4>;
+    using op_andb_indexed   = opcode<op_and,            RegisterB,          IndexedOperand8,    LogicFlags, 4>;
+    using op_andb_extended  = opcode<op_and,            RegisterB,          ExtendedOperand8,   LogicFlags, 5>;
 
     // ANDCC - do not update the flags, they are affected by the immediate value
     using op_andcc_immediate = opcode<op_and,           RegisterCC,         ImmediateOperand8, compute_flags<>, 3>;
@@ -1141,21 +1156,21 @@ class M6809
     using op_leax_indexed   = opcode<op_copy<uint16_t>,  RegisterX,         IndexedEA,          compute_flags<FLAG_Z, 0, 0, 0, uint16_t>, 4>;
     using op_leay_indexed   = opcode<op_copy<uint16_t>,  RegisterY,         IndexedEA,          compute_flags<FLAG_Z, 0, 0, 0, uint16_t>, 4>;
 
-    // LSL
-    using op_lsla_inherent  = opcode<op_lsl,             RegisterA,          inherent,          FlagMaths, 2>;
-    using op_lslb_inherent  = opcode<op_lsl,             RegisterB,          inherent,          FlagMaths, 2>;
+    // LSL - also updated C and H flags
+    using op_lsla_inherent  = opcode<op_lsl,             RegisterA,          inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 2>;
+    using op_lslb_inherent  = opcode<op_lsl,             RegisterB,          inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 2>;
 
-    using op_lsl_direct     = opcode<op_lsl,             DirectOperand8,     inherent,          FlagMaths, 6>;
-    using op_lsl_indexed    = opcode<op_lsl,             IndexedOperand8,    inherent,          FlagMaths, 6>;
-    using op_lsl_extended   = opcode<op_lsl,             ExtendedOperand8,   inherent,          FlagMaths, 7>;
+    using op_lsl_direct     = opcode<op_lsl,             DirectOperand8,     inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 6>;
+    using op_lsl_indexed    = opcode<op_lsl,             IndexedOperand8,    inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 6>;
+    using op_lsl_extended   = opcode<op_lsl,             ExtendedOperand8,   inherent,          compute_flags<FLAG_N | FLAG_Z | FLAG_V>, 7>;
 
-    // LSR
-    using op_lsra_inherent  = opcode<op_lsr,             RegisterA,          inherent,          compute_flags<FLAG_Z|FLAG_C, 0, FLAG_N>, 2>;
-    using op_lsrb_inherent  = opcode<op_lsr,             RegisterB,          inherent,          compute_flags<FLAG_Z|FLAG_C, 0, FLAG_N>, 2>;
+    // LSR - also updated C flag
+    using op_lsra_inherent  = opcode<op_lsr,             RegisterA,          inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 2>;
+    using op_lsrb_inherent  = opcode<op_lsr,             RegisterB,          inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 2>;
 
-    using op_lsr_direct     = opcode<op_lsr,             DirectOperand8,     inherent,          compute_flags<FLAG_Z|FLAG_C, 0, FLAG_N>, 6>;
-    using op_lsr_indexed    = opcode<op_lsr,             IndexedOperand8,    inherent,          compute_flags<FLAG_Z|FLAG_C, 0, FLAG_N>, 6>;
-    using op_lsr_extended   = opcode<op_lsr,             ExtendedOperand8,   inherent,          compute_flags<FLAG_Z|FLAG_C, 0, FLAG_N>, 7>;
+    using op_lsr_direct     = opcode<op_lsr,             DirectOperand8,     inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 6>;
+    using op_lsr_indexed    = opcode<op_lsr,             IndexedOperand8,    inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 6>;
+    using op_lsr_extended   = opcode<op_lsr,             ExtendedOperand8,   inherent,          compute_flags<FLAG_Z, 0, FLAG_N>, 7>;
 
     // MUL - special case for flags
     using op_mul_inherent   = opcode<op_mul, RegisterD, inherent, compute_flags<FLAG_Z|FLAG_M, 0, 0, 0, uint16_t>, 11>;
