@@ -72,7 +72,7 @@ public:
     VIA6522 &GetVIA6522();
     Vectorizer &GetVectorizer();
 
-    std::array<uint16_t, 135300> getFramebuffer();
+    std::array<float, 135300> getFramebuffer();
 
 };
 

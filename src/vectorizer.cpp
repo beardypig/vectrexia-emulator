@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 #include "vectorizer.h"
 
 Vectorizer::Vectorizer()
@@ -61,11 +62,13 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
     } else { // already drawing
         if (!blank) { // turned the beam off, vector has finished
             beam.enabled = false;
-            vectors_.insert(*current_vector);
+            current_vector->end_cycle = cycles;
+            vectors_.push_back(*current_vector);
             current_vector.release();
         } else if (current_vector->rate_x != beam.rate_x || current_vector->rate_y != beam.rate_y) {
             // vector parameters have changed, store the current vector and start a new one
-            vectors_.insert(*current_vector);
+            current_vector->end_cycle = cycles;
+            vectors_.push_back(*current_vector);
             current_vector = std::make_unique<Vector>(*this);
         }
     }
@@ -84,6 +87,8 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
         current_vector->x1 = beam.x;
         current_vector->y1 = beam.y;
     }
+
+    ++cycles;
 }
 
 bool Vectorizer::beam_in_range()
@@ -117,7 +122,9 @@ Vectorizer::Vector::Vector(Vectorizer & vbf)
     y0 = vbf.beam.y;
     x1 = x0;
     y1 = y0;
-    intensity = (float)(vbf.beam._z_axis)/255.0f;
+    intensity = (float)(vbf.beam._z_axis)/128.0f;
+    start_cycle = vbf.cycles;
+    end_cycle = vbf.cycles;
 
     rate_x = vbf.beam.rate_x;
     rate_y = vbf.beam.rate_y;
@@ -128,30 +135,38 @@ const Vectorizer::BeamState &Vectorizer::getBeamState()
     return beam;
 }
 
-std::array<uint16_t, 135300> Vectorizer::getVectorBuffer()
+std::array<float, 135300> Vectorizer::getVectorBuffer()
 {
     float x0, x1, y0, y1;
-    int c = 0;
-    std::set<Vectorizer::Vector, Vectorizer::VectorCompare>::iterator vect;
-    for(vect = vectors_.begin(); vect != vectors_.end(); vect++)
+    framebuffer.fill(0.0f);
+
+    //printf("Vector count = %d\n", (int)vectors_.size());
+
+    for(auto &vect : vectors_)
     {
-        x0 = (float)vect->x0 / (float) VECTOR_WIDTH * 330.0f;
-        x1 = (float)vect->x1 / (float) VECTOR_WIDTH * 330.0f;
-        y0 = (float)vect->y0 / (float) VECTOR_HEIGHT * 410.0f;
-        y1 = (float)vect->y1 / (float) VECTOR_HEIGHT * 410.0f;
+        x0 = (float)vect.x0 / (float) VECTOR_WIDTH * 330.0f;
+        x1 = (float)vect.x1 / (float) VECTOR_WIDTH * 330.0f;
+        y0 = (float)vect.y0 / (float) VECTOR_HEIGHT * 410.0f;
+        y1 = (float)vect.y1 / (float) VECTOR_HEIGHT * 410.0f;
 
-        if (vect->intensity >= 0.5)
-            continue;\
+        auto fade_cycles = cycles - vect.end_cycle;
+        // a full intensity vector should fade in 40,000 cycles
+        vect.intensity -= (fade_cycles*(1.0f/400000.0f));
 
-        draw_line((int) x0, (int) y0, (int) x1, (int) y1, make_colour(vect->intensity));
-        c++;
+        if (vect.intensity > 0.0f)
+        {
+            draw_line((int) x0, (int) y0, (int) x1, (int) y1, vect.intensity, vect.intensity);
+        }
     }
 
-    printf("Drew %d vectors...\n", c);
+    // remove all the vectors that have 0 intensity or less
+    vectors_.erase(std::remove_if(vectors_.begin(), vectors_.end(),
+                          [](Vector v) { return v.intensity <= 0.0f; }), vectors_.end());
+
     return framebuffer;
 }
 
-void Vectorizer::draw_line(int x0, int y0, int x1, int y1, uint16_t col)
+void Vectorizer::draw_line(int x0, int y0, int x1, int y1, float starti, float endi)
 {
     int dx = abs(x1-x0);
     int dy = abs(y1-y0);
@@ -159,10 +174,12 @@ void Vectorizer::draw_line(int x0, int y0, int x1, int y1, uint16_t col)
     int sy = y0 < y1 ? 1 : -1;
     int err = dx - dy;
     int e2;
+    float intensity = endi;
 
     while(1)
     {
-        framebuffer[(y0 * 330) + x0] = col;
+        auto pos = (y0 * 330) + x0;
+        framebuffer[pos] = std::min(1.0f, framebuffer[pos] + intensity);
 
         if (x0 == x1 && y0 == y1)
             break;

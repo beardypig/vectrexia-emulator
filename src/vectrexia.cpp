@@ -203,7 +203,7 @@ Vectorizer &Vectrex::GetVectorizer()
     return vector_buffer;
 }
 
-std::array<uint16_t, 135300> Vectrex::getFramebuffer()
+std::array<float, 135300> Vectrex::getFramebuffer()
 {
     return vector_buffer.getVectorBuffer();
 }

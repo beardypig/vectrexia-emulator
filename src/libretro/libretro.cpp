@@ -147,6 +147,12 @@ void retro_reset(void) { vectrex->Reset(); }
 
 unsigned short framebuffer[330*410];
 
+uint16_t make_colour(float intensitity)
+{
+    uint8_t icolo = (uint8_t)(intensitity*0xff);
+    return (uint16_t) (((icolo >> 3) & 0x1f) << 11 | ((icolo >> 2) & 0x3f) << 5 | ((icolo >> 3) & 0x1f));
+}
+
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
 {
@@ -162,7 +168,7 @@ void retro_run(void)
 
     for(int i = 0; i < 330*410; i++)
     {
-        framebuffer[i] = fb[i];
+        framebuffer[i] = make_colour(fb[i]);
     }
 
     video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);

@@ -29,61 +29,20 @@ class Vectorizer
         int x0, y0, x1, y1;
         int rate_x, rate_y;
         float intensity;
+        uint64_t start_cycle;
+        uint64_t end_cycle;
         Vector(Vectorizer &vbf);
     };
 
-    struct VectorCompare
-    {
-        bool operator() (Vector const& l, Vector const& r)
-        {
-
-            if (l.x0 < r.x0)
-            {
-                return true;
-            }
-            else if (l.x0 == r.x0)
-            {
-                if (l.x1 < r.x1)
-                {
-                    return true;
-                }
-                else if (l.x1 == r.x1)
-                {
-                    if (l.y0 < r.y0)
-                    {
-                        return true;
-                    }
-                    else if (l.y0 == r.y0)
-                    {
-                        if (l.y1 < r.y1)
-                        {
-                            return true;
-                        }
-                        else if (l.y1 == r.y1)
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-    };
-
-    std::set<Vector, VectorCompare> vectors_;
+    std::vector<Vector> vectors_;
     std::unique_ptr<Vector> current_vector;
-    std::array<uint16_t, 135300> framebuffer;
-
-    uint16_t make_colour(float intensitity)
-    {
-        uint8_t icolo = (uint8_t)(intensitity*0xff);
-        return (uint16_t) ((icolo) << 11 | (icolo) << 5 | (icolo & 0x1f));
-    }
+    std::array<float, 135300> framebuffer;
+    uint64_t cycles = 0;
 
     bool beam_in_range();
     void integrate_axis();
     void center_beam();
-    void draw_line(int x0, int y0, int x1, int y1, uint16_t col);
+    void draw_line(int x0, int y0, int x1, int y1, float starti, float endi);
 
 public:
 
@@ -94,7 +53,7 @@ public:
 
     size_t countVectors() { return vectors_.size(); }
 
-    std::array<uint16_t, 135300> getVectorBuffer();
+    std::array<float, 135300> getVectorBuffer();
 };
 
 
