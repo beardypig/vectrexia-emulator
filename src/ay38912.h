@@ -1,0 +1,11 @@
+#ifndef VECTREXIA_AY38912_H
+#define VECTREXIA_AY38912_H
+
+
+class AY38912
+{
+
+};
+
+
+#endif //VECTREXIA_AY38912_H

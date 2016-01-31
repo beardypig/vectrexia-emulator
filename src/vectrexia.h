@@ -30,6 +30,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "m6809.h"
 #include "via6522.h"
 #include "vectorizer.h"
+#include "ay38910.h"
 
 
 class Vectrex
@@ -53,16 +54,17 @@ class Vectrex
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<M6809> cpu_;
     std::unique_ptr<VIA6522> via_;
+    std::unique_ptr<AY38910> psg_;
     Vectorizer vector_buffer;
 
     uint64_t cycles;
-    uint8_t joystick_compare = 0;
-    uint8_t psg_port = 0; // buttons are connected the IO port on the PSG
+    uint8_t joystick_compare = 0x7f;
+    uint8_t psg_port = 0xff; // buttons are connected the IO port on the PSG
 
 public:
     Vectrex();
     void Reset();
-    long Run(long cycles);
+    uint64_t Run(long cycles);
 
     bool LoadCartridge(const uint8_t *data, size_t size);
     void UnloadCartridge();
@@ -88,6 +90,8 @@ public:
     void SetPlayerOne(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
     void SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
     void UpdateJoystick(uint8_t porta, uint8_t portb);
+    uint8_t ReadPSGIO();
+    void StorePSGReg(uint8_t reg);
 };
 
 #endif //VECTREXIA_VECTREXIA_H

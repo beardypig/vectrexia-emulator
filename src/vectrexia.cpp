@@ -41,12 +41,12 @@ void Vectrex::Reset()
     cpu_->Reset();
 }
 
-long Vectrex::Run(long cycles)
+uint64_t Vectrex::Run(long cycles)
 {
-    int cycles_run = 0;
+    uint64_t cycles_run = 0;
     while (cycles_run < cycles)
     {
-        int cpu_cycles = 0;
+        uint64_t cpu_cycles = 0;
         // run one instruction on the CPU
         // The VIA 6522 interrupt line is connected to the M6809 IRQ line
         m6809_error_t rcode = cpu_->Execute(cpu_cycles, (via_->GetIRQ()) ? IRQ : NONE);
@@ -54,19 +54,19 @@ long Vectrex::Run(long cycles)
         {
             auto registers = cpu_->getRegisters();
             if (rcode == E_UNKNOWN_OPCODE)
-                message("Unknown opcode at $%04x [$%02x]", registers.PC - 1, Read((uint16_t) (registers.PC - 1)));
+                message("Unknown opcode at $%04x [$%02x] [%'d]", registers.PC - 1, Read((uint16_t) (registers.PC - 1)), this->cycles);
             else if (rcode == E_UNKNOWN_OPCODE_PAGE1)
-                message("Unknown page 1 opcode at $%04x [$%02x]", registers.PC - 1,
-                        Read((uint16_t) (registers.PC - 1)));
+                message("Unknown page 1 opcode at $%04x [$%02x] [%'d]", registers.PC - 1,
+                        Read((uint16_t) (registers.PC - 1)), this->cycles);
             else if (rcode == E_UNKNOWN_OPCODE_PAGE2)
-                message("Unknown page 2 opcode at $%04x [$%02x]", registers.PC - 1),
-                        Read((uint16_t) (registers.PC - 1));
+                message("Unknown page 2 opcode at $%04x [$%02x] [%'d]", registers.PC - 1,
+                        Read((uint16_t) (registers.PC - 1)), this->cycles);
         }
 
         // run the VIA for the same number of cycles
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
-            via_->Execute();
+            via_->Step();
             this->cycles++;
         }
 
@@ -118,17 +118,31 @@ static uint8_t read_portb(intptr_t ref)
     return reinterpret_cast<Vectrex*>(ref)->ReadPortB();
 }
 
+static uint8_t read_psg_io(intptr_t ref)
+{
+    return reinterpret_cast<Vectrex*>(ref)->ReadPSGIO();
+}
+
+static void store_psg_reg(intptr_t ref, uint8_t reg)
+{
+    reinterpret_cast<Vectrex*>(ref)->StorePSGReg(reg);
+}
+
 Vectrex::Vectrex()
 {
     cpu_ = std::make_unique<M6809>();
     via_ = std::make_unique<VIA6522>();
+    psg_ = std::make_unique<AY38910>();
     // CPU callbacks
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
     // VIA callbacks
     via_->SetUpdateCallback(vectrex_peripheral_step, reinterpret_cast<intptr_t>(this));
     via_->SetPortAReadCallback(read_porta, reinterpret_cast<intptr_t>(this));
-    via_->SetPortAReadCallback(read_portb, reinterpret_cast<intptr_t>(this));
+    via_->SetPortBReadCallback(read_portb, reinterpret_cast<intptr_t>(this));
+    // PSG Callbacks
+    psg_->SetIOReadCallback(read_psg_io, reinterpret_cast<intptr_t>(this));
+    psg_->SetRegStoreCallback(store_psg_reg, reinterpret_cast<intptr_t>(this));
 }
 
 uint8_t Vectrex::Read(uint16_t addr)
@@ -210,6 +224,7 @@ void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t 
 {
     vector_buffer.BeamStep(porta, portb, ca2, cb2);
     UpdateJoystick(porta, portb);
+    psg_->Step(porta, (uint8_t) ((portb >> 3) & 1), 1, (uint8_t) ((portb >> 4) & 1));
 }
 
 Vectorizer &Vectrex::GetVectorizer()
@@ -225,14 +240,7 @@ std::array<float, 135300> Vectrex::getFramebuffer()
 
 // function pointers for when PORTA/B are read
 uint8_t Vectrex::ReadPortA() {
-    return (joysticks.sw7 << 7) | \
-            (joysticks.sw6 << 6) | \
-            (joysticks.sw5 << 5) | \
-            (joysticks.sw4 << 4) | \
-            (joysticks.sw3 << 3) | \
-            (joysticks.sw2 << 2) | \
-            (joysticks.sw1 << 1) | \
-            (joysticks.sw0);
+    return psg_port;
 }
 
 uint8_t Vectrex::ReadPortB() {
@@ -295,4 +303,21 @@ void Vectrex::SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t
     joysticks.sw5 = b2;
     joysticks.sw6 = b3;
     joysticks.sw7 = b4;
+}
+
+uint8_t Vectrex::ReadPSGIO()
+{
+    return (joysticks.sw7 << 7) | \
+           (joysticks.sw6 << 6) | \
+           (joysticks.sw5 << 5) | \
+           (joysticks.sw4 << 4) | \
+           (joysticks.sw3 << 3) | \
+           (joysticks.sw2 << 2) | \
+           (joysticks.sw1 << 1) | \
+           (joysticks.sw0);
+}
+
+void Vectrex::StorePSGReg(uint8_t reg)
+{
+    psg_port = reg;
 }
