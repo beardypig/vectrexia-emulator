@@ -43,12 +43,21 @@ class Vectrex
     const std::array<uint8_t, 8192> sysrom_ = system_bios;
     std::array<uint8_t, 1024> ram_;
 
+    struct {
+        unsigned char pot0, pot1,
+                pot2, pot3;
+        unsigned char sw0, sw1, sw2, sw3,
+                sw4, sw5, sw6, sw7;
+    } joysticks;
+
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<M6809> cpu_;
     std::unique_ptr<VIA6522> via_;
     Vectorizer vector_buffer;
 
     uint64_t cycles;
+    uint8_t joystick_compare = 0;
+    uint8_t psg_port = 0; // buttons are connected the IO port on the PSG
 
 public:
     Vectrex();
@@ -74,6 +83,11 @@ public:
 
     std::array<float, 135300> getFramebuffer();
 
+    uint8_t ReadPortB();
+    uint8_t ReadPortA();
+    void SetPlayerOne(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+    void SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+    void UpdateJoystick(uint8_t porta, uint8_t portb);
 };
 
 #endif //VECTREXIA_VECTREXIA_H

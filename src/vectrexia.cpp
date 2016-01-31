@@ -90,7 +90,6 @@ void Vectrex::UnloadCartridge()
         cartridge_->Unload();
 }
 
-
 static uint8_t read_mem(intptr_t ref, uint16_t addr)
 {
     return reinterpret_cast<Vectrex*>(ref)->Read(addr);
@@ -109,13 +108,27 @@ static void vectrex_peripheral_step(intptr_t ref,
     reinterpret_cast<Vectrex*>(ref)->PeripheralStep(porta, portb, ca1, ca2, cb1, cb2);
 }
 
+static uint8_t read_porta(intptr_t ref)
+{
+    return reinterpret_cast<Vectrex*>(ref)->ReadPortA();
+}
+
+static uint8_t read_portb(intptr_t ref)
+{
+    return reinterpret_cast<Vectrex*>(ref)->ReadPortB();
+}
+
 Vectrex::Vectrex()
 {
     cpu_ = std::make_unique<M6809>();
     via_ = std::make_unique<VIA6522>();
+    // CPU callbacks
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
+    // VIA callbacks
     via_->SetUpdateCallback(vectrex_peripheral_step, reinterpret_cast<intptr_t>(this));
+    via_->SetPortAReadCallback(read_porta, reinterpret_cast<intptr_t>(this));
+    via_->SetPortAReadCallback(read_portb, reinterpret_cast<intptr_t>(this));
 }
 
 uint8_t Vectrex::Read(uint16_t addr)
@@ -196,6 +209,7 @@ VIA6522 &Vectrex::GetVIA6522()
 void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t ca2, uint8_t cb1, uint8_t cb2)
 {
     vector_buffer.BeamStep(porta, portb, ca2, cb2);
+    UpdateJoystick(porta, portb);
 }
 
 Vectorizer &Vectrex::GetVectorizer()
@@ -206,4 +220,79 @@ Vectorizer &Vectrex::GetVectorizer()
 std::array<float, 135300> Vectrex::getFramebuffer()
 {
     return vector_buffer.getVectorBuffer();
+}
+
+
+// function pointers for when PORTA/B are read
+uint8_t Vectrex::ReadPortA() {
+    return (joysticks.sw7 << 7) | \
+            (joysticks.sw6 << 6) | \
+            (joysticks.sw5 << 5) | \
+            (joysticks.sw4 << 4) | \
+            (joysticks.sw3 << 3) | \
+            (joysticks.sw2 << 2) | \
+            (joysticks.sw1 << 1) | \
+            (joysticks.sw0);
+}
+
+uint8_t Vectrex::ReadPortB() {
+    return joystick_compare;
+}
+
+void Vectrex::UpdateJoystick(uint8_t porta, uint8_t portb) {
+    // porta is connected to the databus of the sound chip and DAC
+    // portb 3+4 and ca1 for sound chip stuff
+
+    // PB0 - S/H
+    // PB1 - SEL 0
+    // PB2 - SEL 1
+    // PB5 - COMPARE (input)
+    // PB6 - CART N/C?
+    // PB7 - RAMP
+    uint8_t select, pot;
+    select = (uint8_t) ((portb >> 1) & 0x3);
+
+    // S/H enables the demultiplexor
+    // select selects the channel for the comparator
+    switch (select) {
+        case 0:
+            pot = joysticks.pot0;
+            break;
+        case 1:
+            pot = joysticks.pot1;
+            break;
+        case 2:
+            pot = joysticks.pot2;
+            break;
+        case 3:
+            pot = joysticks.pot3;
+            break;
+        default:
+            pot = 0x7f;
+    }
+
+    // compare the value on porta to the selected joystick pot value
+    joystick_compare = (uint8_t) ((pot > (porta ^ 0x80)) ? 0x20 : 0);
+}
+
+void Vectrex::SetPlayerOne(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
+{
+    joysticks.pot0 = x;
+    joysticks.pot1 = y;
+
+    joysticks.sw0 = b1;
+    joysticks.sw1 = b2;
+    joysticks.sw2 = b3;
+    joysticks.sw3 = b4;
+}
+
+void Vectrex::SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
+{
+    joysticks.pot2 = x;
+    joysticks.pot3 = y;
+
+    joysticks.sw4 = b1;
+    joysticks.sw5 = b2;
+    joysticks.sw6 = b3;
+    joysticks.sw7 = b4;
 }
