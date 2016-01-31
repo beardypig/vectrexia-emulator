@@ -56,10 +56,14 @@ include_directories("${source_dir}/include")
 include_directories(. ../src)
 
 set(GTEST_SOURCE_FILES
-    vectrex_test.cpp
-    cartridge_test.cpp
-    m6809opcode_test.cpp
-    m6809_test.cpp)
+        vectrex_test.cpp
+        cartridge_test.cpp
+        m6809opcode_test.cpp
+        m6809_test.cpp
+        e6809.c
+        evia6522.c
+        vectord.c
+        e6809_test.cpp)
 
 add_executable(vectrexia_tests test_runner.cpp ${GTEST_SOURCE_FILES})
 
