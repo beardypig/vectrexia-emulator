@@ -70,6 +70,7 @@ Debugger::Debugger() : prev_pc(0)
 void Debugger::Reset()
 {
     vectrex.Reset();
+    pclk = 0;
 }
 
 void Debugger::UpdatedRegisters()
@@ -152,6 +153,11 @@ void Debugger::Run()
             std::string disasm_instr = disasm.disasm(dis_addr);
 
             clk += vectrex.Run((state == MEGA_STEP) ? 30000 : 1);
+            if ((clk - pclk) > 30000)
+            {
+                vectrex.GetVectorizer().vectors_.clear();
+                pclk = clk;
+            }
 
             // The PC might not change if the CPU is waiting for an interrupt
             registers = vectrex.GetM6809().getRegisters();

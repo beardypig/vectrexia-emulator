@@ -55,7 +55,8 @@ class Debugger
     std::unique_ptr<Window> vect_win;
 
     int width, height;
-    long clk;
+    unsigned long long clk;
+    unsigned long long pclk;
     uint16_t prev_pc;
 
     // machine state
