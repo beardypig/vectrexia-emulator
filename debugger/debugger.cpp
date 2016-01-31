@@ -87,7 +87,7 @@ void Debugger::UpdatedRegisters()
     register_win->mvprint(3, 20, "USP : %04x", registers.USP);
     register_win->mvprint(4, 20, "DP  : %02x", registers.DP);
     register_win->mvprint(5, 20, "PC  : %04x", registers.PC);
-    register_win->mvprint(6, 20, "clk : %04d", clk);
+    register_win->mvprint(6, 20, "clk : %'04d", clk);
     register_win->mvprint(7, 7,  "CC   E F H I N Z V C");
     register_win->mvprint(8, 7,  "%02x = %d %d %d %d %d %d %d %d", registers.CC, registers.flags.E, registers.flags.F, registers.flags.H, registers.flags.I, registers.flags.N, registers.flags.Z, registers.flags.V, registers.flags.C);
 
@@ -481,10 +481,6 @@ void Debugger::UpdateVectorView()
     vect_win->mvprint(3, 2, "Rate:  %d, %d", vect.getBeamState().rate_x, vect.getBeamState().rate_y);
     vect_win->mvprint(4, 2, "Count: %d", vect.countVectors());
     vect_win->mvprint(5, 2, "ZERO: %d, BLANK: %d, RAMP: %d", via.getCA2State(), via.getCB2State(), (via_registers.ORB >> 7));
-
-    //
-    if ((vect.getBeamState().rate_x != 0 || vect.getBeamState().rate_y != 0) && state == RUN && via.getCB2State())
-        state = HALT;
 
     vect_win->Refresh();
 }

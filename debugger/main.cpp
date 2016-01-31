@@ -19,9 +19,11 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 //#include "debugger.h"
 #include <ncurses.h>
 #include "debugger.h"
+#include <locale.h>
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_NUMERIC, "");
     int ch;
     Debugger debugger;
 
