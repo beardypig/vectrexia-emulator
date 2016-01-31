@@ -65,7 +65,7 @@ uint64_t Vectrex::Run(uint64_t cycles)
         // run the VIA for the same number of cycles
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
-            via_->Execute();
+            via_->Step();
             this->cycles++;
         }
 
