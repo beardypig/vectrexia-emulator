@@ -282,7 +282,7 @@ void VIA6522::Reset()
     clk = 0;
 }
 
-void VIA6522::Execute()
+void VIA6522::Step()
 {
     // Timers
     if (timer1.enabled) {
@@ -454,7 +454,7 @@ VIA6522::Registers VIA6522::GetRegisterState()
     }
 
     register_state.ORB = portb;
-    register_state.ORA = read_porta();
+    register_state.ORA = registers.ORA & registers.DDRA;
     register_state.T1CL = (uint8_t)(timer1.counter & 0xff);
     register_state.T1CH = (uint8_t)(timer1.counter >> 8);
     register_state.T1LL = registers.T1LL;
