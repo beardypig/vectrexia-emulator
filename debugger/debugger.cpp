@@ -88,7 +88,7 @@ void Debugger::UpdatedRegisters()
     register_win->mvprint(3, 20, "USP : %04x", registers.USP);
     register_win->mvprint(4, 20, "DP  : %02x", registers.DP);
     register_win->mvprint(5, 20, "PC  : %04x", registers.PC);
-    register_win->mvprint(6, 20, "clk : %'04d", clk);
+    register_win->mvprint(6, 20, "clk : %'014d", clk);
     register_win->mvprint(7, 7,  "CC   E F H I N Z V C");
     register_win->mvprint(8, 7,  "%02x = %d %d %d %d %d %d %d %d", registers.CC, registers.flags.E, registers.flags.F, registers.flags.H, registers.flags.I, registers.flags.N, registers.flags.Z, registers.flags.V, registers.flags.C);
 
