@@ -24,8 +24,10 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 class Cartridge
 {
-    // 32K of cartridge ROM by default
-    std::array<uint8_t, 32768> rom_;
+    const int REGULAR_ROM_SIZE = 32768;
+    const int MAX_ROM_SIZE = 65536;
+    // 64K of cartridge for bank switched ROMs
+    std::array<uint8_t, 65536> rom_;
     bool is_loaded_flag_ = false;
 
 public:
@@ -35,8 +37,8 @@ public:
     void Unload();
     bool is_loaded();
 
-    uint8_t Read(uint16_t addr);
-    void Write(uint16_t addr, uint8_t data);
+    uint8_t Read(uint16_t addr, uint8_t pb6=1);
+    void Write(uint16_t addr, uint8_t data, uint8_t pb6=1);
 };
 
 
