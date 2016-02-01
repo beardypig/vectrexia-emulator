@@ -1,6 +1,13 @@
-add_executable(vectgif main.cpp gif.h)
+add_executable(vectgif
+        main.cpp
+        gif.h)
 
-include_directories(../src/)
+include_directories(../src)
 
-target_link_libraries(vectgif
-        vectrexia_libretro)
+if (MSVC)
+    set(LIBRETRO_SRC vectrexia_libretro_static)
+else()
+    set(LIBRETRO_SRC vectrexia_libretro)
+endif()
+
+target_link_libraries(vectgif ${LIBRETRO_SRC})
