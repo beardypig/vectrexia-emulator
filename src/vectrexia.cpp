@@ -146,7 +146,7 @@ uint8_t Vectrex::Read(uint16_t addr)
 {
     // 0000-7FFF: cartridge
     if (addr < 0x8000 && cartridge_) {
-        return cartridge_->Read(addr);
+        return cartridge_->Read(addr, (uint8_t) (via_->getPortBState() >> 6 & 1));
     }
     // E000-FFFF: system ROM
     else if (addr >= 0xe000) {
@@ -174,7 +174,7 @@ void Vectrex::Write(uint16_t addr, uint8_t data)
 {
     // 0000-7FFF: cartridge
     if (addr < 0x8000 && cartridge_) {
-        cartridge_->Write(addr, data);
+        cartridge_->Write(addr, (uint8_t) (via_->getPortBState() >> 6 & 1));
     }
     // E000-FFFF: system ROM
     else if (addr >= 0xe000) {
