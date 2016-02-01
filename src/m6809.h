@@ -488,7 +488,7 @@ class M6809
             if (FlagUpdateMask & FLAG_M)
             {
                 cpu.registers.CC &= ~FLAG_C;
-                cpu.registers.CC |= FLAG_C * ((cpu.registers.B >> 7) & 1);
+                cpu.registers.CC |= FLAG_C * ((result >> 7) & 1);
             }
         }
     };
@@ -525,8 +525,8 @@ class M6809
         {
             auto res = (uint16_t) ((~(operand_b & 0x80) + 1) | (operand_b & 0xff));
             // special case for N and Z flags
-            ComputeNegativeFlag<uint8_t>(cpu.registers.CC, cpu.registers.A);
-            ComputeZeroFlag<uint16_t>(cpu.registers.CC, cpu.registers.D);
+            ComputeNegativeFlag<uint8_t>(cpu.registers.CC, (const uint8_t &) (res & 0xff));
+            ComputeZeroFlag<uint16_t>(cpu.registers.CC, res);
             return res;
         }
     };
@@ -535,10 +535,8 @@ class M6809
     struct op_jsr {
         uint16_t operator() (M6809& cpu, const uint16_t &operand_a, const uint16_t &operand_b)
         {
-            // push PC + x for the return address
-            // x = size of the operand (1 for short, 2 for long)
-            uint16_t return_addr = static_cast<uint16_t>(operand_a + sizeof(T));
-            cpu.Push16(cpu.registers.SP, return_addr);
+            // push PC
+            cpu.Push16(cpu.registers.SP, cpu.registers.PC);
             return operand_b;
         }
     };
@@ -592,7 +590,7 @@ class M6809
             uint8_t res = operand << 1;
             ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
             ComputeHalfCarryFlag(cpu.registers.CC, operand, operand, res);
-            ComputeOverflowFlag(cpu.registers.CC, operand, operand, res);
+            ComputeOverflowFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
             return res;
         }
     };
@@ -606,11 +604,24 @@ class M6809
     };
     struct op_neg { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return (uint8_t) (~operand + 1); } };
     struct op_tst { uint8_t operator() (const M6809& cpu, const uint8_t &operand) { return operand; } };
-    struct op_ror { uint8_t operator() (const M6809& cpu, const uint8_t &operand)
-        { return (uint8_t) (((operand >> 1) & 0x7f) | (cpu.registers.flags.C << 7)); }
+    struct op_ror {
+        uint8_t operator() (M6809& cpu, const uint8_t &operand)
+        {
+            auto res = (uint8_t) (((operand >> 1) & 0x7f) | (cpu.registers.flags.C << 7));
+            // special case for C flag
+            cpu.registers.CC &= ~FLAG_C;
+            cpu.registers.CC |= FLAG_C * (operand & 1);
+            return res;
+        }
     };
-    struct op_rol { uint8_t operator() (const M6809& cpu, const uint8_t &operand)
-        { return (operand << 1) | cpu.registers.flags.C; }
+    struct op_rol {
+        uint8_t operator() (M6809& cpu, const uint8_t &operand)
+        {
+            uint8_t res = (operand << 1) | cpu.registers.flags.C;
+            ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
+            ComputeOverflowFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
+            return res;
+        }
     };
     struct op_rts { uint16_t operator() (M6809& cpu, const uint8_t &operand) { return cpu.Pull16(cpu.registers.SP); } };
     struct op_rti {
@@ -624,28 +635,25 @@ class M6809
 
     // assign one register to the other and resize
     template <typename T1, typename T2>
-    struct op_reg_assign {
-        void operator() (T1 &reg_1, const T2 &reg_2)
-        {
-            if (sizeof(T1) > sizeof(T2))
-                reg_1 = (uint8_t)(reg_2 >> 8);
-            else if (sizeof(T1) < sizeof(T2))
-                reg_1 = reg_2 | 0xFF00;
-            else
-                reg_1 = reg_2;
-        }
-    };
+    static void op_reg_assign(T1 &reg_1, const T2 &reg_2)
+    {
+        if (sizeof(T1) < sizeof(T2))
+            reg_1 = (uint8_t)(reg_2 >> 8);
+        else if (sizeof(T1) > sizeof(T2))
+            reg_1 = reg_2 | 0xFF00;
+        else
+            reg_1 = reg_2;
+    }
 
     // swap two registers
     template <typename T1, typename T2>
-    struct op_swap_registers {
-        void operator() (T1 &reg_1, T2 &reg_2)
-        {
-            T1 temp = reg_1;
-            op_reg_assign<T2, T1>()(reg_2, temp);
-            op_reg_assign<T1, T2>()(reg_1, reg_2);
-        }
-    };
+    static void op_swap_registers(T1 &reg_1, T2 &reg_2)
+    {
+        T1 temp = reg_2;
+        op_reg_assign(reg_2, reg_1);
+        op_reg_assign(reg_1, temp);
+    }
+
 
     struct op_exg {
         uint8_t operator() (M6809& cpu, const uint8_t &operand) {
@@ -656,17 +664,17 @@ class M6809
             auto b_is_8 = reg_2_n > 5;
 
             if (a_is_8 && b_is_8)
-                op_swap_registers<uint8_t, uint8_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
-                                                      (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
+                op_swap_registers((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                  (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             else if (a_is_8 && !b_is_8)
-                op_swap_registers<uint8_t, uint16_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
-                                                       (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
+                op_swap_registers((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                                  (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && !b_is_8)
-                op_swap_registers<uint16_t, uint16_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
-                                                        (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
+                op_swap_registers((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                  (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && b_is_8)
-                op_swap_registers<uint16_t, uint8_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
-                                                       (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
+                op_swap_registers((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                                  (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             return 0;
         }
     };
@@ -680,17 +688,17 @@ class M6809
             auto b_is_8 = reg_2_n > 5;
 
             if (a_is_8 && b_is_8)
-                op_reg_assign<uint8_t, uint8_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
-                                                  (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
+                op_reg_assign((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                              (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             else if (a_is_8 && !b_is_8)
-                op_reg_assign<uint8_t, uint16_t>()((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
-                                                   (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
+                op_reg_assign((uint8_t&)*cpu.exg_register_table_8[reg_2_n-8],
+                              (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && !b_is_8)
-                op_reg_assign<uint16_t, uint16_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
-                                                    (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
+                op_reg_assign((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                              (uint16_t&)*cpu.exg_register_table_16[reg_1_n]);
             else if (!a_is_8 && b_is_8)
-                op_reg_assign<uint16_t, uint8_t>()((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
-                                                   (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
+                op_reg_assign((uint16_t&)*cpu.exg_register_table_16[reg_2_n],
+                              (uint8_t&)*cpu.exg_register_table_8[reg_1_n-8]);
             return 0;
         }
     };
@@ -822,7 +830,7 @@ class M6809
     // Branch operators
 
     struct op_bra_always { bool operator ()(M6809 &cpu) { return true; } }; // always
-    struct op_bra_carry { bool operator ()(M6809 &cpu) { return !cpu.registers.flags.C; } }; // carry clear
+    struct op_bra_carry { bool operator ()(M6809 &cpu) { return cpu.registers.flags.C; } };
     struct op_bra_less { bool operator ()(M6809 &cpu) { return !(cpu.registers.flags.Z | cpu.registers.flags.C); } };
     struct op_bra_equal { bool operator ()(M6809 &cpu) { return cpu.registers.flags.Z; } };
     struct op_bra_less_than { bool operator ()(M6809 &cpu) { return cpu.registers.flags.N ^ cpu.registers.flags.V; } };
@@ -958,14 +966,14 @@ class M6809
 
     // ADC - ADD with carry
     using op_adca_immediate = opcode<op_adc, RegisterA,        ImmediateOperand8, FlagMaths, 2>;
-    using op_adca_direct    = opcode<op_adc, DirectOperand8,   RegisterA,         FlagMaths, 4>;
-    using op_adca_indexed   = opcode<op_adc, IndexedOperand8,  RegisterA,         FlagMaths, 4>;
-    using op_adca_extended  = opcode<op_adc, ExtendedOperand8, RegisterA,         FlagMaths, 5>;
+    using op_adca_direct    = opcode<op_adc, RegisterA,        DirectOperand8,    FlagMaths, 4>;
+    using op_adca_indexed   = opcode<op_adc, RegisterA,        IndexedOperand8,   FlagMaths, 4>;
+    using op_adca_extended  = opcode<op_adc, RegisterA,        ExtendedOperand8,  FlagMaths, 5>;
 
     using op_adcb_immediate = opcode<op_adc, RegisterB,        ImmediateOperand8, FlagMaths, 2>;
-    using op_adcb_direct    = opcode<op_adc, DirectOperand8,   RegisterB,         FlagMaths, 4>;
-    using op_adcb_indexed   = opcode<op_adc, IndexedOperand8,  RegisterB,         FlagMaths, 4>;
-    using op_adcb_extended  = opcode<op_adc, ExtendedOperand8, RegisterB,         FlagMaths, 5>;
+    using op_adcb_direct    = opcode<op_adc, RegisterB,        DirectOperand8,    FlagMaths, 4>;
+    using op_adcb_indexed   = opcode<op_adc, RegisterB,        IndexedOperand8,   FlagMaths, 4>;
+    using op_adcb_extended  = opcode<op_adc, RegisterB,        ExtendedOperand8,  FlagMaths, 5>;
 
     // ADD
     using op_adda_immediate = opcode<op_add<uint8_t>,   RegisterA,          ImmediateOperand8,  FlagMaths, 2>;
@@ -1214,21 +1222,21 @@ class M6809
     using op_puls_immediate = opcode_count<op_pull<reg_sp, reg_usp>, ImmediateOperand8, inherent, compute_flags<>, 5>;
     using op_pulu_immediate = opcode_count<op_pull<reg_usp, reg_sp>, ImmediateOperand8, inherent, compute_flags<>, 5>;
 
-    // ROL
-    using op_rola_inherent  = opcode<op_rol,             RegisterA,          inherent,          FlagMaths, 2>;
-    using op_rolb_inherent  = opcode<op_rol,             RegisterB,          inherent,          FlagMaths, 2>;
+    // ROL - special cases for V and C
+    using op_rola_inherent  = opcode<op_rol,             RegisterA,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
+    using op_rolb_inherent  = opcode<op_rol,             RegisterB,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
 
-    using op_rol_direct     = opcode<op_rol,             DirectOperand8,     inherent,          FlagMaths, 6>;
-    using op_rol_indexed    = opcode<op_rol,             IndexedOperand8,    inherent,          FlagMaths, 6>;
-    using op_rol_extended   = opcode<op_rol,             ExtendedOperand8,   inherent,          FlagMaths, 7>;
+    using op_rol_direct     = opcode<op_rol,             DirectOperand8,     inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_rol_indexed    = opcode<op_rol,             IndexedOperand8,    inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_rol_extended   = opcode<op_rol,             ExtendedOperand8,   inherent,          compute_flags<FLAG_N | FLAG_Z>, 7>;
 
-    // ROR
-    using op_rora_inherent  = opcode<op_ror,             RegisterA,          inherent,          FlagMaths, 2>;
-    using op_rorb_inherent  = opcode<op_ror,             RegisterB,          inherent,          FlagMaths, 2>;
+    // ROR - specal case for C
+    using op_rora_inherent  = opcode<op_ror,             RegisterA,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
+    using op_rorb_inherent  = opcode<op_ror,             RegisterB,          inherent,          compute_flags<FLAG_N | FLAG_Z>, 2>;
 
-    using op_ror_direct     = opcode<op_ror,             DirectOperand8,     inherent,          FlagMaths, 6>;
-    using op_ror_indexed    = opcode<op_ror,             IndexedOperand8,    inherent,          FlagMaths, 6>;
-    using op_ror_extended   = opcode<op_ror,             ExtendedOperand8,   inherent,          FlagMaths, 7>;
+    using op_ror_direct     = opcode<op_ror,             DirectOperand8,     inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_ror_indexed    = opcode<op_ror,             IndexedOperand8,    inherent,          compute_flags<FLAG_N | FLAG_Z>, 6>;
+    using op_ror_extended   = opcode<op_ror,             ExtendedOperand8,   inherent,          compute_flags<FLAG_N | FLAG_Z>, 7>;
 
     // RTI
     using op_rti_inherent   = opcode_count<op_rti, RegisterPC, inherent, NoFlags16, 3>; // 6 or 15
@@ -1238,17 +1246,17 @@ class M6809
 
     // SBC - subtract with carry
     using op_sbca_immediate = opcode<op_sbc,            RegisterA,          ImmediateOperand8,  FlagMaths, 2>;
-    using op_sbca_direct    = opcode<op_sbc,            DirectOperand8,     RegisterA,          FlagMaths, 4>;
-    using op_sbca_indexed   = opcode<op_sbc,            IndexedOperand8,    RegisterA,          FlagMaths, 4>;
-    using op_sbca_extended  = opcode<op_sbc,            ExtendedOperand8,   RegisterA,          FlagMaths, 5>;
+    using op_sbca_direct    = opcode<op_sbc,            RegisterA,          DirectOperand8,     FlagMaths, 4>;
+    using op_sbca_indexed   = opcode<op_sbc,            RegisterA,          IndexedOperand8,    FlagMaths, 4>;
+    using op_sbca_extended  = opcode<op_sbc,            RegisterA,          ExtendedOperand8,   FlagMaths, 5>;
 
     using op_sbcb_immediate = opcode<op_sbc,            RegisterB,          ImmediateOperand8,  FlagMaths, 2>;
-    using op_sbcb_direct    = opcode<op_sbc,            DirectOperand8,     RegisterB,          FlagMaths, 4>;
-    using op_sbcb_indexed   = opcode<op_sbc,            IndexedOperand8,    RegisterB,          FlagMaths, 4>;
-    using op_sbcb_extended  = opcode<op_sbc,            ExtendedOperand8,   RegisterB,          FlagMaths, 5>;
+    using op_sbcb_direct    = opcode<op_sbc,            RegisterB,          DirectOperand8,     FlagMaths, 4>;
+    using op_sbcb_indexed   = opcode<op_sbc,            RegisterB,          IndexedOperand8,    FlagMaths, 4>;
+    using op_sbcb_extended  = opcode<op_sbc,            RegisterB,          ExtendedOperand8,   FlagMaths, 5>;
 
     // SEX sign extend A in to B
-    using op_sex_inherent   = opcode<op_sex, RegisterD, RegisterA, compute_flags<0, 0, FLAG_V, 0, uint16_t, uint8_t>, 2>;
+    using op_sex_inherent   = opcode<op_sex, RegisterD, RegisterB, compute_flags<0, 0, FLAG_V, 0, uint16_t, uint8_t>, 2>;
 
     // ST (reverse of LD, the memory locations are update only)
     using op_sta_direct     = opcode<op_copy<uint8_t>,   DirectOperand8_WO,     RegisterA,   compute_flags<FLAG_Z|FLAG_N, 0, FLAG_V>, 4>;
