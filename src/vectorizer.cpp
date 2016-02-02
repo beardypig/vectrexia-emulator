@@ -43,7 +43,11 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
 
     switch_ = (uint8_t)(portb & 0x1);
     select = (uint8_t)((portb >> 1) & 0x3);
-    ramp = (portb >> 7);
+
+    // update RAMP and ZERO in 12 cycles time
+    signals.enqueue(cycles + INTEGRATOR_UPDATE_DELAY, &this->ramp, portb >> 7);
+    signals.enqueue(cycles + INTEGRATOR_UPDATE_DELAY, &this->zero, zero);
+    signals.enqueue(cycles + INTEGRATOR_UPDATE_DELAY, &this->previous_ramp, this->ramp);
 
     // The beams need to move to draw the vectors
     // PORTA is connected to the X Axis integrator, the DAC and the sound chip.
@@ -68,84 +72,77 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
     }
 
     // beam rate (amount that is integrated each cycle)
-    beam.rate_x = (int)beam._x_axis - (int)beam._offset;
-    beam.rate_y = (int)beam._offset - (int)beam._y_axis;
+    // the rates and the RAMP is delayed by ~12 cycles
+    rate_updates.enqueue(cycles + INTEGRATOR_UPDATE_DELAY, &beam.rate_x, (int)beam._x_axis - (int)beam._offset);
+    rate_updates.enqueue(cycles + INTEGRATOR_UPDATE_DELAY, &beam.rate_y, (int)beam._offset - (int)beam._y_axis);
 
-    if (!beam.enabled) {
-        if (blank && beam_in_range()) {
+    rate_updates.tick(cycles);
+    signals.tick(cycles);
+
+    if (!beam.enabled)
+    {
+        if (blank)
+        {
             beam.enabled = true;
             // create a new vector
-            current_vector = std::make_unique<Vector>(*this);
+            start_vector();
         }
-    } else { // already drawing
-        if (!blank && current_vector) { // turned the beam off, vector has finished
+    }
+    else
+    {
+        // already drawing
+        if (!blank)
+        {
+            // turned the beam off, vector has finished
             beam.enabled = false;
-            current_vector->end_cycle = cycles;
-            vectors_.push_back(*current_vector);
-            current_vector.release();
-        } else if (current_vector->rate_x != beam.rate_x || current_vector->rate_y != beam.rate_y) {
+            if (finish_vector())
+                vectors_.push_back(current_vector);
+        }
+        else if (current_vector.rate_x != beam.rate_x || current_vector.rate_y != beam.rate_y)
+        {
             // vector parameters have changed, store the current vector and start a new one
-            current_vector->end_cycle = cycles;
-            vectors_.push_back(*current_vector);
-            current_vector = std::make_unique<Vector>(*this);
+            if (finish_vector())
+                vectors_.push_back(current_vector);
+            start_vector();
         }
     }
 
-
-    if (!ramp) // update the Axis if RAMP is active
+    if (!this->ramp) // update the Axis if RAMP is active
+    {
+        if (previous_ramp != this->ramp)
+        {
+            if (!this->ramp) // just turned on
+            {
+                beam.x += 0.3f * beam.rate_x;
+                beam.y += 0.3f * beam.rate_y;
+            }
+            else
+            {
+                beam.x -= 0.3f * beam.rate_x;
+                beam.y -= 0.3f * beam.rate_y;
+            }
+        }
         integrate_axis();
-    if (!zero)
-        center_beam();
-
-    //printf("Beam state: x=%d, y=%d\n", beam.x, beam.y);
-
-    // if the vector beam is still on, then continue drawing this vector
-    if (blank && current_vector) {
-        // update the end of the current vector
-        current_vector->x1 = beam.x;
-        current_vector->y1 = beam.y;
+        current_vector.x1 = beam.x;
+        current_vector.y1 = beam.y;
+        previous_ramp = this->ramp;
     }
+    if (!this->zero)
+        center_beam();
 
     ++cycles;
 }
 
-bool Vectorizer::beam_in_range()
-{
-    return beam.x >= 0 && beam.x < VECTOR_WIDTH && \
-           beam.y >= 0 && beam.y < VECTOR_HEIGHT;
-}
-
 void Vectorizer::integrate_axis()
 {
-    beam.x = std::min(std::max(beam.x + beam.rate_x, 0), VECTOR_WIDTH - 1); // limit to 0 - MAX_WIDTH
-    beam.y = std::min(std::max(beam.y + beam.rate_y, 0), VECTOR_HEIGHT - 1);
+    beam.x += beam.rate_x;
+    beam.y += beam.rate_y;
 }
 
 void Vectorizer::center_beam()
 {
     beam.x = VECTOR_WIDTH / 2;
     beam.y = VECTOR_HEIGHT / 2;
-    beam.rate_x = 0;
-    beam.rate_y = 0;
-
-    beam._x_axis = 0x80;
-    beam._y_axis = 0x80;
-    beam._offset = 0x80;
-}
-
-// Create a new VectrexVector from the current BeamState
-Vectorizer::Vector::Vector(Vectorizer & vbf)
-{
-    x0 = vbf.beam.x;
-    y0 = vbf.beam.y;
-    x1 = x0;
-    y1 = y0;
-    intensity = (float)(vbf.beam._z_axis)/128.0f;
-    start_cycle = vbf.cycles;
-    end_cycle = vbf.cycles;
-
-    rate_x = vbf.beam.rate_x;
-    rate_y = vbf.beam.rate_y;
 }
 
 const Vectorizer::BeamState &Vectorizer::getBeamState()
@@ -197,8 +194,10 @@ void Vectorizer::draw_line(int x0, int y0, int x1, int y1, float starti, float e
     while(1)
     {
         auto pos = (y0 * 330) + x0;
-        framebuffer[pos] = std::min(1.0f, framebuffer[pos] + intensity);
-
+        if (pos >= 0 && pos < 330 * 410)
+        {
+            framebuffer[pos] = std::min(1.0f, framebuffer[pos] + intensity);
+        }
         if (x0 == x1 && y0 == y1)
             break;
 
@@ -214,5 +213,30 @@ void Vectorizer::draw_line(int x0, int y0, int x1, int y1, float starti, float e
             err = err + dx;
             y0 = y0 + sy;
         }
+
     }
+}
+
+void Vectorizer::start_vector()
+{
+    current_vector.x0 = beam.x;
+    current_vector.y0 = beam.y;
+    current_vector.x1 = current_vector.x0;
+    current_vector.y1 = current_vector.y0;
+
+    current_vector.intensity = (float)(beam._z_axis)/128.0f;
+    current_vector.start_cycle = cycles;
+    current_vector.end_cycle = cycles;
+
+    current_vector.rate_x = beam.rate_x;
+    current_vector.rate_y = beam.rate_y;
+}
+
+bool Vectorizer::finish_vector()
+{
+    current_vector.end_cycle = cycles;
+    current_vector.x1 = beam.x;
+    current_vector.y1 = beam.y;
+
+    //return vector_cycles > 0;
 }

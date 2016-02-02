@@ -75,8 +75,6 @@ public:
     uint8_t Read(uint16_t addr);
     void Write(uint16_t addr, uint8_t data);
 
-    void PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t ca2, uint8_t cb1, uint8_t cb2);
-
     void message(const char *fmt, ...);
 
     M6809 &GetM6809();

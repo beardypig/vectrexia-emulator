@@ -41,6 +41,7 @@ void Vectrex::Reset()
     cpu_->Reset();
 }
 
+// Number of CPU cycles to run
 uint64_t Vectrex::Run(long cycles)
 {
     uint64_t cycles_run = 0;
@@ -63,13 +64,16 @@ uint64_t Vectrex::Run(long cycles)
                         Read((uint16_t) (registers.PC - 1)), this->cycles);
         }
 
-        // run the VIA for the same number of cycles
+        // run the VIA, Beam and PSG for the same number of cycles
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
             via_->Step();
-            PeripheralStep(via_->getPortAState(), via_->getPortBState(),
-                           via_->getCA1State(), via_->getCA2State(),
-                           via_->getCB1State(), via_->getCB2State());
+            vector_buffer.BeamStep(via_->getPortAState(), via_->getPortBState(),
+                                   via_->getCA2State(), via_->getCB2State());
+            UpdateJoystick(via_->getPortAState(), via_->getPortBState());
+            psg_->Step(via_->getPortAState(), (uint8_t) ((via_->getPortBState() >> 3) & 1),
+                       1, (uint8_t) ((via_->getPortBState() >> 4) & 1));
+
             this->cycles++;
         }
 
@@ -212,13 +216,6 @@ M6809 &Vectrex::GetM6809()
 VIA6522 &Vectrex::GetVIA6522()
 {
     return *via_;
-}
-
-void Vectrex::PeripheralStep(uint8_t porta, uint8_t portb, uint8_t ca1, uint8_t ca2, uint8_t cb1, uint8_t cb2)
-{
-    vector_buffer.BeamStep(porta, portb, ca2, cb2);
-    UpdateJoystick(porta, portb);
-    psg_->Step(porta, (uint8_t) ((portb >> 3) & 1), 1, (uint8_t) ((portb >> 4) & 1));
 }
 
 Vectorizer &Vectrex::GetVectorizer()

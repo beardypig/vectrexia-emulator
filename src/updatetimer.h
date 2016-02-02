@@ -20,7 +20,8 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_UPDATETIMER_H
 
 #include <stdint.h>
-#include <deque>
+#include <vector>
+#include <algorithm>
 
 template<typename T>
 class UpdateTimer
@@ -30,39 +31,30 @@ class UpdateTimer
         uint64_t cycles;
         T *ptr;
         T value;
+
+        bool operator== (const uint64_t &count)
+        {
+            if (cycles <= count)
+            {
+                *ptr = value;
+                return true;
+            }
+            return false;
+        }
     };
 
-    std::deque<data> queue;
+    std::vector<data> items;
 public:
     // enqueue and item to be updated at a later time
     void enqueue(uint64_t cycles, T *ptr, T value)
     {
-        if (queue.size())
-        {
-            // insert the item in to the queue so that the queue is sorted by cycles, lowest first
-            for (auto it = queue.end(); it != queue.begin(); --it)
-            {
-                if (cycles < it->cycles)
-                {
-                    queue.insert(it, {cycles, ptr, value});
-                    break;
-                }
-            }
-        }
-        else
-        {
-            queue.push_back({cycles, ptr, value});
-        }
+        items.push_back({ cycles, ptr, value });
     }
 
     void tick(uint64_t cycles)
     {
-        while (queue.size() && queue.front().cycles <= cycles)
-        {
-            auto &item = queue.front();
-            *(item.ptr) = item.value;
-            queue.pop_front();
-        }
+        // https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
+        items.erase(std::remove(items.begin(), items.end(), cycles), items.end());
     }
 };
 
