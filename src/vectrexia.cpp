@@ -41,8 +41,14 @@ void Vectrex::Reset()
     cpu_->Reset();
 }
 
+uint64_t Vectrex::RunFrame(uint64_t fallback_cycles)
+{
+    uint64_t cycles_to_run = (via_->timer2_latch > 25000) ? via_->timer2_latch : fallback_cycles;
+    return Run(cycles_to_run);
+}
+
 // Number of CPU cycles to run
-uint64_t Vectrex::Run(long cycles)
+uint64_t Vectrex::Run(uint64_t cycles)
 {
     uint64_t cycles_run = 0;
     while (cycles_run < cycles)
@@ -78,7 +84,6 @@ uint64_t Vectrex::Run(long cycles)
         }
 
         cycles_run += cpu_cycles;
-        cycles -= cpu_cycles;
     }
     return cycles_run;
 }
@@ -223,7 +228,7 @@ Vectorizer &Vectrex::GetVectorizer()
     return vector_buffer;
 }
 
-std::array<float, 135300> Vectrex::getFramebuffer()
+std::array<float, Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT> Vectrex::getFramebuffer()
 {
     return vector_buffer.getVectorBuffer();
 }

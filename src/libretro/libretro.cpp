@@ -153,12 +153,12 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
     memset(info, 0, sizeof(*info));
     info->timing.fps            = 50.0f;
-    info->timing.sample_rate    = 441000;
-    info->geometry.base_width   = 330;
-    info->geometry.base_height  = 410;
-    info->geometry.max_width    = 330;
-    info->geometry.max_height   = 410;
-    info->geometry.aspect_ratio = 330.0f / 410.0f;
+    info->timing.sample_rate    = 41400;
+    info->geometry.base_width   = Vectorizer::FRAME_WIDTH;
+    info->geometry.base_height  = Vectorizer::FRAME_HEIGHT;
+    info->geometry.max_width    = Vectorizer::FRAME_WIDTH;
+    info->geometry.max_height   = Vectorizer::FRAME_HEIGHT;
+    info->geometry.aspect_ratio = (float) Vectorizer::FRAME_WIDTH / (float) Vectorizer::FRAME_HEIGHT;
 
     // the performance level is guide to frontend to give an idea of how intensive this core is to run
     environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &pixel_format);
@@ -168,7 +168,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 // Reset the Vectrex
 void retro_reset(void) { vectrex->Reset(); }
 
-unsigned short framebuffer[330*410];
+unsigned short framebuffer[Vectorizer::FRAME_WIDTH*Vectorizer::FRAME_HEIGHT];
 
 uint16_t make_colour(float intensitity)
 {
@@ -229,7 +229,7 @@ void retro_run(void)
     vectrex->SetPlayerTwo(p2_x, p2_y, p2_b1, p2_b2, p2_b3, p2_b4);
 
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
-    vectrex->Run(30000);
+    auto cycles_run = vectrex->RunFrame(30000);
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     for (int i = 0; i < 882; i++) {
@@ -238,11 +238,11 @@ void retro_run(void)
 
     auto fb = vectrex->getFramebuffer();
 
-    for(int i = 0; i < 330*410; i++)
+    for(int i = 0; i < Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT; i++)
     {
         framebuffer[i] = make_colour(fb[i]);
     }
 
-    video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);
+    video_cb(framebuffer, Vectorizer::FRAME_WIDTH, Vectorizer::FRAME_HEIGHT, sizeof(unsigned short) * Vectorizer::FRAME_WIDTH);
 
 }

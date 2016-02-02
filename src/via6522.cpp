@@ -176,9 +176,11 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
             // Timer 2
         case REG_T2CL:  // timer 2 low-order counter
             registers.T2CL = data;
+            timer2_latch |= data;
             break;
         case REG_T2CH:  // timer 2 high-order counter
             registers.T2CH = data;
+            timer2_latch |= data << 8;
             timer2.counter = (registers.T2CH << 8) | registers.T1CL;
 
             // start timer 2

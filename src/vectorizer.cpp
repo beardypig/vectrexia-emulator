@@ -113,13 +113,13 @@ void Vectorizer::BeamStep(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t bl
         {
             if (!this->ramp) // just turned on
             {
-                beam.x += 0.3f * beam.rate_x;
-                beam.y += 0.3f * beam.rate_y;
+                beam.x += 0.20f * beam.rate_x;
+                beam.y += 0.20f * beam.rate_y;
             }
             else
             {
-                beam.x -= 0.3f * beam.rate_x;
-                beam.y -= 0.3f * beam.rate_y;
+                beam.x -= 0.20f * beam.rate_x;
+                beam.y -= 0.20f * beam.rate_y;
             }
         }
         integrate_axis();
@@ -150,7 +150,7 @@ const Vectorizer::BeamState &Vectorizer::getBeamState()
     return beam;
 }
 
-std::array<float, 135300> Vectorizer::getVectorBuffer()
+std::array<float, Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT> Vectorizer::getVectorBuffer()
 {
     float x0, x1, y0, y1;
     framebuffer.fill(0.0f);
@@ -159,10 +159,10 @@ std::array<float, 135300> Vectorizer::getVectorBuffer()
 
     for(auto &vect : vectors_)
     {
-        x0 = (float)vect.x0 / (float) VECTOR_WIDTH * 330.0f;
-        x1 = (float)vect.x1 / (float) VECTOR_WIDTH * 330.0f;
-        y0 = (float)vect.y0 / (float) VECTOR_HEIGHT * 410.0f;
-        y1 = (float)vect.y1 / (float) VECTOR_HEIGHT * 410.0f;
+        x0 = (float)vect.x0 / (float) VECTOR_WIDTH * FRAME_WIDTH;
+        x1 = (float)vect.x1 / (float) VECTOR_WIDTH * FRAME_WIDTH;
+        y0 = (float)vect.y0 / (float) VECTOR_HEIGHT * FRAME_HEIGHT;
+        y1 = (float)vect.y1 / (float) VECTOR_HEIGHT * FRAME_HEIGHT;
 
         auto fade_cycles = cycles - vect.end_cycle;
         // a full intensity vector should fade in 40,000 cycles
@@ -193,8 +193,8 @@ void Vectorizer::draw_line(int x0, int y0, int x1, int y1, float starti, float e
 
     while(1)
     {
-        auto pos = (y0 * 330) + x0;
-        if (pos >= 0 && pos < 330 * 410)
+        auto pos = (y0 * FRAME_WIDTH) + x0;
+        if (y0 >= 0 && y0 < FRAME_HEIGHT && x0 >= 0 && x0 < FRAME_WIDTH)
         {
             framebuffer[pos] = std::min(1.0f, framebuffer[pos] + intensity);
         }

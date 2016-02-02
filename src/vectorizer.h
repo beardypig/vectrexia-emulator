@@ -30,9 +30,13 @@ static const int INTEGRATOR_UPDATE_DELAY = 12;
 
 class Vectorizer
 {
-    const int VECTOR_WIDTH = 33000;
-    const int VECTOR_HEIGHT = 41000;
+public:
+    static const int VECTOR_WIDTH = 33000;
+    static const int VECTOR_HEIGHT = 41000;
+    static const int FRAME_WIDTH = 660;
+    static const int FRAME_HEIGHT = 820;
 
+protected:
     struct BeamState
     {
         int x, y;
@@ -54,7 +58,7 @@ class Vectorizer
     };
 
     Vector current_vector;
-    std::array<float, 135300> framebuffer;
+    std::array<float, FRAME_WIDTH * FRAME_HEIGHT> framebuffer;
     uint64_t cycles = 0;
     UpdateTimer<int> rate_updates;
     UpdateTimer<uint8_t> signals;
@@ -78,7 +82,7 @@ public:
 
     size_t countVectors() { return vectors_.size(); }
 
-    std::array<float, 135300> getVectorBuffer();
+    std::array<float, FRAME_WIDTH * FRAME_HEIGHT> getVectorBuffer();
 
 };
 

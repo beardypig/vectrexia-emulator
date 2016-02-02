@@ -64,7 +64,7 @@ class Vectrex
 public:
     Vectrex();
     void Reset();
-    uint64_t Run(long cycles);
+    uint64_t Run(uint64_t cycles);
 
     bool LoadCartridge(const uint8_t *data, size_t size);
     void UnloadCartridge();
@@ -81,7 +81,7 @@ public:
     VIA6522 &GetVIA6522();
     Vectorizer &GetVectorizer();
 
-    std::array<float, 135300> getFramebuffer();
+    std::array<float, Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT> getFramebuffer();
 
     uint8_t ReadPortB();
     uint8_t ReadPortA();
@@ -90,6 +90,8 @@ public:
     void UpdateJoystick(uint8_t porta, uint8_t portb);
     uint8_t ReadPSGIO();
     void StorePSGReg(uint8_t reg);
+
+    uint64_t RunFrame(uint64_t fallback_cycles=30000);
 };
 
 #endif //VECTREXIA_VECTREXIA_H

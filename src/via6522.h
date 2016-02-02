@@ -221,11 +221,6 @@ class VIA6522
         uint8_t PB7;
     } registers;
 
-    Timer timer1;
-    Timer timer2;
-
-    ShiftRegister sr;
-
     uint8_t ca1_state, ca2_state;
     uint8_t cb1_state, cb2_state, cb1_state_sr, cb2_state_sr;
 
@@ -239,6 +234,14 @@ class VIA6522
     port_callback_t portb_callback_func = nullptr;
     intptr_t        portb_callback_ref = 0;
 
+public: // data members
+    Timer timer1;
+    Timer timer2;
+    uint16_t timer2_latch;
+
+    ShiftRegister sr;
+
+protected:
     // Update the state of the IFR
     inline void update_ifr(void) {
         //via_debug("Updating IFR: IER=0x%02x, IFR=0x%02x\r\n", registers.IER, registers.IFR);
