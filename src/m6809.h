@@ -286,7 +286,7 @@ class M6809
                     case 8:
                         // (+/- 7 bit offset), R
                         cycles += 1;
-                        ea = reg + (int16_t)cpu.ReadPC8();
+                        ea = reg + (int8_t)cpu.ReadPC8();
                         break;
                     case 9:
                         // (+/- 15 bit offset), R
@@ -301,7 +301,7 @@ class M6809
                     case 0xc:
                         // (+/- 7 bit offset), PC
                         cycles += 5;
-                        ea = reg + (int16_t)cpu.ReadPC8();
+                        ea = reg + (int8_t)cpu.ReadPC8();
                         break;
                     case 0xd:
                         // (+/- 15 bit offset), PC
