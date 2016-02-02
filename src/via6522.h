@@ -20,6 +20,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_VIA6522_H
 
 #include <stdint.h>
+#include "updatetimer.h"
 
 // Registers
 enum {
@@ -132,7 +133,6 @@ enum {
 class VIA6522
 {
     using port_callback_t = uint8_t (*)(intptr_t);
-    using update_callback_t = void (*)(intptr_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 
     struct Timer
     {
@@ -229,6 +229,8 @@ class VIA6522
     uint8_t ca1_state, ca2_state;
     uint8_t cb1_state, cb2_state, cb1_state_sr, cb2_state_sr;
 
+    UpdateTimer<uint8_t> signals;
+
     uint64_t clk;
 
     // port a/b read callbacks
@@ -236,10 +238,6 @@ class VIA6522
     intptr_t        porta_callback_ref = 0;
     port_callback_t portb_callback_func = nullptr;
     intptr_t        portb_callback_ref = 0;
-
-    // execute update callback
-    update_callback_t update_callback_func = nullptr;
-    intptr_t          update_callback_ref = 0;
 
     // Update the state of the IFR
     inline void update_ifr(void) {
@@ -322,7 +320,6 @@ public:
     // Set callbacks for read and write, must be a static function
     void SetPortAReadCallback(port_callback_t func, intptr_t ref);
     void SetPortBReadCallback(port_callback_t func, intptr_t ref);
-    void SetUpdateCallback(update_callback_t func, intptr_t ref);
 
     uint8_t Read(uint8_t reg);              // read from VIA register
     void Write(uint8_t reg, uint8_t data);  // write to VIA register
@@ -333,6 +330,8 @@ public:
     Timer &GetTimer1();
     Timer &GetTimer2();
     ShiftRegister &GetShiftregister();
+    uint8_t getPortBState();
+    uint8_t getPortAState();
     uint8_t getCA1State() { return ca1_state; }
     uint8_t getCA2State() { return ca2_state; }
     uint8_t getCB1State() { return (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr; }

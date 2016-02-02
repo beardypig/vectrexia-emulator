@@ -368,36 +368,23 @@ void VIA6522::Step()
 
     //via_debug("CA2: %d\r\n", registers.ca2_state);
 
-    if (update_callback_func)
-    {
-        uint8_t portb;
-        // if Timer 1 has control of PB7
-        if (registers.ACR & T1_PB7_CONTROL) {
-            // mask PB7 from ORB and use the Timer 1 controlled PB7
-            portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
-        } else {
-            portb = registers.ORB;
-        }
-
-        update_callback_func(update_callback_ref,
-                             registers.ORA, portb & registers.DDRB,
-                             ca1_state, ca2_state,
-                             // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
-                             (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
-                             // When SR is outputting use the CB2 value as per SR
-                             (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state);
-    }
 
     // End of pulse mode handshake
     // If PORTA is using pulse mode handshaking, restore CA2 to 1
     if ((registers.PCR & CA2_MASK) == CA2_OUT_PULSE)
-        ca2_state = 1;
+    {
+        //ca2_state = 1;
+        signals.enqueue(clk+1, &ca2_state, 1);
+    }
 
     // Same for PORTB
     if ((registers.PCR & CB2_MASK) == CB2_OUT_PULSE)
-        cb2_state = 1;
+    {
+        //cb2_state = 1;
+        signals.enqueue(clk+1, &ca2_state, 1);
+    }
 
-    clk++;
+    signals.tick(clk++);
 }
 
 void VIA6522::SetPortAReadCallback(VIA6522::port_callback_t func, intptr_t ref)
@@ -410,12 +397,6 @@ void VIA6522::SetPortBReadCallback(VIA6522::port_callback_t func, intptr_t ref)
 {
     portb_callback_func = func;
     portb_callback_ref = ref;
-}
-
-void VIA6522::SetUpdateCallback(update_callback_t func, intptr_t ref)
-{
-    update_callback_func = func;
-    update_callback_ref = ref;
 }
 
 uint8_t VIA6522::GetIRQ()
@@ -471,4 +452,24 @@ VIA6522::Registers VIA6522::GetRegisterState()
     register_state.PB7 = registers.PB7;
 
     return register_state;
+}
+
+// returns the port b data bus state
+uint8_t VIA6522::getPortBState()
+{
+    uint8_t portb;
+    // if Timer 1 has control of PB7
+    if (registers.ACR & T1_PB7_CONTROL) {
+        // mask PB7 from ORB and use the Timer 1 controlled PB7
+        portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
+    } else {
+        portb = registers.ORB;
+    }
+    return portb;
+}
+
+// returns the port a data bus state
+uint8_t VIA6522::getPortAState()
+{
+    return registers.ORA;
 }

@@ -67,6 +67,9 @@ uint64_t Vectrex::Run(long cycles)
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
             via_->Step();
+            PeripheralStep(via_->getPortAState(), via_->getPortBState(),
+                           via_->getCA1State(), via_->getCA2State(),
+                           via_->getCB1State(), via_->getCB2State());
             this->cycles++;
         }
 
@@ -100,14 +103,6 @@ static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
     reinterpret_cast<Vectrex*>(ref)->Write(addr, data);
 }
 
-static void vectrex_peripheral_step(intptr_t ref,
-                                    uint8_t porta, uint8_t portb,
-                                    uint8_t ca1, uint8_t ca2,
-                                    uint8_t cb1, uint8_t cb2)
-{
-    reinterpret_cast<Vectrex*>(ref)->PeripheralStep(porta, portb, ca1, ca2, cb1, cb2);
-}
-
 static uint8_t read_porta(intptr_t ref)
 {
     return reinterpret_cast<Vectrex*>(ref)->ReadPortA();
@@ -137,7 +132,6 @@ Vectrex::Vectrex()
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
     // VIA callbacks
-    via_->SetUpdateCallback(vectrex_peripheral_step, reinterpret_cast<intptr_t>(this));
     via_->SetPortAReadCallback(read_porta, reinterpret_cast<intptr_t>(this));
     via_->SetPortBReadCallback(read_portb, reinterpret_cast<intptr_t>(this));
     // PSG Callbacks
