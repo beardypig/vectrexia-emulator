@@ -4,8 +4,10 @@
 #include <vectrexia.h>
 #include "gif.h"
 
+static const int FRAME_WIDTH = Vectorizer::FRAME_WIDTH;
+static const int FRAME_HEIGHT = Vectorizer::FRAME_HEIGHT;
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
-uint8_t framebuffer[330 * 410 * 4];
+uint8_t framebuffer[FRAME_WIDTH * FRAME_HEIGHT * 4];
 
 int main(int argc, char *argv[])
 {
@@ -67,7 +69,7 @@ int main(int argc, char *argv[])
     }
 
 
-    GifBegin(&gw, giffilename, 330, 410, 2, 8, false);
+    GifBegin(&gw, giffilename, FRAME_WIDTH, FRAME_HEIGHT, 2, 8, false);
 
 
     vectrex->Reset();
@@ -81,7 +83,7 @@ int main(int argc, char *argv[])
         auto fb = vectrex->getFramebuffer();
 
         // get the palette frame buffer
-        for (int i = 0; i < 330 * 410; i++)
+        for (int i = 0; i < FRAME_WIDTH * FRAME_HEIGHT; i++)
         {
             auto bits = (uint8_t) (fb[i] * 255.0f);
             framebuffer[i*4] = bits;
@@ -91,7 +93,7 @@ int main(int argc, char *argv[])
         }
 
         if (frame > skipframes)
-            GifWriteFrame(&gw, framebuffer, 330, 410, 2);
+            GifWriteFrame(&gw, framebuffer, FRAME_WIDTH, FRAME_HEIGHT, 2);
 
         if (frame % 100 == 0)
         {
