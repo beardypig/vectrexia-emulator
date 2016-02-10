@@ -21,7 +21,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <via6522.h>
 #include <stddef.h>
 #include <stdio.h>
-#include "via6522.h"
 
 uint8_t VIA6522::Read(uint8_t reg)
 {
@@ -35,8 +34,8 @@ uint8_t VIA6522::Read(uint8_t reg)
         case REG_ORA:
             if ((registers.PCR & CA2_MASK) == CA2_OUTPUT) {
                 // CA2 goes low to signal "data taken", in pulse mode that will be restored to 1 at the end of the
-                // VIA emulation
-                ca2_state = 0;
+                // VIA emulation - this is delayed by 1us
+                signals.enqueue(clk+2, &ca2_state, 0);
             }
         case REG_ORA_NO_HANDSHAKE:
             data = read_porta();
@@ -131,7 +130,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_ORB:
             // Port B lines (CB1, CB2) handshake on a write operation only.
             if ((registers.PCR & CB2_MASK) == CB2_OUTPUT) {
-                cb2_state = 0;
+                // write handshake negative transition can be delayed by up to 1us.
+                signals.enqueue(clk+2, &cb2_state, 0);
             }
 
             registers.ORB = data;
@@ -139,7 +139,8 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
         case REG_ORA:
             // If CA2 is output
             if ((registers.PCR & CA2_MASK) == CA2_OUTPUT) {
-                ca2_state = 1;
+                // CA2 write handshake can be delayed up to 2us.
+                signals.enqueue(clk+3, &ca2_state, 0);
             }
         case REG_ORA_NO_HANDSHAKE:
             registers.ORA = data;
@@ -368,25 +369,23 @@ void VIA6522::Step()
         sr.counter = registers.T2CL;
     }
 
-    //via_debug("CA2: %d\r\n", registers.ca2_state);
-
-
     // End of pulse mode handshake
     // If PORTA is using pulse mode handshaking, restore CA2 to 1
     if ((registers.PCR & CA2_MASK) == CA2_OUT_PULSE)
     {
-        //ca2_state = 1;
-        signals.enqueue(clk+1, &ca2_state, 1);
+        // 3 cycle delay
+        signals.enqueue(clk+3, &ca2_state, 1);
     }
 
     // Same for PORTB
     if ((registers.PCR & CB2_MASK) == CB2_OUT_PULSE)
     {
-        //cb2_state = 1;
-        signals.enqueue(clk+1, &ca2_state, 1);
+        // 3 cycle delay
+        signals.enqueue(clk+3, &cb2_state, 1);
     }
 
     signals.tick(clk++);
+
 }
 
 void VIA6522::SetPortAReadCallback(VIA6522::port_callback_t func, intptr_t ref)

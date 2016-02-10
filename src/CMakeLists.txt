@@ -8,9 +8,9 @@ add_library(vectrexia_libretro SHARED
         m6809_disassemble.cpp
         m6809.cpp
         via6522.cpp
-        vectorizer.cpp
+        #vectorizer.cpp
         ay38910.cpp
-        )
+        Vectorizer2.cpp Vectorizer2.h)
 
 set_target_properties(vectrexia_libretro PROPERTIES PREFIX "")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKER_SCRIPT}")

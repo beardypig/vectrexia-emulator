@@ -21,7 +21,11 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdint.h>
 #include <vector>
+#include <functional>
 #include <algorithm>
+
+template<typename T>
+using update_callback_t = std::function<void(T value, uint64_t remaining_nanos)>;
 
 template<typename T>
 class UpdateTimer
@@ -46,9 +50,51 @@ class UpdateTimer
     std::vector<data> items;
 public:
     // enqueue and item to be updated at a later time
-    void enqueue(uint64_t cycles, T *ptr, T value)
+    void enqueue(uint64_t cycles, T* ptr, T value)
     {
-        items.push_back({ cycles, ptr, value });
+        items.push_back({cycles, ptr, value });
+    }
+
+    void tick(uint64_t cycles)
+    {
+        // https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
+        items.erase(std::remove(items.begin(), items.end(), cycles), items.end());
+    }
+};
+
+template<typename T>
+class CallbackTimer
+{
+    struct data
+    {
+        uint64_t cycles, remaining_nanos;
+        update_callback_t<T> callback;
+        T value;
+
+        bool operator== (const uint64_t &count)
+        {
+            if (cycles <= count)
+            {
+                callback(value, remaining_nanos);
+                return true;
+            }
+            return false;
+        }
+    };
+
+    std::vector<data> items;
+public:
+    // enqueue and item to be updated at a later time
+    void enqueue(uint64_t current_cycle, uint64_t nanosecond, update_callback_t<T> callback, T value)
+    {
+        // eg. 7800e-9 / (1/1.5e6) == 7800e-3 / (1/1.5) == 7800 / (1/1.5e-3)
+        uint64_t cycles = (uint64_t)(nanosecond / (1/1.5e-3));
+        uint64_t remainder = (uint64_t)nanosecond - (uint64_t)(1./1.5e-3 * cycles);
+        //printf("A delay of %lldns causes a delay of %lld cycles, with an extra delay of %lldns\n",
+        //       nanosecond, cycles, remainder);
+        items.push_back({ current_cycle + cycles, remainder, callback, value });
+
+        //printf("Callback queue length: %d\n", items.size());
     }
 
     void tick(uint64_t cycles)

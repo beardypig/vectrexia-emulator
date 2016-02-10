@@ -50,6 +50,9 @@ if (IS_BIG_ENDIAN)
     add_definitions(-D__MSB_FIRST)
 endif()
 
+set(CMAKE_C_FLAGS_DEBUG "-DDEBUGGING")
+set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUGGING")
+
 enable_testing()
 add_subdirectory(src)
 add_subdirectory(debugger)

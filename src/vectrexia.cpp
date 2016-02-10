@@ -74,7 +74,7 @@ uint64_t Vectrex::Run(uint64_t cycles)
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
             via_->Step();
-            vector_buffer.BeamStep(via_->getPortAState(), via_->getPortBState(),
+            vector_buffer.Step(via_->getPortAState(), via_->getPortBState(),
                                    via_->getCA2State(), via_->getCB2State());
             UpdateJoystick(via_->getPortAState(), via_->getPortBState());
             psg_->Step(via_->getPortAState(), (uint8_t) ((via_->getPortBState() >> 3) & 1),
@@ -223,12 +223,12 @@ VIA6522 &Vectrex::GetVIA6522()
     return *via_;
 }
 
-Vectorizer &Vectrex::GetVectorizer()
+Vectorizer2 &Vectrex::GetVectorizer()
 {
     return vector_buffer;
 }
 
-std::array<float, Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT> Vectrex::getFramebuffer()
+std::array<color_t, 330*410> Vectrex::getFramebuffer()
 {
     return vector_buffer.getVectorBuffer();
 }

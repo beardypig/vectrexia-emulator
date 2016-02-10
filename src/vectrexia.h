@@ -29,7 +29,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "sysrom.h"
 #include "m6809.h"
 #include "via6522.h"
-#include "vectorizer.h"
+#include "vectorizer2.h"
 #include "ay38910.h"
 
 
@@ -51,11 +51,12 @@ class Vectrex
                 sw4, sw5, sw6, sw7;
     } joysticks;
 
+public:
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<M6809> cpu_;
     std::unique_ptr<VIA6522> via_;
     std::unique_ptr<AY38910> psg_;
-    Vectorizer vector_buffer;
+    Vectorizer2 vector_buffer;
 
     uint64_t cycles;
     uint8_t joystick_compare = 0x7f;
@@ -79,9 +80,9 @@ public:
 
     M6809 &GetM6809();
     VIA6522 &GetVIA6522();
-    Vectorizer &GetVectorizer();
+    Vectorizer2 &GetVectorizer();
 
-    std::array<float, Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT> getFramebuffer();
+    std::array<color_t, 330*410> getFramebuffer();
 
     uint8_t ReadPortB();
     uint8_t ReadPortA();

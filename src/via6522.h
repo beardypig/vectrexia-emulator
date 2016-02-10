@@ -184,7 +184,7 @@ class VIA6522
                     }
                 }
                 // when disable the last state should be HIGH
-                via6522.cb1_state_sr = edge;
+                via6522.signals.enqueue(via6522.clk+1, &via6522.cb1_state_sr, edge);
             }
         }
     };

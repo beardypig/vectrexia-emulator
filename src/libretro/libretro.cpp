@@ -26,6 +26,9 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 
+//const int CPU_FREQUENCY = (const int) 1.5e6;
+int CPU_FREQUENCY = (int) 1.5e6;
+
 // Callbacks
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -154,11 +157,11 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
     memset(info, 0, sizeof(*info));
     info->timing.fps            = 50.0f;
     info->timing.sample_rate    = 41400;
-    info->geometry.base_width   = Vectorizer::FRAME_WIDTH;
-    info->geometry.base_height  = Vectorizer::FRAME_HEIGHT;
-    info->geometry.max_width    = Vectorizer::FRAME_WIDTH;
-    info->geometry.max_height   = Vectorizer::FRAME_HEIGHT;
-    info->geometry.aspect_ratio = (float) Vectorizer::FRAME_WIDTH / (float) Vectorizer::FRAME_HEIGHT;
+    info->geometry.base_width   = 330;
+    info->geometry.base_height  = 410;
+    info->geometry.max_width    = 330;
+    info->geometry.max_height   = 410;
+    info->geometry.aspect_ratio = (float) 330 / (float) 410;
 
     // the performance level is guide to frontend to give an idea of how intensive this core is to run
     environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &pixel_format);
@@ -166,15 +169,15 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
 
 // Reset the Vectrex
-void retro_reset(void) { vectrex->Reset(); }
-
-unsigned short framebuffer[Vectorizer::FRAME_WIDTH*Vectorizer::FRAME_HEIGHT];
-
-uint16_t make_colour(float intensitity)
-{
-    uint8_t icolo = (uint8_t)(intensitity*0xff);
-    return (uint16_t) (((icolo >> 3) & 0x1f) << 11 | ((icolo >> 2) & 0x3f) << 5 | ((icolo >> 3) & 0x1f));
+void retro_reset(void) {
+    vectrex->Reset();
 }
+
+unsigned short framebuffer[330*410];
+int delays_change = 0;
+#ifdef DEBUGGING
+int pressed = 0;
+#endif
 
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
@@ -228,21 +231,116 @@ void retro_run(void)
     vectrex->SetPlayerOne(p1_x, p1_y, p1_b1, p1_b2, p1_b3, p1_b4);
     vectrex->SetPlayerTwo(p2_x, p2_y, p2_b1, p2_b2, p2_b3, p2_b4);
 
+#ifdef DEBUGGING
+    int frame_delay = 10;
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_1))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.signal_delay += 100;
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_2))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.signal_delay = static_cast<uint64_t>(std::max(0, static_cast<int>(vectrex->vector_buffer.signal_delay - 100)));
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3))
+    {
+        pressed = frame_delay;
+        CPU_FREQUENCY += (CPU_FREQUENCY >= 100000) ? 100000 : ((CPU_FREQUENCY >= 10000) ? 10000 : ((CPU_FREQUENCY >= 1000) ? 1000 : 100));;
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_4))
+    {
+        pressed = frame_delay;
+        CPU_FREQUENCY -= std::max(1, (CPU_FREQUENCY > 100000) ? 100000 : ((CPU_FREQUENCY > 10000) ? 10000 : ((CPU_FREQUENCY > 1000) ? 1000 : 100)));
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_5))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.decay_cycles += 1000;
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_6))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.decay_cycles = std::max(0, vectrex->vector_buffer.decay_cycles - 1000);
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP_PLUS))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.scale_factor += 0.1f;
+    }
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP_MINUS))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.scale_factor = std::max(1.0f, vectrex->vector_buffer.scale_factor - 0.1f);
+    }
+
+
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP4))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.pan_offset_x += 0.01f;
+    }
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP6))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.pan_offset_x -= 0.01f;
+    }
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP2))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.pan_offset_y -= 0.01f;
+    }
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP8))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.pan_offset_y += 0.01f;
+    }
+    if (pressed == 0 && input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_KP5))
+    {
+        pressed = frame_delay;
+        vectrex->vector_buffer.pan_offset_x = 0.0f;
+        vectrex->vector_buffer.pan_offset_y = 0.0f;
+        vectrex->vector_buffer.scale_factor = 1.0f;
+    }
+
+
+    bool key_pressed = false;
+
+    retro_key buttons[] = {RETROK_0, RETROK_1, RETROK_2, RETROK_3, RETROK_4, RETROK_5, RETROK_6, RETROK_7, RETROK_8, RETROK_9, RETROK_0};
+    for (auto &b: buttons)
+    {
+        if (input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, b))
+        {
+            key_pressed = true;
+        }
+    }
+    pressed = (key_pressed) ? std::max(0, pressed - 1) : 0;
+
+#endif
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
-    auto cycles_run = vectrex->RunFrame(30000);
+    auto to_run = (uint64_t) (0.02 * CPU_FREQUENCY);
+    auto cycles_run = vectrex->Run(to_run);
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     for (int i = 0; i < 882; i++) {
         audio_cb(1, 1);
     }
 
+    vectrex->vector_buffer.draw_debug_text(2, 12, {0, 1.0f, 0, 0.8f}, "@ %dHz", CPU_FREQUENCY);
     auto fb = vectrex->getFramebuffer();
 
-    for(int i = 0; i < Vectorizer::FRAME_WIDTH * Vectorizer::FRAME_HEIGHT; i++)
+    for(int i = 0; i < 330 * 410; i++)
     {
-        framebuffer[i] = make_colour(fb[i]);
+        framebuffer[i] = fb[i].rgb656();
     }
 
-    video_cb(framebuffer, Vectorizer::FRAME_WIDTH, Vectorizer::FRAME_HEIGHT, sizeof(unsigned short) * Vectorizer::FRAME_WIDTH);
+    video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);
 
 }

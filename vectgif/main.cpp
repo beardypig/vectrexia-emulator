@@ -4,8 +4,8 @@
 #include <vectrexia.h>
 #include "gif.h"
 
-static const int FRAME_WIDTH = Vectorizer::FRAME_WIDTH;
-static const int FRAME_HEIGHT = Vectorizer::FRAME_HEIGHT;
+static const int FRAME_WIDTH = 330;
+static const int FRAME_HEIGHT = 410;
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 uint8_t framebuffer[FRAME_WIDTH * FRAME_HEIGHT * 4];
 
@@ -85,11 +85,11 @@ int main(int argc, char *argv[])
         // get the palette frame buffer
         for (int i = 0; i < FRAME_WIDTH * FRAME_HEIGHT; i++)
         {
-            auto bits = (uint8_t) (fb[i] * 255.0f);
-            framebuffer[i*4] = bits;
-            framebuffer[i*4+1] = bits;
-            framebuffer[i*4+1] = bits;
-            framebuffer[i*4+2] = bits;
+            auto color = fb[i].rgba8();
+            framebuffer[i*4] = (uint8_t) ((color >> 16) & 0xff);
+            framebuffer[i*4+1] = (uint8_t) ((color >> 8) & 0xff);
+            framebuffer[i*4+1] = (uint8_t) (color & 0xff);
+            framebuffer[i*4+2] = 0xff;
         }
 
         if (frame > skipframes)
