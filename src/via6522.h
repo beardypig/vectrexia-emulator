@@ -329,6 +329,8 @@ public:
 
     uint8_t GetIRQ();
 
+    uint8_t getPortAState();
+    uint8_t getPortBState();
     uint8_t getCA1State() { return ca1_state; }
     uint8_t getCA2State() { return ca2_state; }
     uint8_t getCB1State() { return (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr; }
