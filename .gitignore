@@ -31,3 +31,8 @@
 # Debug files
 *.dSYM/
 build/
+
+# Vectrex files
+*.bin
+*.vec
+
