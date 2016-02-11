@@ -25,7 +25,7 @@ set(VECTREXIA_SOURCE
         cartridge.cpp
         m6809_disassemble.cpp
         m6809.cpp
-        via6522.cpp updatetimer.h)
+        via6522.cpp updatetimer.h ay38910.cpp ay38910.h)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)
