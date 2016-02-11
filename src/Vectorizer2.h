@@ -223,6 +223,7 @@ struct axes_t
 struct signal_data_t
 {
     uint8_t ramp;
+    uint8_t zero;
     integrators_t integrators;
 };
 
@@ -231,7 +232,7 @@ static const float VECTOR_MIN_V = -5.0f;
 
 static const float time_per_clock = (float) (1.0f / 1.5e6);
 
-static const float DEBUG_LINE_INTENSITY = 0.01f;
+static const float DEBUG_LINE_INTENSITY = 0.3f;
 
 class Vectorizer2
 {
@@ -242,10 +243,8 @@ class Vectorizer2
 
     struct Vector
     {
-        float ramp_time;
-        axes_t axes;
-        integrators_t integrators;
-        uint8_t blank;
+        axes_t pos;
+        uint8_t blank, ramp;
         float intensity;
         uint64_t end_cycle;
     };
@@ -310,23 +309,26 @@ class Vectorizer2
 public:
     void Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank);
     framebuffer_t getVectorBuffer();
-    void draw_line(int x0, int y0, int x1, int y1, float endi);
-    void draw_line(framebuffer_t &fb, int x0, int y0, int x1, int y1, float endi);
+    void draw_line(float x0, float y0, float x1, float y1, float endi);
+    void draw_line(framebuffer_t &fb, float x0, float y0, float x1, float y1, float endi);
+    void draw_line(framebuffer_t &fb, float fx0, float fy0, float fx1, float fy1, color_t color);
     void draw_line(framebuffer_t &fb, int x0, int y0, int x1, int y1, color_t colour);
 #ifdef DEBUGGING
     void draw_debug_line(int x0, int y0, int x1, int y1, float endi);
     void draw_debug_text(int x, int y, color_t color, std::string message);
     void draw_debug_text(int x, int y, color_t color, const char *fmt, ...);
-    void draw_debug_grid(color_t t, int xn, int yn);
+    void draw_debug_grid(color_t line, float xi, float yi);
+    void draw_debug_line(float x0, float y0, float x1, float y1, float endi);
 #endif
 
     uint64_t signal_delay = 7800;
     int decay_cycles = 40000; // a beam lasts for 40k cycles
     float scale_factor = 1.0f;
     float pan_offset_x = 0.0f;
-    float pan_offset_x = 0.0f;
+    float pan_offset_y = 0.0f;
 
     void UpdateSignals(signal_data_t data, uint64_t remaining_nanos);
+
 };
 
 
