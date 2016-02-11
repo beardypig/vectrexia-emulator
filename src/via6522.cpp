@@ -370,17 +370,8 @@ void VIA6522::Step()
 
     if (update_callback_func)
     {
-        uint8_t portb;
-        // if Timer 1 has control of PB7
-        if (registers.ACR & T1_PB7_CONTROL) {
-            // mask PB7 from ORB and use the Timer 1 controlled PB7
-            portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
-        } else {
-            portb = registers.ORB;
-        }
-
         update_callback_func(update_callback_ref,
-                             registers.ORA, portb & registers.DDRB,
+                             getPortAState(), getPortBState(),
                              ca1_state, ca2_state,
                              // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
                              (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
@@ -421,4 +412,24 @@ void VIA6522::SetUpdateCallback(update_callback_t func, intptr_t ref)
 uint8_t VIA6522::GetIRQ()
 {
     return registers.IFR & IRQ_MASK;
+}
+
+// returns the port b data bus state
+uint8_t VIA6522::getPortBState()
+{
+    uint8_t portb;
+    // if Timer 1 has control of PB7
+    if (registers.ACR & T1_PB7_CONTROL) {
+        // mask PB7 from ORB and use the Timer 1 controlled PB7
+        portb = (uint8_t) ((registers.ORB & ~0x80) | registers.PB7);
+    } else {
+        portb = registers.ORB;
+    }
+    return portb;
+}
+
+// returns the port a data bus state
+uint8_t VIA6522::getPortAState()
+{
+    return registers.ORA;
 }
