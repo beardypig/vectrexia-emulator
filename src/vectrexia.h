@@ -41,7 +41,6 @@ class Vectrex
     // 1K of system RAM
     const std::array<uint8_t, 8192> sysrom_ = system_bios;
     std::array<uint8_t, 1024> ram_{};
-    std::array<uint8_t, 1024> ram_;
 
 public:
     std::unique_ptr<Cartridge> cartridge_{};
@@ -49,7 +48,6 @@ public:
     std::unique_ptr<VIA6522> via_;
     uint64_t cycles;
 
-public:
     Vectrex() noexcept;
     Vectrex(const Vectrex&) = delete;
     Vectrex(Vectrex&&) = delete;
