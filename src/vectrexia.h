@@ -42,10 +42,10 @@ class Vectrex
     const std::array<uint8_t, 8192> sysrom_ = system_bios;
     std::array<uint8_t, 1024> ram_;
 
+public:
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<M6809> cpu_;
     std::unique_ptr<VIA6522> via_;
-
     uint64_t cycles;
 
 public:
@@ -63,9 +63,6 @@ public:
     void Write(uint16_t addr, uint8_t data);
 
     void message(const char *fmt, ...);
-
-    M6809 &GetM6809();
-
 };
 
 #endif //VECTREXIA_VECTREXIA_H

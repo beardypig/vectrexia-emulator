@@ -172,9 +172,3 @@ void Vectrex::message(const char *fmt, ...)
     fprintf(stderr, "\n");
     va_end(args);
 }
-
-M6809 &Vectrex::GetM6809()
-{
-    return *cpu_;
-}
-
