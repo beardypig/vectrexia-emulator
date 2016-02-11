@@ -20,6 +20,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_VIA6522_H
 
 #include <stdint.h>
+#include "updatetimer.h"
 
 // Registers
 enum {
@@ -237,9 +238,8 @@ class VIA6522
     port_callback_t portb_callback_func = nullptr;
     intptr_t        portb_callback_ref = 0;
 
-    // execute update callback
-    update_callback_t update_callback_func = nullptr;
-    intptr_t          update_callback_ref = 0;
+    // Signals that need to be updated in the future
+    UpdateTimer<uint8_t> delayed_signals;
 
     // Update the state of the IFR
     inline void update_ifr(void) {
