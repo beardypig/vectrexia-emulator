@@ -33,7 +33,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 class Vectrex
 {
     const char *kName_ = "Vectrexia";
-    const char *kVersion_ = "0.1.0";
+    const char *kVersion_ = "0.2.0";
 
     // memory areas
     // 8K of system ROM
