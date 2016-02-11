@@ -40,9 +40,9 @@ void Vectrex::Reset()
     cpu_->Reset();
 }
 
-long Vectrex::Run(long cycles)
+uint64_t Vectrex::Run(uint64_t cycles)
 {
-    int cpu_cycles = 0;
+    uint64_t cpu_cycles = 0;
     m6809_error_t rcode = cpu_->Execute(cpu_cycles);
 
     if (rcode != E_SUCCESS)
@@ -157,3 +157,4 @@ M6809 &Vectrex::GetM6809()
 {
     return *cpu_;
 }
+

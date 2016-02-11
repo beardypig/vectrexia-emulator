@@ -48,7 +48,7 @@ class Vectrex
 public:
     Vectrex();
     void Reset();
-    long Run(long cycles);
+    uint64_t Run(uint64_t cycles);
 
     bool LoadCartridge(const uint8_t *data, size_t size);
     void UnloadCartridge();
