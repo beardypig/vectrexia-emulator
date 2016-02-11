@@ -45,7 +45,6 @@ uint8_t VIA6522::Read(uint8_t reg)
             // Timer 1
         case REG_T1CL:  // timer 1 low-order counter
             // stop timer 1
-            //via_debug_timer("Timer 1 has been disabled\r\n");
             timer1.enabled = false;
 
             // Set PB7 if Timer 1 has control of PB7
@@ -70,7 +69,6 @@ uint8_t VIA6522::Read(uint8_t reg)
             // Timer 2
         case REG_T2CL:  // timer 2 low-order counter
             // stop timer 2
-            //via_debug_timer("Timer 2 has been disabled\r\n");
             timer2.enabled = false;
 
             // clear the timer 2 interrupt
@@ -117,10 +115,8 @@ uint8_t VIA6522::Read(uint8_t reg)
             break;
         default:
             break;
-            //via_debug("[VIA] ERROR: Unhanled register address read: $%02x\r\n", reg & 0xf);
     }
     // invalid address
-    //via_debug("Reading Register: %s ($%02x) = 0x%02x\r\n", REG_STRING[reg & 0xf], reg & 0x0f, data);
     return data;
 }
 
@@ -153,8 +149,6 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
             registers.T1LH = data;
             timer1.counter = (registers.T1LH << 8) | registers.T1LL;
 
-            //via_debug_timer("Timer 1 has been enabled: %d in mode: %x\r\n", timer1.counter, (registers.ACR & T1_MASK));
-
             // start timer 1
             timer1.enabled = true;
             timer1.one_shot = false;
@@ -182,7 +176,6 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
             timer2.counter = (registers.T2CH << 8) | registers.T1CL;
 
             // start timer 2
-            //via_debug_timer("Timer 2 has been enabled: %d in mode %x\r\n", timer2.counter, (registers.ACR & T2_MASK));
             timer2.enabled = true;
             timer2.one_shot = false;
 
@@ -230,7 +223,6 @@ void VIA6522::Write(uint8_t reg, uint8_t data)
             registers.ACR = data;
             break;
         default:
-            //via_debug("[VIA] ERROR: Unhanled register address write: $%02x\r\n", address & 0xf);
             break;
     }
 }
@@ -284,6 +276,9 @@ void VIA6522::Reset()
 
 void VIA6522::Step()
 {
+    // Update any delayed signals
+    delayed_signals.tick(clk++);
+
     // Timers
     if (timer1.enabled) {
         // decrement the counter and test if it has rolled over
@@ -293,10 +288,8 @@ void VIA6522::Step()
                 // set the timer 1 interrupt
                 set_ifr(TIMER1_INT, 1);
 
-                //via_debug_timer("Timer 1 has triggered\r\n");
                 // toggle PB7 (ACR & 0x80)
                 if (registers.ACR & T1_PB7_CONTROL) {
-                    //via_debug_timer2(", PB7=0x%02x", via6522.registers.PB7);
                     registers.PB7 ^= 0x80;
                 }
                 //via_debug_timer("\r\n");
@@ -308,7 +301,6 @@ void VIA6522::Step()
                     // set timer 1 interrupt
                     set_ifr(TIMER1_INT, 1);
 
-                    //via_debug_timer("Timer 1 has trigger a one-shot interrupt");
                     if (registers.ACR & T1_PB7_CONTROL) {
                         //via_debug_timer2(", PB7 set");
                         // restore PB7 to 1, it was set to 0 by writing to T1C-H
@@ -326,15 +318,12 @@ void VIA6522::Step()
         if ((registers.ACR & T2_MASK) == T2_TIMED) { // timed, one-shot mode
             // In one-shot mode the timer keeps going, but the interrupt is only triggered once
             if (--timer2.counter == 0xffff && !timer2.one_shot) {
-                //via_debug_timer("Timer 2 has rolled over.\r\n");
                 // set the Timer 2 interrupt
                 set_ifr(TIMER2_INT, 1);
                 timer2.one_shot = true;
             }
         }
     }
-
-    //via_debug("SR enabled: %d shift: %d: cb2: %d\r\n", sr.enabled, via6522.sr.shifted, via6522.cb2_state_sr);
 
     switch (registers.ACR & SR_MASK) {
         case SR_DISABLED:
@@ -366,29 +355,16 @@ void VIA6522::Step()
         sr.counter = registers.T2CL;
     }
 
-    //via_debug("CA2: %d\r\n", registers.ca2_state);
-
-    if (update_callback_func)
-    {
-        update_callback_func(update_callback_ref,
-                             getPortAState(), getPortBState(),
-                             ca1_state, ca2_state,
-                             // CB1 outputs from the SR except when SR is driving by an external clock (CB1)
-                             (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr,
-                             // When SR is outputting use the CB2 value as per SR
-                             (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state);
-    }
-
     // End of pulse mode handshake
-    // If PORTA is using pulse mode handshaking, restore CA2 to 1
+    // If PORTA is using pulse mode handshaking, restore CA2 to 1 at the beginning of the next cycle
     if ((registers.PCR & CA2_MASK) == CA2_OUT_PULSE)
-        ca2_state = 1;
+        delayed_signals.enqueue(clk+1, &ca2_state, 1);
 
     // Same for PORTB
     if ((registers.PCR & CB2_MASK) == CB2_OUT_PULSE)
-        cb2_state = 1;
+        delayed_signals.enqueue(clk+1, &ca2_state, 1);
 
-    clk++;
+
 }
 
 void VIA6522::SetPortAReadCallback(VIA6522::port_callback_t func, intptr_t ref)
@@ -401,12 +377,6 @@ void VIA6522::SetPortBReadCallback(VIA6522::port_callback_t func, intptr_t ref)
 {
     portb_callback_func = func;
     portb_callback_ref = ref;
-}
-
-void VIA6522::SetUpdateCallback(update_callback_t func, intptr_t ref)
-{
-    update_callback_func = func;
-    update_callback_ref = ref;
 }
 
 uint8_t VIA6522::GetIRQ()
