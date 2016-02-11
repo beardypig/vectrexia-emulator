@@ -7,7 +7,7 @@ add_library(vectrexia_libretro SHARED
         cartridge.cpp
         m6809_disassemble.cpp
         m6809.cpp
-        via6522.cpp updatetimer.h)
+        via6522.cpp updatetimer.h ay38910.cpp ay38910.h)
 
 set_target_properties(vectrexia_libretro PROPERTIES PREFIX "")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKER_SCRIPT}")
