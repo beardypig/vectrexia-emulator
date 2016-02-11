@@ -91,7 +91,6 @@ public:
     void SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
     uint8_t ReadPSGIO();
     void StorePSGReg(uint8_t reg);
-
     M6809 &GetM6809();
 };
 
