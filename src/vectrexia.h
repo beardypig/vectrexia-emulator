@@ -29,6 +29,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "sysrom.h"
 #include "m6809.h"
 #include "via6522.h"
+#include "ay38910.h"
 
 
 class Vectrex
@@ -41,6 +42,15 @@ class Vectrex
     // 1K of system RAM
     const std::array<uint8_t, 8192> sysrom_ = system_bios;
     std::array<uint8_t, 1024> ram_{};
+
+    // This structure represents the values of the potentiometers and the buttons a vectrex controller
+    struct
+    {
+        uint8_t pot_x, pot_y;
+        uint8_t btn_1, btn_2, btn_3, btn_4;
+    } p1_joystick, p2_joystick;
+    uint8_t joystick_compare;
+    uint8_t psg_port;
 
 public:
     std::unique_ptr<Cartridge> cartridge_{};
@@ -70,6 +80,14 @@ public:
     void Write(uint16_t addr, uint8_t data);
 
     void message(const char *fmt, ...);
+
+    uint8_t ReadPortA();
+    uint8_t ReadPortB();
+    void UpdateJoystick(uint8_t porta, uint8_t portb);
+    void SetPlayerOne(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+    void SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+    uint8_t ReadPSGIO();
+    void StorePSGReg(uint8_t reg);
 
     M6809 &GetM6809();
 };
