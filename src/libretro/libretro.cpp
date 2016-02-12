@@ -158,11 +158,11 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
     memset(info, 0, sizeof(*info));
     info->timing.fps            = 50.0f;
     info->timing.sample_rate    = 441000;
-    info->geometry.base_width   = 330;
-    info->geometry.base_height  = 410;
-    info->geometry.max_width    = 330;
-    info->geometry.max_height   = 410;
-    info->geometry.aspect_ratio = 330.0f / 410.0f;
+    info->geometry.base_width   = FRAME_WIDTH;
+    info->geometry.base_height  = FRAME_HEIGHT;
+    info->geometry.max_width    = FRAME_WIDTH;
+    info->geometry.max_height   = FRAME_HEIGHT;
+    //info->geometry.aspect_ratio = 330.0f / 410.0f;
 
     // the performance level is guide to frontend to give an idea of how intensive this core is to run
     environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &pixel_format);
@@ -171,8 +171,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
 // Reset the Vectrex
 void retro_reset(void) { vectrex->Reset(); }
-
-unsigned short framebuffer[330*410];
 
 // Test the user input and return the state of the joysticks and buttons
 void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint8_t &b2, uint8_t &b3, uint8_t &b4)
@@ -222,11 +220,13 @@ void retro_run(void)
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
     vectrex->Run(30000);
 
+    auto fb = vectrex->getFramebuffer();
+    auto fb1 = fb.rgb656();
+
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     for (int i = 0; i < 882; i++)
     {
         audio_cb(1, 1);
     }
-
-    video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);
+    video_cb(fb1.data(), FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
 }

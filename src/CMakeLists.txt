@@ -20,12 +20,15 @@ endif()
 # Vectrexia target source files
 #
 set(VECTREXIA_SOURCE
-        libretro/libretro.cpp
-        vectrexia.cpp
-        cartridge.cpp
-        m6809_disassemble.cpp
-        m6809.cpp
-        via6522.cpp updatetimer.h ay38910.cpp ay38910.h)
+	libretro/libretro.cpp
+	vectrexia.cpp
+	cartridge.cpp
+	m6809_disassemble.cpp
+	m6809.cpp
+    via6522.cpp via6522.h updatetimer.h
+    ay38910.cpp ay38910.h
+	vectorizer.cpp vectorizer.h
+    gfxutil.h)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)
