@@ -30,6 +30,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "m6809.h"
 #include "via6522.h"
 #include "ay38910.h"
+#include "vectorizer.h"
 
 
 class Vectrex
@@ -80,6 +81,8 @@ public:
     void Write(uint16_t addr, uint8_t data);
 
     void message(const char *fmt, ...);
+
+    VectrexFramebuffer getFramebuffer();
 
     uint8_t ReadPortA();
     uint8_t ReadPortB();
