@@ -93,14 +93,12 @@ TEST(M6809OpCodes, ADDA_DIRECT)
     EXPECT_CALL(mem, Read(0x0010))
             .WillOnce(Return(0x15));
 
-    // the result (0x25) should be written back to the direct paged address 0x10
-    EXPECT_CALL(mem, Write(0x0010, 0x25));
     registers.A = 0x10;
 
     EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
 
-    // register A should remain unchanged.
-    EXPECT_EQ(0x10, registers.A);
+    // the result (0x25) should be stored in A
+    EXPECT_EQ(0x25, registers.A);
 
 }
 
@@ -120,14 +118,12 @@ TEST(M6809OpCodes, ADDA_EXTENDED)
     EXPECT_CALL(mem, Read(0x1001))
             .WillOnce(Return(0x15));
 
-    // the result (0x25) should be written back to the extended address
-    EXPECT_CALL(mem, Write(0x1001, 0x25));
     registers.A = 0x10;
 
     EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
 
-    // register A should remain unchanged.
-    EXPECT_EQ(0x10, registers.A);
+    // the result (0x25) should be stored in A
+    EXPECT_EQ(0x25, registers.A);
 
 }
 
