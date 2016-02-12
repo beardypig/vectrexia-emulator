@@ -64,7 +64,8 @@ uint64_t Vectrex::Run(uint64_t cycles)
         for (int via_cycles = 0; via_cycles < cpu_cycles; via_cycles++)
         {
             via_->Step();
-
+            vector_buffer_.Step(via_->getPortAState(), via_->getPortBState(),
+                                via_->getCA2State(), via_->getCB2State());
             UpdateJoystick(via_->getPortAState(), via_->getPortBState());
             psg_->Step(via_->getPortAState(), (uint8_t) ((via_->getPortBState() >> 3) & 1),
                        1, (uint8_t) ((via_->getPortBState() >> 4) & 1));
@@ -290,6 +291,11 @@ uint8_t Vectrex::ReadPSGIO()
 void Vectrex::StorePSGReg(uint8_t reg)
 {
     psg_port = reg;
+}
+
+VectrexFramebuffer Vectrex::getFramebuffer()
+{
+    return vector_buffer_.getVectorBuffer();
 }
 
 M6809 &Vectrex::GetM6809()
