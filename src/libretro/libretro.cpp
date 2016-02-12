@@ -190,14 +190,16 @@ void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint
     else if (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN ))
         y = 0x00;
     else
-        y = (uint8_t) (
-                (input_state_cb(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y) / 256) + 128);
+    {
+        // retroarch y axis is inverted wrt to the vectrex
+        auto y_value = input_state_cb(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+        y = (uint8_t) (~((y_value/256) + 128) + 1);
+    }
 
-
-    b1 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 1 : 0);
-    b2 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 1 : 0);
-    b3 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 1 : 0);
-    b4 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 1 : 0);
+    b1 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A ) ? 1 : 0);
+    b2 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B ) ? 1 : 0);
+    b3 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X ) ? 1 : 0);
+    b4 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 1 : 0);
 }
 
 // Run a single frames with out Vectrex emulation.
@@ -221,10 +223,10 @@ void retro_run(void)
     vectrex->Run(30000);
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
-    for (int i = 0; i < 882; i++) {
+    for (int i = 0; i < 882; i++)
+    {
         audio_cb(1, 1);
     }
 
     video_cb(framebuffer, 330, 410, sizeof(unsigned short) * 330);
-
 }
