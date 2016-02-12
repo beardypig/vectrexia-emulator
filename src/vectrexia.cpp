@@ -239,13 +239,15 @@ void Vectrex::UpdateJoystick(uint8_t porta, uint8_t portb) {
 
 void Vectrex::SetPlayerOne(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
 {
+    // the sticks are analog and range from 0x00 -> 0xff (left -> right/down -> up)
     p1_joystick.pot_x = x;
     p1_joystick.pot_y = y;
 
-    p1_joystick.btn_1 = b1;
-    p1_joystick.btn_2 = b2;
-    p1_joystick.btn_3 = b3;
-    p1_joystick.btn_4 = b4;
+    // the buttons are active low
+    p1_joystick.btn_1 = (uint8_t) (b1 ^ 1);
+    p1_joystick.btn_2 = (uint8_t) (b2 ^ 1);
+    p1_joystick.btn_3 = (uint8_t) (b3 ^ 1);
+    p1_joystick.btn_4 = (uint8_t) (b4 ^ 1);
 }
 
 void Vectrex::SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
@@ -253,10 +255,10 @@ void Vectrex::SetPlayerTwo(uint8_t x, uint8_t y, uint8_t b1, uint8_t b2, uint8_t
     p2_joystick.pot_x = x;
     p2_joystick.pot_y = y;
 
-    p2_joystick.btn_1 = b1;
-    p2_joystick.btn_2 = b2;
-    p2_joystick.btn_3 = b3;
-    p2_joystick.btn_4 = b4;
+    p2_joystick.btn_1 = (uint8_t) (b1 ^ 1);
+    p2_joystick.btn_2 = (uint8_t) (b2 ^ 1);
+    p2_joystick.btn_3 = (uint8_t) (b3 ^ 1);
+    p2_joystick.btn_4 = (uint8_t) (b4 ^ 1);
 }
 
 uint8_t Vectrex::ReadPSGIO()
