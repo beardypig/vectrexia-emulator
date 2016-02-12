@@ -112,6 +112,16 @@ static void store_psg_reg(intptr_t ref, uint8_t data)
     reinterpret_cast<Vectrex*>(ref)->StorePSGReg(data);
 }
 
+static uint8_t read_via_porta(intptr_t ref)
+{
+    return reinterpret_cast<Vectrex*>(ref)->ReadPortA();
+}
+
+static uint8_t read_via_portb(intptr_t ref)
+{
+    reinterpret_cast<Vectrex*>(ref)->ReadPortB();
+}
+
 Vectrex::Vectrex() noexcept
 {
     cpu_ = std::make_unique<M6809>();
@@ -121,6 +131,10 @@ Vectrex::Vectrex() noexcept
     // CPU Callbacks
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
+
+    // VIA Callback
+    via_->SetPortAReadCallback(read_via_porta, reinterpret_cast<intptr_t>(this));
+    via_->SetPortBReadCallback(read_via_portb, reinterpret_cast<intptr_t>(this));
 
     // PSG callbacks
     psg_->SetIOReadCallback(read_psg_io, reinterpret_cast<intptr_t>(this));
