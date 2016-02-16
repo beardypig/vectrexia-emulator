@@ -221,7 +221,7 @@ void retro_run(void)
     vectrex->Run(30000);
 
     auto fb = vectrex->getFramebuffer();
-    auto fb1 = fb.rgb656();
+    auto fb1 = fb.rgb565();
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     for (int i = 0; i < 882; i++)
