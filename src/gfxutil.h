@@ -49,7 +49,7 @@ struct color_t
         intensity = color.intensity;
         return *this;
     }
-    uint16_t rgb656() const
+    uint16_t rgb565() const
     {
         uint8_t ri = (uint8_t)(r*0xff);
         uint8_t gi = (uint8_t)(g*0xff);
@@ -350,12 +350,12 @@ public:
         fill({0.0f, 0.0f, 0.0f, 0.0f});
     }
 
-    std::array<uint16_t, width * height> rgb656() const
+    std::array<uint16_t, width * height> rgb565() const
     {
         std::array<uint16_t, width * height> fb;
         for (int i = 0; i < width * height; i++)
         {
-            fb[i] = framebuffer_[i].rgb656();
+            fb[i] = framebuffer_[i].rgb565();
         }
         return fb;
     };
@@ -365,7 +365,7 @@ public:
         std::array<uint32_t, width * height> fb;
         for (int i = 0; i < width * height; i++)
         {
-            fb[i] = framebuffer_[i].rgb656();
+            fb[i] = framebuffer_[i].rgb565();
         }
         return fb;
     };
