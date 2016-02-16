@@ -62,10 +62,11 @@ class AY38910
     template <int sample_rate>
     struct channel_t
     {
-        uint16_t period          = 0; // 12-bit period for the channel
+        uint16_t period          = 1; // 12-bit period for the channel
         uint8_t  amplitude_mode  = 0; // fixed or envelope variable
         int16_t  amplitude_fixed;
-        double   velocity_, radian_ = 0.0;
+        bool enabled, noise_enabled;
+        double   velocity_ = 13.356, radian_ = 0.0;
 
         void set_period(uint8_t coarse, uint8_t fine)
         {
@@ -79,11 +80,22 @@ class AY38910
             velocity_ = (2 * pi * frequency) / sample_rate;
         }
 
-        int16_t step()
+        int16_t step(int16_t noise)
         {
-            double out = radian_;
+            int16_t out = (int16_t) ((std::sin(radian_) > 0.0 ? 1.0 : -1.0) * amplitude());
+
+            if (noise_enabled)
+            {
+                out = noise * amplitude();
+            }
+            else if (!enabled) // redundant - && !noise_enabled)
+            {
+                // if the channel is disable and the noise is disabled then the sound can be modulated by the volume
+                out = (int16_t) (1 * amplitude());
+            }
+
             radian_ += velocity_;
-            return (int16_t) ((std::sin(radian_) > 0.0 ? 1.0 : -1.0) * amplitude());
+            return out;
         }
 
         int16_t amplitude() const
@@ -91,13 +103,45 @@ class AY38910
             if (!amplitude_mode)
                 return amplitude_fixed;
             else
-                return 0;
+                return amplitude_fixed;
+        }
+    };
+
+    template <int sample_rate>
+    struct noise_t
+    {
+        uint32_t rng = 1;
+        uint8_t period_ = 1; // 5 bit
+        double rng_velocity = 2.125850;  // starting value when the period is 1
+        double rng_tick = 0.0;
+
+        void set_period(uint8_t fine)
+        {
+            period_ = std::max<uint8_t>((uint8_t) (fine & 0x1f), 1);
+            // how many samples before the rng should tick
+            rng_velocity = (1.5e6 / (16 * period_)) / sample_rate;
+        }
+
+        // returns one sample, the time period covered by this method is 1/sample_rate
+        // the rng is ticking a long at frequency = 1.5e6/(period * 16);
+        int16_t step()
+        {
+            while (rng_tick > 1.0)
+            {
+                rng ^= (((rng & 1) ^ ((rng >> 3) & 1)) << 17);
+                rng >>= 1;
+                rng_tick -= 1.0;
+            }
+
+            rng_tick += rng_velocity;
+            return (int16_t) (rng & 1);
         }
     };
 
     uint8_t regs[0xf];
     uint8_t addr;
     channel_t<44100> channel_a, channel_b, channel_c;
+    noise_t<44100> channel_noise;
 
     const int16_t amplitude_table[16] = { 0x0000, 0x0055, 0x0079, 0x00AB, 0x00F1, 0x0155, 0x01E3, 0x02AA,
                                           0x03C5, 0x0555, 0x078B, 0x0AAB, 0x0F16, 0x1555, 0x1E2B, 0x2AAA };
