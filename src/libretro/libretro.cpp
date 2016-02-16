@@ -25,6 +25,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "vectrexia.h"
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
+FILE* sound_out;
 
 // Callbacks
 static retro_log_printf_t log_cb;
@@ -101,7 +102,9 @@ bool retro_serialize(void *data, size_t size) { return false; }
 bool retro_unserialize(const void *data, size_t size) { return false; }
 
 // End of retrolib
-void retro_deinit(void) {}
+void retro_deinit(void) {
+    fclose(sound_out);
+}
 
 // libretro global setters
 void retro_set_environment(retro_environment_t cb)
@@ -132,6 +135,7 @@ void retro_init(void)
     environ_cb(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL, &level);
 
     vectrex->Reset();
+    sound_out = fopen("test.wav", "wb");
 }
 
 
@@ -157,7 +161,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
     memset(info, 0, sizeof(*info));
     info->timing.fps            = 50.0f;
-    info->timing.sample_rate    = 441000;
+    info->timing.sample_rate    = 44100.0;
     info->geometry.base_width   = FRAME_WIDTH;
     info->geometry.base_height  = FRAME_HEIGHT;
     info->geometry.max_width    = FRAME_WIDTH;
@@ -224,9 +228,14 @@ void retro_run(void)
     auto fb1 = fb.rgb565();
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
+    uint8_t buffer[882];
+    vectrex->psg_->FillBuffer(buffer, 882);
+    fwrite(buffer, sizeof(uint8_t), 882, sound_out);
+
     for (int i = 0; i < 882; i++)
     {
-        audio_cb(1, 1);
+        short convs = (short) ((buffer[i] << 8) - 0x7ff);
+        audio_cb(convs, convs);
     }
     video_cb(fb1.data(), FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
 }
