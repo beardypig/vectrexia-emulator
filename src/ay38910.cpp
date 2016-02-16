@@ -78,11 +78,19 @@ void AY38910::Write(uint8_t reg, uint8_t value)
             break;
 
         case PSG_REG_NOISE:
+            channel_noise.set_period(regs[PSG_REG_NOISE]);
             break;
 
         case PSG_REG_MIXER_CTRL:
             // disable and enable the channels and io
+            channel_a.enabled = !(value & 1);
+            channel_a.noise_enabled = !(value & 1 << 3);
+            channel_b.enabled = !(value & 2);
+            channel_b.noise_enabled = !(value & 2 << 3);
+            channel_c.enabled = !(value & 3);
+            channel_c.noise_enabled = !(value & 3 << 3);
             break;
+
         case PSG_REG_A_AMPL:
             channel_a.amplitude_mode = (uint8_t) (value & 0x10);
             channel_a.amplitude_fixed = amplitude_table[value & 0xf];
@@ -95,6 +103,7 @@ void AY38910::Write(uint8_t reg, uint8_t value)
             channel_c.amplitude_mode = (uint8_t) (value & 0x10);
             channel_c.amplitude_fixed = amplitude_table[value & 0xf];
             break;
+
         case PSG_REG_ENV_FINE:
         case PSG_REG_ENV_COARSE:
             break;
@@ -120,13 +129,17 @@ void AY38910::SetRegStoreCallback(AY38910::store_reg_callback func, intptr_t ref
 
 void AY38910::FillBuffer(uint8_t *buffer, size_t length)
 {
+    int16_t ampl_a = 0, ampl_b = 0, ampl_c = 0;
     memset(buffer, 0, length);
 
     for (int i = 0; i < length; i++)
     {
-        int16_t ampl_a = (int16_t) ((regs[PSG_REG_MIXER_CTRL] & 0x08) ? channel_a.step() : 0);
-        int16_t ampl_b = (int16_t) ((regs[PSG_REG_MIXER_CTRL] & 0x10) ? channel_b.step() : 0);
-        int16_t ampl_c = (int16_t) ((regs[PSG_REG_MIXER_CTRL] & 0x20) ? channel_c.step() : 0);
+        auto noise = channel_noise.step();
+
+        ampl_a = channel_a.step(noise);
+        ampl_b = channel_b.step(noise);
+        ampl_c = channel_c.step(noise);
+
         *(buffer++) = (int8_t)((int16_t)((ampl_a + ampl_b + ampl_c) / 3.0) >> 8);
     }
 }
