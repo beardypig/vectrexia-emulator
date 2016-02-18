@@ -59,26 +59,37 @@ class AY38910
     using read_io_callback = uint8_t (*)(intptr_t);
     using store_reg_callback = void (*)(intptr_t, uint8_t);
 
-    template <int sample_rate>
-    struct channel_t
+    template <int divider, int sample_rate>
+    struct periodic_t
     {
-        uint16_t period          = 1; // 12-bit period for the channel
-        uint8_t  amplitude_mode  = 0; // fixed or envelope variable
-        int16_t  amplitude_fixed;
-        bool enabled, noise_enabled;
-        double   velocity_ = 13.356, radian_ = 0.0;
+        uint16_t period_ = 1;
+        double frequency_;
+        double velocity_ = 0.0;
 
-        void set_period(uint8_t coarse, uint8_t fine)
+        const int16_t amplitude_table[16] = { 0x0000, 0x0055, 0x0079, 0x00AB, 0x00F1, 0x0155, 0x01E3, 0x02AA,
+                                              0x03C5, 0x0555, 0x078B, 0x0AAB, 0x0F16, 0x1555, 0x1E2B, 0x2AAA };
+
+        double setPeriod(uint8_t coarse, uint8_t fine)
         {
-            double frequency;
-            // from the datasheet (256CT10 + FT10)
-            // the tone period is made up of the lower 4 bits of the coarse tone register and the fine register
-            // the maximum value for period is 4095 and the minimum value is 1
-            period = std::max<uint16_t>((uint16_t) (((coarse & 0xf) << 8) | fine), 1);
-            frequency = 1.5e6/(period * 16);
-            // the angular velocity for the sine wave
-            velocity_ = (2 * pi * frequency) / sample_rate;
+            period_ = std::max<uint16_t>((uint16_t) ((coarse << 8) | fine), 1);
+            frequency_ = 1.5e6/(period_ * divider);
+            velocity_ = frequency_ / (double)sample_rate;
+            return frequency_;
         }
+        double setPeriod(uint8_t fine)
+        {
+            return setPeriod(0, fine);
+        }
+
+    };
+
+    template <int sample_rate>
+    struct channel_t : periodic_t<16, sample_rate>
+    {
+        uint8_t  amplitude_mode  = 0; // fixed or envelope variable
+        uint8_t  amplitude_fixed;
+        bool enabled, noise_enabled;
+        double radian_;
 
         int16_t step(int16_t noise)
         {
@@ -94,46 +105,37 @@ class AY38910
                 out = (int16_t) (1 * amplitude());
             }
 
-            radian_ += velocity_;
+            radian_ += periodic_t<16, sample_rate>::velocity_;
             return out;
+
         }
 
-        int16_t amplitude() const
+        inline int16_t amplitude() const
         {
             if (!amplitude_mode)
-                return amplitude_fixed;
+                return amplitude_table[amplitude_fixed];
             else
-                return amplitude_fixed;
+                return amplitude_table[amplitude_fixed];
         }
     };
 
     template <int sample_rate>
-    struct noise_t
+    struct noise_t : periodic_t<16, sample_rate>
     {
         uint32_t rng = 1;
-        uint8_t period_ = 1; // 5 bit
-        double rng_velocity = 2.125850;  // starting value when the period is 1
-        double rng_tick = 0.0;
-
-        void set_period(uint8_t fine)
-        {
-            period_ = std::max<uint8_t>((uint8_t) (fine & 0x1f), 1);
-            // how many samples before the rng should tick
-            rng_velocity = (1.5e6 / (16 * period_)) / sample_rate;
-        }
-
+        double tick_count_ = 0.0;
         // returns one sample, the time period covered by this method is 1/sample_rate
         // the rng is ticking a long at frequency = 1.5e6/(period * 16);
         int16_t step()
         {
-            while (rng_tick > 1.0)
+            while (tick_count_ > 1.0)
             {
                 rng ^= (((rng & 1) ^ ((rng >> 3) & 1)) << 17);
                 rng >>= 1;
-                rng_tick -= 1.0;
+                tick_count_ -= 1.0;
             }
 
-            rng_tick += rng_velocity;
+            tick_count_ += periodic_t<16, sample_rate>::velocity_;
             return (int16_t) (rng & 1);
         }
     };
@@ -142,9 +144,6 @@ class AY38910
     uint8_t addr;
     channel_t<44100> channel_a, channel_b, channel_c;
     noise_t<44100> channel_noise;
-
-    const int16_t amplitude_table[16] = { 0x0000, 0x0055, 0x0079, 0x00AB, 0x00F1, 0x0155, 0x01E3, 0x02AA,
-                                          0x03C5, 0x0555, 0x078B, 0x0AAB, 0x0F16, 0x1555, 0x1E2B, 0x2AAA };
 
     // port a/b read callbacks
     store_reg_callback store_reg_func = nullptr;

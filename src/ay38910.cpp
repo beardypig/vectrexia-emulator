@@ -62,23 +62,26 @@ void AY38910::Write(uint8_t reg, uint8_t value)
 
     switch(reg)
     {
+        // from the datasheet (256CT10 + FT10)
+        // the tone period is made up of the lower 4 bits of the coarse tone register and the fine register
+        // the maximum value for period is 4095 and the minimum value is 1
         case PSG_REG_A_FINE:
         case PSG_REG_A_COARSE:
-            channel_a.set_period(regs[PSG_REG_A_COARSE], regs[PSG_REG_A_FINE]);
+            channel_a.setPeriod((uint8_t) (regs[PSG_REG_A_COARSE] & 0xf), regs[PSG_REG_A_FINE]);
             break;
 
         case PSG_REG_B_FINE: // same as period A
         case PSG_REG_B_COARSE:
-            channel_b.set_period(regs[PSG_REG_B_COARSE], regs[PSG_REG_B_FINE]);
+            channel_b.setPeriod((uint8_t) (regs[PSG_REG_B_COARSE] & 0xf), regs[PSG_REG_B_FINE]);
             break;
 
         case PSG_REG_C_FINE: // same as period A/B
         case PSG_REG_C_COARSE:
-            channel_c.set_period(regs[PSG_REG_C_COARSE], regs[PSG_REG_C_FINE]);
+            channel_c.setPeriod((uint8_t) (regs[PSG_REG_C_COARSE] & 0xf), regs[PSG_REG_C_FINE]);
             break;
 
         case PSG_REG_NOISE:
-            channel_noise.set_period(regs[PSG_REG_NOISE]);
+            channel_noise.setPeriod((uint8_t) (regs[PSG_REG_NOISE] & 0x1f));
             break;
 
         case PSG_REG_MIXER_CTRL:
@@ -93,15 +96,15 @@ void AY38910::Write(uint8_t reg, uint8_t value)
 
         case PSG_REG_A_AMPL:
             channel_a.amplitude_mode = (uint8_t) (value & 0x10);
-            channel_a.amplitude_fixed = amplitude_table[value & 0xf];
+            channel_a.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
         case PSG_REG_B_AMPL:
             channel_b.amplitude_mode = (uint8_t) (value & 0x10);
-            channel_b.amplitude_fixed = amplitude_table[value & 0xf];
+            channel_b.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
         case PSG_REG_C_AMPL:
             channel_c.amplitude_mode = (uint8_t) (value & 0x10);
-            channel_c.amplitude_fixed = amplitude_table[value & 0xf];
+            channel_c.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
 
         case PSG_REG_ENV_FINE:
@@ -140,6 +143,6 @@ void AY38910::FillBuffer(uint8_t *buffer, size_t length)
         ampl_b = channel_b.step(noise);
         ampl_c = channel_c.step(noise);
 
-        *(buffer++) = (int8_t)((int16_t)((ampl_a + ampl_b + ampl_c) / 3.0) >> 8);
+        *(buffer++) = (uint8_t)((uint16_t)((ampl_a + ampl_b + ampl_c) / 3.0) >> 8);
     }
 }
