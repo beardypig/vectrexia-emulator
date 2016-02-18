@@ -73,7 +73,7 @@ class AY38910
         {
             period_ = std::max<uint16_t>((uint16_t) ((coarse << 8) | fine), 1);
             frequency_ = 1.5e6/(period_ * 16);
-            velocity_ = frequency_ / (double)sample_rate;
+            velocity_ = (frequency_ / (double)sample_rate) * 4.0;
             return frequency_;
         }
         double setPeriod(uint8_t fine)
@@ -116,6 +116,7 @@ class AY38910
 
         inline int16_t amplitude(uint8_t envelope_amplitude) const
         {
+            //return periodic_t<sample_rate>::amplitude_table[amplitude_fixed];
             if (!amplitude_mode)
                 return periodic_t<sample_rate>::amplitude_table[amplitude_fixed];
             else
