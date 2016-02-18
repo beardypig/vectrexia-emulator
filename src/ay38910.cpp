@@ -87,31 +87,33 @@ void AY38910::Write(uint8_t reg, uint8_t value)
         case PSG_REG_MIXER_CTRL:
             // disable and enable the channels and io
             channel_a.enabled = !(value & 1);
-            channel_a.noise_enabled = !(value & 1 << 3);
+            channel_a.noise_enabled = !(value & (1 << 3));
             channel_b.enabled = !(value & 2);
-            channel_b.noise_enabled = !(value & 2 << 3);
-            channel_c.enabled = !(value & 3);
-            channel_c.noise_enabled = !(value & 3 << 3);
+            channel_b.noise_enabled = !(value & (2 << 3));
+            channel_c.enabled = !(value & 4);
+            channel_c.noise_enabled = !(value & (4 << 3));
             break;
 
         case PSG_REG_A_AMPL:
-            channel_a.amplitude_mode = (uint8_t) (value & 0x10);
+            channel_a.amplitude_mode = (uint8_t)((value >> 4) & 1);
             channel_a.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
         case PSG_REG_B_AMPL:
-            channel_b.amplitude_mode = (uint8_t) (value & 0x10);
+            channel_b.amplitude_mode = (uint8_t)((value >> 4) & 1);
             channel_b.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
         case PSG_REG_C_AMPL:
-            channel_c.amplitude_mode = (uint8_t) (value & 0x10);
+            channel_c.amplitude_mode = (uint8_t)((value >> 4) & 1);
             channel_c.amplitude_fixed = (uint8_t) (value & 0xf);
             break;
 
         case PSG_REG_ENV_FINE:
         case PSG_REG_ENV_COARSE:
+            envelope.setPeriod(regs[PSG_REG_ENV_COARSE], regs[PSG_REG_ENV_FINE]);
             break;
         case PSG_REG_ENV_CTRL:
             // control the shape of the envelope
+            envelope.setControl((uint8_t) (value & 0xf));
             break;
 
         default:break;
@@ -138,11 +140,14 @@ void AY38910::FillBuffer(uint8_t *buffer, size_t length)
     for (int i = 0; i < length; i++)
     {
         auto noise = channel_noise.step();
+        auto envelope_counter = envelope.step();
 
-        ampl_a = channel_a.step(noise);
-        ampl_b = channel_b.step(noise);
-        ampl_c = channel_c.step(noise);
+        ampl_a = channel_a.step(noise, envelope_counter);
+        ampl_b = channel_b.step(noise, envelope_counter);
+        ampl_c = channel_c.step(noise, envelope_counter);
 
-        *(buffer++) = (uint8_t)((uint16_t)((ampl_a + ampl_b + ampl_c) / 3.0) >> 8);
+        *(buffer++) = (uint8_t)((uint16_t)(((channel_a_on ? ampl_a : 0) +
+                                            (channel_b_on ? ampl_b : 0) +
+                                            (channel_c_on ? ampl_c : 0)) / 3.0) >> 8);
     }
 }
