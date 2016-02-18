@@ -160,7 +160,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
     int pixel_format = RETRO_PIXEL_FORMAT_RGB565;
 
     memset(info, 0, sizeof(*info));
-    info->timing.fps            = 50.0f;
+    info->timing.fps            = 50.0;
     info->timing.sample_rate    = 44100.0;
     info->geometry.base_width   = FRAME_WIDTH;
     info->geometry.base_height  = FRAME_HEIGHT;
@@ -204,12 +204,14 @@ void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint
     b4 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 1 : 0);
 }
 
+static const auto green = color_t{0.0f, 1.0f, 0.0f, 0.5f};
+
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
 {
 
+    // User input
     input_poll_cb();
-    /* Player 1 */
 
     uint8_t p1_x, p1_y, p2_x, p2_y;
     uint8_t p1_b1, p1_b2, p1_b3, p1_b4, p2_b1, p2_b2, p2_b3, p2_b4;
@@ -221,21 +223,28 @@ void retro_run(void)
     vectrex->SetPlayerOne(p1_x, p1_y, p1_b1, p1_b2, p1_b3, p1_b4);
     vectrex->SetPlayerTwo(p2_x, p2_y, p2_b1, p2_b2, p2_b3, p2_b4);
 
+    vectrex->psg_->channel_a_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_1);
+    vectrex->psg_->channel_b_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_2);
+    vectrex->psg_->channel_c_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3);
+
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
     vectrex->Run(30000);
+
+    vectrex->vector_buffer_.draw_debug_text(2, 10, green, "Channel A: %dHz", vectrex->psg_->channel_a.frequency_);
 
     auto fb = vectrex->getFramebuffer();
     auto fb1 = fb.rgb565();
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     uint8_t buffer[882];
-    vectrex->psg_->FillBuffer(buffer, 882);
-    fwrite(buffer, sizeof(uint8_t), 882, sound_out);
+    vectrex->psg_->FillBuffer(buffer, sizeof(buffer));
+    fwrite(buffer, sizeof(uint8_t), sizeof(buffer), sound_out);
 
-    for (int i = 0; i < 882; i++)
+    for (int i = 0; i < sizeof(buffer); i++)
     {
         short convs = (short) ((buffer[i] << 8) - 0x7ff);
         audio_cb(convs, convs);
     }
+
     video_cb(fb1.data(), FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
 }

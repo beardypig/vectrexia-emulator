@@ -146,9 +146,6 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
     float x, y;
     // start with black
     framebuffer.fill();
-#ifdef DEBUGGING
-    debug_framebuffer.fill();
-#endif
 
     std::vector<line_vector_t> to_draw;
     std::vector<line_vector_t> debug_to_draw;
@@ -238,7 +235,10 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
     max_x = -10.0f;
     max_y = -10.0f;
 
-    return debug_framebuffer + framebuffer;
+    auto ret = debug_framebuffer + framebuffer;
+    debug_framebuffer.fill(); // clear at the end, so that libretro can write debug message here if it wants
+
+    return ret;
 
 #endif
 
@@ -246,3 +246,20 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
 }
 
 //</editor-fold>
+void Vectorizer::draw_debug_text(int x, int y, color_t color, std::string message)
+{
+    debug_framebuffer.draw_debug_text(x, y, color, message);
+}
+
+void Vectorizer::draw_debug_text(int x, int y, color_t color, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vdraw_debug_text(x, y, color, fmt, args);
+    va_end(args);
+}
+
+void Vectorizer::vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args)
+{
+    debug_framebuffer.vdraw_debug_text(x, y, color, fmt, args);
+}

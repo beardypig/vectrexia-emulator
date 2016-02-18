@@ -2,6 +2,7 @@
 #define VECTREXIA_VECTORIZER2_H
 
 #include <cstdint>
+#include <cstdarg>
 #include <vector>
 #include <array>
 #include <string>
@@ -12,7 +13,7 @@
 static const float VECTOR_MAX_V =  5.0f;
 static const float VECTOR_MIN_V = -5.0f;
 static const float time_per_clock = (float) (1.0f / 1.5e6);
-static const float DEBUG_LINE_INTENSITY = 0.05f;
+static const float DEBUG_LINE_INTENSITY = 0.03f;
 static const int FRAME_WIDTH  = 330;
 static const int FRAME_HEIGHT = 410;
 
@@ -108,6 +109,10 @@ public:
     float pan_offset_y = 0.0f;
 
     void UpdateSignals(uint8_t ramp, uint8_t zero, const integrators_t &integrators, uint64_t remaining_nanos);
+
+    void draw_debug_text(int x, int y, color_t color, std::string message);
+    void draw_debug_text(int x, int y, color_t color, const char* fmt, ...);
+    void vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args);
 
 };
 

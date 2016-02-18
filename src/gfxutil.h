@@ -295,13 +295,18 @@ public:
 
     void draw_debug_text(int x, int y, color_t color, const char* fmt, ...)
     {
-        char buf[2000];
         va_list args;
 
         va_start(args, fmt);
+        vdraw_debug_text(x, y, color, fmt, args);
+        va_end(args);
+    }
+
+    void vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args)
+    {
+        char buf[2000];
         vsnprintf(buf, 2000, fmt, args);
         draw_debug_text(x, y, color, std::string(buf));
-        va_end(args);
     }
 
     void draw_line(float fx0, float fy0, float fx1, float fy1, float intensity)

@@ -32,7 +32,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "ay38910.h"
 #include "vectorizer.h"
 
-
 class Vectrex
 {
     const char *kName_ = "Vectrexia";
