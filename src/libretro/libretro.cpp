@@ -174,7 +174,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
 
 // Reset the Vectrex
-void retro_reset(void) { vectrex->Reset(); }
+void retro_reset(void)
+{
+    vectrex->Reset();
+}
 
 // Test the user input and return the state of the joysticks and buttons
 void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint8_t &b2, uint8_t &b3, uint8_t &b4)
@@ -206,6 +209,7 @@ void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint
 
 static const auto green = color_t{0.0f, 1.0f, 0.0f, 0.5f};
 
+
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
 {
@@ -228,9 +232,12 @@ void retro_run(void)
     vectrex->psg_->channel_c_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3);
 
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
-    vectrex->Run(30000);
+    auto cycles_run = vectrex->Run(30000);
 
-    vectrex->vector_buffer_.draw_debug_text(2, 10, green, "Channel A: %dHz", vectrex->psg_->channel_a.frequency_);
+    vectrex->vector_buffer_.draw_debug_text(2, 10, green, "@ %.fHz", (double)(cycles_run * 50));
+    vectrex->vector_buffer_.draw_debug_text(2, 20, green, "Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled);
+    vectrex->vector_buffer_.draw_debug_text(2, 30, green, "Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled);
+    vectrex->vector_buffer_.draw_debug_text(2, 40, green, "Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled);
 
     auto fb = vectrex->getFramebuffer();
     auto fb1 = fb.rgb565();
