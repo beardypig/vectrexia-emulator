@@ -73,7 +73,6 @@ uint64_t Vectrex::Run(uint64_t cycles)
         }
 
         cycles_run += cpu_cycles;
-        cycles -= cpu_cycles;
     }
     return cycles_run;
 }
