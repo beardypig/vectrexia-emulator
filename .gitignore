@@ -36,3 +36,5 @@ build/
 *.bin
 *.vec
 
+# Vagrant folder
+.vagrant/
