@@ -1,5 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
-project(vectrexia)
+cmake_minimum_required(VERSION 3.2)
+include("${CMAKE_SOURCE_DIR}/cmake/HunterGate.cmake")
+# Enable ExternalProject CMake module
+HunterGate(
+        URL "https://github.com/ruslo/hunter/archive/v0.23.11.tar.gz"
+        SHA1 "b732407d782459f89950ab52bc0ff9612f3e4be2"
+)
+
+project(vectrexia VERSION 0.1.0)
 enable_language(CXX)
 
 include(CheckCXXCompilerFlag)
@@ -40,7 +47,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 # set CXX flags for different compilers
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STDFLAG}")
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+message("${CMAKE_CXX_COMPILER_ID}")
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
@@ -50,6 +59,5 @@ if (IS_BIG_ENDIAN)
     add_definitions(-D__MSB_FIRST)
 endif()
 
-enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
