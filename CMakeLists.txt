@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.9)
 include("${CMAKE_SOURCE_DIR}/cmake/HunterGate.cmake")
 # Enable ExternalProject CMake module
 HunterGate(
@@ -11,6 +11,7 @@ enable_language(CXX)
 
 include(CheckCXXCompilerFlag)
 include(TestBigEndian)
+include(CTest)
 
 # Test for C++14 support
 if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "std=c\\+\\+(1y|14)")
@@ -47,8 +48,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 # set CXX flags for different compilers
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STDFLAG}")
 
-message("${CMAKE_CXX_COMPILER_ID}")
-
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
@@ -59,5 +58,6 @@ if (IS_BIG_ENDIAN)
     add_definitions(-D__MSB_FIRST)
 endif()
 
+enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
