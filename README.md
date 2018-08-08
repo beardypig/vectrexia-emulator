@@ -1,6 +1,6 @@
 # Vectrexia
 
-[![Build Status](https://travis-ci.org/beardypig/vectrexia.svg?branch=master)](https://travis-ci.org/beardypig/vectrexia)
+[![Build Status](https://travis-ci.org/beardypig/vectrexia-emulator.svg?branch=master)](https://travis-ci.org/beardypig/vectrexia-emulator)
 
 Vectrexia is a work in progress Vectrex emulator written as a `libretro` core. It is being developed as part of a series of blog posts about writing a [Vectrex Emulator](https://beardypig.github.io/2016/01/15/emulator-build-along-1/).
 
