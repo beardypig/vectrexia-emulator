@@ -38,3 +38,7 @@ build/
 
 # Vagrant folder
 .vagrant/
+
+# IDE
+.idea
+cmake-build-*/
