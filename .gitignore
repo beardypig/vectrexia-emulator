@@ -42,3 +42,4 @@ build/
 # IDE
 .idea
 cmake-build-*/
+.vs
