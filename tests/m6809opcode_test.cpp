@@ -212,6 +212,184 @@ TEST(M6809OpCodes, BITAImmediate)
 }
 
 /*
+ * EXG - exchange two registers
+ *
+ * Exchange X and Y
+ */
+TEST(M6809OpCodes, EXGRegistersXY)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1E))  // EXG
+        .WillOnce(Return(0x12)); // X <-> Y
+
+    registers.X = 0x00FF;
+    registers.Y = 0xFF00;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0x00FF, registers.Y);
+    EXPECT_EQ(0xFF00, registers.X);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+
+/*
+ * Exchange X and A, X will be truncated in to A
+ */
+TEST(M6809OpCodes, EXGRegistersXA)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1E))  // EXG
+        .WillOnce(Return(0x18)) // X <-> A
+        .WillOnce(Return(0x1E))  // EXG
+        .WillOnce(Return(0x81)); // A <-> X (same but reversed)
+
+    registers.A = 0x00;
+    registers.X = 0xBEEF;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0xBE, registers.A);
+    EXPECT_EQ(0xFF00, registers.X);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+
+    // Same exchange, but in reverse
+    registers.A = 0x00;
+    registers.X = 0xBEEF;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0xBE, registers.A);
+    EXPECT_EQ(0xFF00, registers.X);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+
+/*
+ * Exchange A and B
+ */
+TEST(M6809OpCodes, EXGRegistersAB)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1E))  // EXG
+        .WillOnce(Return(0x89)); // A <-> B
+
+    registers.A = 0xFF;
+    registers.B = 0x00;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0x00, registers.A);
+    EXPECT_EQ(0xFF, registers.B);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+
+
+/*
+ * TFR - move one register to another
+ *
+ * Transfer X to Y
+ */
+TEST(M6809OpCodes, TFRRegistersXY)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1F))  // TFR
+        .WillOnce(Return(0x12)); // X -> Y
+
+    registers.X = 0x1111;
+    registers.Y = 0x0000;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0x1111, registers.X);
+    EXPECT_EQ(0x1111, registers.Y);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+
+/*
+ * Transfer X to A, X will be truncated in to A
+ */
+TEST(M6809OpCodes, TFRRegistersXA)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1F))  // TFR
+        .WillOnce(Return(0x18)) // X -> A
+        .WillOnce(Return(0x1F))  // TFR
+        .WillOnce(Return(0x81)); // A -> X (same but reversed)
+
+    registers.A = 0x00;
+    registers.X = 0xBEEF;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0xBE, registers.A);
+    EXPECT_EQ(0xBEEF, registers.X);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+
+    // Same exchange, but in reverse
+    registers.A = 0x11;
+    registers.X = 0x0000;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0x11, registers.A);
+    EXPECT_EQ(0xFF11, registers.X);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+
+/*
+ * Transfer A to B
+ */
+TEST(M6809OpCodes, TFRRegistersAB)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x1F))  // TFR
+        .WillOnce(Return(0x89)); // A -> B
+
+    registers.A = 0xFF;
+    registers.B = 0x00;
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    EXPECT_EQ(0xFF, registers.A);
+    EXPECT_EQ(0xFF, registers.B);
+    // no flags should be set
+    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+}
+/*
  * Illegal Opcode
  */
 TEST(M6809OpCodes, IllegalOp)

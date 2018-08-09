@@ -658,6 +658,18 @@ class M6809
         op_reg_assign(reg_1, temp);
     }
 
+    /*
+     * EXG
+     *
+     * Exchange uses a post byte operand that selects the registers to exchange
+     * The first 4 bit select the first register, and the second 4 bits select
+     * the second register.
+     *    0x00 D 16 bit |  0x05 PC 16 bit
+     *    0x01 X 16 bit |  0x08 A   8 bit
+     *    0x02 Y 16 bit |  0x09 B   8 bit
+     *    0x03 U 16 bit |  0x0A CC  8 bit
+     *    0x04 S 16 bit |  0x0B DP  8 bit
+     */
 
     struct op_exg {
         uint8_t operator() (M6809& cpu, const uint8_t &operand) {
