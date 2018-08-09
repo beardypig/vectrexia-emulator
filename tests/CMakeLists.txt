@@ -11,7 +11,13 @@ set(GTEST_SOURCE m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp)
 
 add_executable(vectrexia_tests test_runner.cpp ${GTEST_SOURCE})
 
-target_link_libraries(vectrexia_tests vectrexia_libretro)
+if (MSVC)
+	set(LIBRETRO_SRC vectrexia_libretro_static)
+else()
+	set(LIBRETRO_SRC vectrexia_libretro)
+endif()
+
+target_link_libraries(vectrexia_tests ${LIBRETRO_SRC})
 target_link_libraries(vectrexia_tests GTest::gtest)
 target_link_libraries(vectrexia_tests GMock::main)
 
