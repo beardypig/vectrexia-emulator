@@ -15,4 +15,4 @@ $ cmake --build build -- all test # compile and run the tests
 ```
 
 ## Authors
-- Beardypig
+- @beardypig
