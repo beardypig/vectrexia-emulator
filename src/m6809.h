@@ -655,7 +655,7 @@ class M6809
     template <typename T1, typename T2>
     static void op_swap_registers(T1 &reg_1, T2 &reg_2)
     {
-        T1 temp = reg_2;
+        T2 temp = reg_2;
         op_reg_assign(reg_2, reg_1);
         op_reg_assign(reg_1, temp);
     }
