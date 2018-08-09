@@ -648,7 +648,7 @@ class M6809
     template <>
     static void op_reg_assign<uint16_t, uint8_t>(
       uint16_t &reg_1, const uint8_t &reg_2) {
-      reg_1 = reg_2 | 0xFF00;
+      reg_1 = static_cast<uint16_t>(reg_2) | 0xFF00;
     }
 
     // swap two registers
