@@ -38,7 +38,7 @@ M6809 OpCodeTestHelper(MockMemory &mem)
     return cpu;
 }
 
-TEST(M6809OpCodes, ABX_INHERENT)
+TEST(M6809OpCodes, ABXInherent)
 {
 
     MockMemory mem;
@@ -61,7 +61,7 @@ TEST(M6809OpCodes, ABX_INHERENT)
  * ADDA
  */
 
-TEST(M6809OpCodes, ADDA_IMMEDIATE)
+TEST(M6809OpCodes, ADDAImmediate)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -78,7 +78,7 @@ TEST(M6809OpCodes, ADDA_IMMEDIATE)
     EXPECT_EQ(0x20, registers.A);
 }
 
-TEST(M6809OpCodes, ADDA_DIRECT)
+TEST(M6809OpCodes, ADDADirect)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -102,7 +102,7 @@ TEST(M6809OpCodes, ADDA_DIRECT)
 
 }
 
-TEST(M6809OpCodes, ADDA_EXTENDED)
+TEST(M6809OpCodes, ADDAExtended)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -130,7 +130,7 @@ TEST(M6809OpCodes, ADDA_EXTENDED)
 /*
  * ADDD
  */
-TEST(M6809OpCodes, ADDD_IMMEDIATE)
+TEST(M6809OpCodes, ADDDImmediate)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -155,7 +155,7 @@ TEST(M6809OpCodes, ADDD_IMMEDIATE)
  * SUBA
  */
 
-TEST(M6809OpCodes, SUBA_IMMEDIATE)
+TEST(M6809OpCodes, SUBAImmediate)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -172,7 +172,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE)
     EXPECT_EQ(0x00, registers.A);
 }
 
-TEST(M6809OpCodes, SUBA_IMMEDIATE2)
+TEST(M6809OpCodes, SUBAImmediate2)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -192,7 +192,7 @@ TEST(M6809OpCodes, SUBA_IMMEDIATE2)
 /*
  * BIT - bitwise and, the register should not be updated
  */
-TEST(M6809OpCodes, BITA_IMMEDIATE)
+TEST(M6809OpCodes, BITAImmediate)
 {
     MockMemory mem;
     uint64_t cycles;
@@ -214,7 +214,7 @@ TEST(M6809OpCodes, BITA_IMMEDIATE)
 /*
  * Illegal Opcode
  */
-TEST(M6809OpCodes, ILLEGAL_OP)
+TEST(M6809OpCodes, IllegalOp)
 {
     MockMemory mem;
     uint64_t cycles;
