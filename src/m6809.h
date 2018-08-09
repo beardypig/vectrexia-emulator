@@ -635,14 +635,20 @@ class M6809
 
     // assign one register to the other and resize
     template <typename T1, typename T2>
-    static void op_reg_assign(T1 &reg_1, const T2 &reg_2)
-    {
-        if (sizeof(T1) < sizeof(T2))
-            reg_1 = (uint8_t)(reg_2 >> 8);
-        else if (sizeof(T1) > sizeof(T2))
-            reg_1 = reg_2 | 0xFF00;
-        else
-            reg_1 = reg_2;
+    static void op_reg_assign(T1 &reg_1, const T2 &reg_2) {
+      reg_1 = reg_2;
+    }
+
+    template <>
+    static void op_reg_assign<uint8_t, uint16_t>(
+      uint8_t &reg_1, const uint16_t &reg_2) {
+      reg_1 = static_cast<uint8_t>(reg_2 >> 8);
+    }
+
+    template <>
+    static void op_reg_assign<uint16_t, uint8_t>(
+      uint16_t &reg_1, const uint8_t &reg_2) {
+      reg_1 = reg_2 | 0xFF00;
     }
 
     // swap two registers
