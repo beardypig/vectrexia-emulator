@@ -9,32 +9,12 @@ HunterGate(
 project(vectrexia VERSION 0.1.0)
 enable_language(CXX)
 
-include(CheckCXXCompilerFlag)
 include(TestBigEndian)
 include(CTest)
 
-# Test for C++14 support
-if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "std=c\\+\\+(1y|14)")
-    check_cxx_compiler_flag(-std=c++14 HAS_CXX14)
-    if (HAS_CXX14)
-        message("-- Compiler supports C++14")
-        set(STDFLAG "-std=c++14")
-    endif()
-
-    if (NOT STDFLAG)
-        check_cxx_compiler_flag(-std=c++1y HAS_CXX1Y)
-        if(HAS_CXX1Y)
-            message("-- Compiler supports C++1y")
-            set(STDFLAG "-std=c++1y")
-        endif()
-    endif()
-
-    if(NOT STDFLAG)
-        message(FATAL_ERROR
-                "vectrexia requires a compiler with at least C++1y support")
-    endif()
-
-endif()
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(APPLE)
     set(CMAKE_MACOSX_RPATH ON)
@@ -44,9 +24,6 @@ endif()
 
 # include custom cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
-
-# set CXX flags for different compilers
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STDFLAG}")
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
