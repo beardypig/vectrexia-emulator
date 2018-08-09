@@ -639,15 +639,13 @@ class M6809
       reg_1 = reg_2;
     }
 
-    template <>
-    static void op_reg_assign<uint8_t, uint16_t>(
-      uint8_t &reg_1, const uint16_t &reg_2) {
+    template <typename T1 = uint8_t, typename T2 = uint16_t>
+    static void op_reg_assign(uint8_t &reg_1, const uint16_t &reg_2) {
       reg_1 = static_cast<uint8_t>(reg_2 >> 8);
     }
 
-    template <>
-    static void op_reg_assign<uint16_t, uint8_t>(
-      uint16_t &reg_1, const uint8_t &reg_2) {
+    template <typename T1 = uint16_t, typename T2 = uint8_t>
+    static void op_reg_assign(uint16_t &reg_1, const uint8_t &reg_2) {
       reg_1 = static_cast<uint16_t>(reg_2) | 0xFF00;
     }
 
