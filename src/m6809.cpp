@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2016 Beardypig
+Copyright (C) 2016 beardypig
 
 This file is part of Vectrexia.
 
