@@ -43,3 +43,5 @@ build/
 .idea
 cmake-build-*/
 .vs
+coverage.info
+
