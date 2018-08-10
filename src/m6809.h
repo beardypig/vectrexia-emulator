@@ -124,15 +124,17 @@ class M6809
                 uint8_t B, A;
 #endif
             };
-            uint16_t D;
+            uint16_t D = 0;
         };
-        uint16_t X, Y;
-        uint16_t PC;
-        uint16_t USP, SP;   // User Stack Pointer and Stack Pointer
-        uint8_t DP;         // Direct Page register
+        uint16_t X = 0;
+        uint16_t Y = 0;
+        uint16_t PC = 0;        // Program Counter
+        uint16_t USP = 0;       // User Stack Pointer
+        uint16_t SP = 0;        // Stack Pointer
+        uint8_t DP = 0;         // Direct Page register
         union
         {
-            uint8_t CC;         // Condition Code
+            uint8_t CC = 0;     // Condition Code
             struct
             {
                 uint8_t C : 1;  // 01
@@ -146,9 +148,9 @@ class M6809
             } flags;
         };
 
-        std::array<uint16_t*, 6> exg_table_16;
-        std::array<uint8_t*, 4> exg_table_8;
-        std::array<uint16_t*, 4> index_mode_register_table;
+        std::array<uint16_t*, 6> exg_table_16{};
+        std::array<uint8_t*, 4> exg_table_8{};
+        std::array<uint16_t*, 4> index_mode_register_table{};
 
         void init_exg_table() {
             exg_table_16 = { &D, &X, &Y, &USP, &SP, &PC };
