@@ -148,10 +148,12 @@ class M6809
 
         std::array<uint16_t*, 6> exg_table_16;
         std::array<uint8_t*, 4> exg_table_8;
+        std::array<uint16_t*, 4> index_mode_register_table;
 
         void init_exg_table() {
             exg_table_16 = { &D, &X, &Y, &USP, &SP, &PC };
             exg_table_8 = {&A, &B, &CC, &DP};
+            index_mode_register_table = { &X, &Y, &USP, &SP };
         }
     } registers;
 
@@ -163,13 +165,6 @@ class M6809
     intptr_t write_callback_ref;
 
     m6809_interrupt_state_t irq_state = IRQ_NORMAL;
-
-    uint16_t *index_mode_register_table[4] = {
-            &registers.X,
-            &registers.Y,
-            &registers.USP,
-            &registers.SP
-    };
 
     inline uint8_t Read8(const uint16_t &addr)
     {
@@ -258,7 +253,7 @@ class M6809
             uint16_t ea;
             uint8_t post_byte = cpu.ReadPC8();
 
-            uint16_t &reg = *cpu.index_mode_register_table[(post_byte >> 5) & 0x03];  // bits 5+
+            uint16_t &reg = *cpu.registers.index_mode_register_table[(post_byte >> 5) & 0x03];  // bits 5+
 
             //printf("indexed post byte: %02x\n", post_byte);
 
