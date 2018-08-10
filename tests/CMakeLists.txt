@@ -12,7 +12,7 @@ set(GTEST_SOURCE m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp)
 add_executable(tests test_runner.cpp ${GTEST_SOURCE})
 
 if (MSVC)
-	set(LIBRETRO_SRC vectrexia_libretro_statc)
+	set(LIBRETRO_SRC vectrexia_libretro_static)
 else()
 	set(LIBRETRO_SRC vectrexia_libretro)
 endif()
