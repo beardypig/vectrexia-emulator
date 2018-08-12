@@ -496,7 +496,6 @@ class M6809
         inline void operator() (M6809 &cpu, T &result, T &operand_a, T2 &operand_b)
         {
             uint8_t CC = cpu.registers.CC;
-            uint8_t ch;
 
             if (FlagClearMask) cpu.registers.CC &= ~FlagClearMask;
             if (FlagSetMask) cpu.registers.CC |= FlagSetMask;
