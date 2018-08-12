@@ -94,13 +94,13 @@ class M6809
     struct M6809Registers
     {
 
-        M6809Registers() {
+        M6809Registers() noexcept {
             InitEXGTable();
         }
         M6809Registers(const M6809Registers &rhs) {
             *this = rhs;
         }
-        M6809Registers &operator=(const M6809Registers &rhs) {
+        M6809Registers &operator=(const M6809Registers &rhs) noexcept {
             D = rhs.D;
             X = rhs.X;
             Y = rhs.Y;
