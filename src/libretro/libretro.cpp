@@ -18,7 +18,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <memory>
 
 #include "libretro.h"
@@ -65,7 +65,7 @@ unsigned retro_get_region(void) { return RETRO_REGION_PAL; }
 void retro_set_controller_port_device(unsigned port, unsigned device) {}
 
 
-void *retro_get_memory_data(unsigned id) { return NULL; }
+void *retro_get_memory_data(unsigned id) { return nullptr; }
 size_t retro_get_memory_size(unsigned id){ return 0; }
 
 // Serialisation methods
@@ -99,7 +99,7 @@ void retro_init(void)
     if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
         log_cb = log.log;
     else
-        log_cb = NULL;
+        log_cb = nullptr;
 
     // the performance level is guide to frontend to give an idea of how intensive this core is to run
     environ_cb(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL, &level);
