@@ -23,8 +23,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "vectrexia.h"
 #include "cartridge.h"
 
-
-
 const char *Vectrex::GetName()
 {
     return kName_;
@@ -84,7 +82,7 @@ static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
     reinterpret_cast<Vectrex*>(ref)->Write(addr, data);
 }
 
-Vectrex::Vectrex()
+Vectrex::Vectrex() noexcept
 {
     cpu_ = std::make_unique<M6809>();
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
@@ -157,4 +155,3 @@ M6809 &Vectrex::GetM6809()
 {
     return *cpu_;
 }
-

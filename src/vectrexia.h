@@ -39,14 +39,20 @@ class Vectrex
     // 8K of system ROM
     // 1K of system RAM
     const std::array<uint8_t, 8192> sysrom_ = system_bios;
-    std::array<uint8_t, 1024> ram_;
+    std::array<uint8_t, 1024> ram_{};
 
-    std::unique_ptr<Cartridge> cartridge_;
-    std::unique_ptr<M6809> cpu_;
+    std::unique_ptr<Cartridge> cartridge_{};
+    std::unique_ptr<M6809> cpu_{};
 
 
 public:
-    Vectrex();
+    Vectrex() noexcept;
+    Vectrex(const Vectrex&) = delete;
+    Vectrex(Vectrex&&) = delete;
+    Vectrex &operator=(const Vectrex&) = delete;
+    Vectrex &operator=(Vectrex&&) = delete;
+    ~Vectrex() = default;
+
     void Reset();
     uint64_t Run(uint64_t cycles);
 
@@ -62,7 +68,6 @@ public:
     void message(const char *fmt, ...);
 
     M6809 &GetM6809();
-
 };
 
 #endif //VECTREXIA_VECTREXIA_H
