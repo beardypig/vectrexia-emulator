@@ -404,30 +404,23 @@ class M6809
 
     /*
      * Operand Classes
+     *
+     * RW = 0  ; Read Only
+     * RW = 1  ; Read and Write
+     * RW = -1 ; Write Only
      */
-    struct Operand
-    {
-        M6809 &cpu;
-        uint64_t &cycles;
-        Operand(M6809 &cpu, uint64_t &cycles) : cpu(cpu), cycles(cycles) { }
-    };
-
-    // RW = 0  ; Read Only
-    // RW = 1  ; Read and Write
-    // RW = -1 ; Write Only
     template <typename T, typename Fn, int RW=1>
-    struct MemoryOperand : Operand
+    struct MemoryOperand
     {
-        MemoryOperand(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
-
-        inline T operator ()(uint16_t &addr) {
+        inline T operator ()(M6809 &cpu, uint64_t &cycles, uint16_t &addr) {
             addr = Fn()(cpu, cycles);
             if (RW >= 0)
                 return (sizeof(T) == 1) ? cpu.Read8(addr) : cpu.Read16(addr);
             else
                 return 0;
         }
-        void update(uint16_t addr, T data) {
+
+        void update(M6809 &cpu, uint64_t &cycles, uint16_t addr, T data) {
             if (RW != 0)
             {
                 if (sizeof(T) == 1)
@@ -440,28 +433,26 @@ class M6809
 
     // immediate specialastion
     template <typename T, int RW>
-    struct MemoryOperand<T, immediate, RW> : Operand
+    struct MemoryOperand<T, immediate, RW>
     {
-        MemoryOperand(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
-
-        inline T operator ()(uint16_t &addr) {
+        inline T operator ()(M6809 &cpu, uint64_t &cycles, uint16_t &addr) {
             if (sizeof(T) == 1)
                 return cpu.ReadPC8();
             else
                 return cpu.ReadPC16();
         }
-        inline void update(uint16_t addr, T data) { }
+
+        inline void update(M6809 &cpu, uint64_t &cycles, uint16_t addr, T data) { }
     };
 
     template <typename T, typename Fn, int RW=1>
-    struct Register : Operand
+    struct Register
     {
-        Register(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) { }
-
-        inline T &operator() (uint16_t &addr) {
+        inline T &operator() (M6809 &cpu, uint64_t &cycles, uint16_t &addr) {
             return Fn()(cpu, addr);
         }
-        inline void update(uint16_t addr, T data) {
+
+        inline void update(M6809 &cpu, uint64_t &cycles, uint16_t addr, T data) {
             if (RW)
             {
                 Fn()(cpu, addr) = data;
@@ -470,25 +461,23 @@ class M6809
     };
 
     template <typename Fn>
-    struct OperandEA : Operand
+    struct OperandEA 
     {
-        OperandEA(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
-
-        inline uint16_t operator ()(uint16_t &addr) {
+        inline uint16_t operator ()(M6809 &cpu, uint64_t &cycles, uint16_t &addr) {
             return Fn()(cpu, cycles);
         }
-        void update(uint16_t addr, uint16_t data) {}
+
+        void update(M6809 &cpu, uint64_t &cycles, uint16_t addr, uint16_t data) {}
     };
 
     template <typename T, int value>
-    struct OperandConst : Operand
+    struct OperandConst
     {
-        OperandConst(M6809 &cpu, uint64_t &cycles) : Operand(cpu, cycles) {}
-
-        inline T operator ()(uint16_t &addr) {
+        inline T operator ()(M6809 &cpu, uint64_t &cycles, uint16_t &addr) {
             return value;
         }
-        void update(uint16_t addr, uint16_t data) {}
+
+        void update(M6809 &cpu, uint64_t &cycles, uint16_t addr, uint16_t data) {}
     };
 
     /*
@@ -964,18 +953,15 @@ class M6809
             uint16_t operand_addr_a = 0;
             uint16_t operand_addr_b = 0;
 
-            auto operand_a = OpA(cpu, cycles);
-            auto operand_b = OpB(cpu, cycles);
-
             // gets the value for the operand and updates the address
-            auto operand_a_value = operand_a(operand_addr_a);
-            auto operand_b_value = operand_b(operand_addr_b);
+            auto operand_a_value = OpA()(cpu, cycles, operand_addr_a);
+            auto operand_b_value = OpB()(cpu, cycles, operand_addr_b);
 
             auto result = Fn()(cpu, operand_a_value, operand_b_value);
 
             Flags()(cpu, result, operand_a_value, operand_b_value);
 
-            operand_a.update(operand_addr_a, result);
+            OpA().update(cpu, cycles, operand_addr_a, result);
             cycles += clocks;
         }
     };
@@ -986,14 +972,13 @@ class M6809
         void operator() (M6809& cpu, uint64_t &cycles)
         {
             uint16_t operand_addr = 0;
-            auto operand = OpA(cpu, cycles);
-            auto operand_value = operand(operand_addr);
+            auto operand_value = OpA()(cpu, cycles, operand_addr);
             auto result = Fn()(cpu, operand_value);
             decltype(operand_value) zero = 0;
 
             Flags()(cpu, result, zero, operand_value);
 
-            operand.update(operand_addr, result);
+            OpA().update(cpu, cycles, operand_addr, result);
             cycles += clocks;
         }
     };
@@ -1017,14 +1002,13 @@ class M6809
         void operator() (M6809& cpu, uint64_t &cycles)
         {
             uint16_t operand_addr = 0;
-            auto operand = OpA(cpu, cycles);
-            auto operand_value = operand(operand_addr);
+            auto operand_value = OpA()(cpu, cycles, operand_addr);
             auto result = Fn()(cpu, operand_value, cycles);
             decltype(operand_value) zero = 0;
 
             Flags()(cpu, result, zero, operand_value);
 
-            operand.update(operand_addr, result);
+            OpA().update(cpu, cycles, operand_addr, result);
             cycles += clocks;
         }
     };
