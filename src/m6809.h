@@ -95,7 +95,7 @@ class M6809
     {
 
         M6809Registers() {
-            init_exg_table();
+            InitEXGTable();
         }
         M6809Registers(const M6809Registers &rhs) {
             *this = rhs;
@@ -109,7 +109,7 @@ class M6809
             SP = rhs.SP;
             DP = rhs.DP;
             CC = rhs.CC;
-            init_exg_table();
+            InitEXGTable();
             return *this;
         }
         ~M6809Registers() = default;
@@ -152,10 +152,60 @@ class M6809
         std::array<uint8_t*, 4> exg_table_8{};
         std::array<uint16_t*, 4> index_mode_register_table{};
 
-        void init_exg_table() {
+        void InitEXGTable() {
             exg_table_16 = { &D, &X, &Y, &USP, &SP, &PC };
             exg_table_8 = {&A, &B, &CC, &DP};
             index_mode_register_table = { &X, &Y, &USP, &SP };
+        }
+
+        // update the zero flag, based on value
+        template<typename T>
+        inline void UpdateFlagZero(const T &value)
+        {
+            CC &= ~FLAG_Z;
+            CC |= FLAG_Z * ((value == 0) ? 1u : 0u);
+        };
+
+        // update the negative flag, based on value
+        template <typename T>
+        inline void UpdateFlagNegative(const T &value)
+        {
+            CC &= ~FLAG_N;
+            CC |= FLAG_N * ((value >> ((sizeof(T) * 8) - 1u)) & 1u);
+        };
+
+        // update the carry flag, based on result, the operands, and whether it was a subtraction or addition
+        template <typename T, int subtract=0>
+        inline void UpdateFlagCarry(const T &opa, const T &opb, const T &result)
+        {
+            T opb_ = subtract ? ~opb : opb;
+            uint16_t flag  = (opa | opb_) & ~result;  // one of the inputs is 1 and output is 0
+            flag |= (opa & opb_);                     // both inputs are 1
+            CC &= ~FLAG_C;
+            flag >>= (sizeof(T) * 8) - 1u;
+            // carry flag is the oposite for subtractions
+            CC |= FLAG_C * ((flag & 1) ^ subtract);
+        };
+
+        // update the half-carry flag, based on the operands and the result
+        inline void UpdateFlagHalfCarry(const uint8_t &opa, const uint8_t &opb, const uint8_t &result)
+        {
+            uint16_t flag  = (opa | opb) & ~result;  // one of the inputs is 1 and output is 0
+            flag |= (opa & opb);                     // both inputs are 1
+            CC &= ~FLAG_H;
+            CC |= FLAG_H * ((flag >> 3) & 1u);
+        };
+
+        // update the overflow flag, based on the operands and the result
+        template <typename T>
+        inline void UpdateFlagOverflow(const T &opa, const T &opb, const T &result)
+        {
+            // if the sign bit is the same in both operands but
+            // different in the result, then there has been an overflow
+            auto bits = sizeof(T) * 8;
+            auto set = ((opa >> (bits - 1u)) == (opb >> (bits - 1u)) && (opb >> (bits - 1u)) != (result >> (bits - 1u))) ? 1u : 0u;
+            CC &= ~FLAG_V;
+            CC |= FLAG_V * set;
         }
     } registers;
 
@@ -501,11 +551,13 @@ class M6809
             if (FlagClearMask) cpu.registers.CC &= ~FlagClearMask;
             if (FlagSetMask) cpu.registers.CC |= FlagSetMask;
 
-            if (FlagUpdateMask & FLAG_Z) cpu.ComputeZeroFlag<T>(cpu.registers.CC, result);
-            if (FlagUpdateMask & FLAG_N) cpu.ComputeNegativeFlag(cpu.registers.CC, result);
-            if (FlagUpdateMask & FLAG_H) cpu.ComputeHalfCarryFlag(cpu.registers.CC, operand_a, subtract ? ~operand_b : operand_b, result);
-            if (FlagUpdateMask & FLAG_V) cpu.ComputeOverflowFlag<T>(cpu.registers.CC, operand_a, subtract ? ~operand_b : operand_b, result);
-            if (FlagUpdateMask & FLAG_C) cpu.ComputeCarryFlag<T, subtract>(cpu.registers.CC, operand_a, operand_b, result);
+            if (FlagUpdateMask & FLAG_Z) cpu.registers.UpdateFlagZero<T>(result);
+            if (FlagUpdateMask & FLAG_N) cpu.registers.UpdateFlagNegative(result);
+            if (FlagUpdateMask & FLAG_H)
+                cpu.registers.UpdateFlagHalfCarry(operand_a, subtract ? ~operand_b : operand_b, result);
+            if (FlagUpdateMask & FLAG_V)
+                cpu.registers.UpdateFlagOverflow<T>(operand_a, subtract ? ~operand_b : operand_b, result);
+            if (FlagUpdateMask & FLAG_C) cpu.registers.UpdateFlagCarry<T, subtract>(operand_a, operand_b, result);
             if (FlagUpdateMask & FLAG_M)
             {
                 cpu.registers.CC &= ~FLAG_C;
@@ -1403,52 +1455,6 @@ public:
 
     // Exceture one instruction and updated the number of cycles that it took
     m6809_error_t Execute(uint64_t &cycles, m6809_interrupt_t irq=NONE);
-
-    // flag computation
-    template<typename T>
-    static inline void ComputeZeroFlag(uint8_t &flags, const T &value)
-    {
-        flags &= ~FLAG_Z;
-        flags |= FLAG_Z * ((value == 0) ? 1u : 0u);
-    };
-
-    template <typename T>
-    static inline void ComputeNegativeFlag(uint8_t &flags, const T &value)
-    {
-        flags &= ~FLAG_N;
-        flags |= FLAG_N * ((value >> ((sizeof(T) * 8) - 1u)) & 1u);
-    };
-
-    template <typename T, int subtract=0>
-    static inline void ComputeCarryFlag(uint8_t &flags, const T &opa, const T &opb, const T &result)
-    {
-        T opb_ = subtract ? ~opb : opb;
-        uint16_t flag  = (opa | opb_) & ~result;  // one of the inputs is 1 and output is 0
-        flag |= (opa & opb_);                     // both inputs are 1
-        flags &= ~FLAG_C;
-        flag >>= (sizeof(T) * 8) - 1u;
-        // carry flag is the oposite for subtractions
-        flags |= FLAG_C * ((flag & 1) ^ subtract);
-    };
-
-    static inline void ComputeHalfCarryFlag(uint8_t &flags, const uint8_t &opa, const uint8_t &opb, const uint8_t &result)
-    {
-        uint16_t flag  = (opa | opb) & ~result;  // one of the inputs is 1 and output is 0
-        flag |= (opa & opb);                     // both inputs are 1
-        flags &= ~FLAG_H;
-        flags |= FLAG_H * ((flag >> 3) & 1u);
-    };
-
-    template <typename T>
-    static inline void ComputeOverflowFlag(uint8_t &flags, const T &opa, const T &opb, const T &result)
-    {
-        // if the sign bit is the same in both operands but
-        // different in the result, then there has been an overflow
-        auto bits = sizeof(T) * 8;
-        auto set = ((opa >> (bits - 1u)) == (opb >> (bits - 1u)) && (opb >> (bits - 1u)) != (result >> (bits - 1u))) ? 1u : 0u;
-        flags &= ~FLAG_V;
-        flags |= FLAG_V * set;
-    }
 
     M6809Registers &getRegisters() { return registers; }
 };
