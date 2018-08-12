@@ -364,7 +364,7 @@ std::string M6809Disassemble::str_format(const char *fmt, ...)
     va_copy(ap2, ap);
     std::string out;
 
-    int size = vsnprintf(NULL, 0, fmt, ap);
+    int size = vsnprintf(nullptr, 0, fmt, ap);
     va_end(ap);
     if (size > 0) {
         out = std::string(size+1, 0);
