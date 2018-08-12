@@ -597,8 +597,8 @@ class M6809
         {
             auto res = (uint16_t) ((~(operand_b & 0x80) + 1) | (operand_b & 0xff));
             // special case for N and Z flags
-            ComputeNegativeFlag<uint8_t>(cpu.registers.CC, (const uint8_t &) (res & 0xff));
-            ComputeZeroFlag<uint16_t>(cpu.registers.CC, res);
+            cpu.registers.UpdateFlagNegative<uint8_t>((const uint8_t &) (res & 0xff));
+            cpu.registers.UpdateFlagZero<uint16_t>(res);
             return res;
         }
     };
@@ -660,9 +660,9 @@ class M6809
         uint8_t operator() (M6809& cpu, const uint8_t &operand) {
             // special case for the H,V and C flags for LSL/ASL
             uint8_t res = operand << 1;
-            ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
-            ComputeHalfCarryFlag(cpu.registers.CC, operand, operand, res);
-            ComputeOverflowFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
+            cpu.registers.UpdateFlagCarry<uint8_t>(operand, operand, res);
+            cpu.registers.UpdateFlagCarry(operand, operand, res);
+            cpu.registers.UpdateFlagOverflow<uint8_t>(operand, operand, res);
             return res;
         }
     };
@@ -690,8 +690,8 @@ class M6809
         uint8_t operator() (M6809& cpu, const uint8_t &operand)
         {
             uint8_t res = (operand << 1) | cpu.registers.flags.C;
-            ComputeCarryFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
-            ComputeOverflowFlag<uint8_t>(cpu.registers.CC, operand, operand, res);
+            cpu.registers.UpdateFlagCarry<uint8_t>(operand, operand, res);
+            cpu.registers.UpdateFlagOverflow<uint8_t>(operand, operand, res);
             return res;
         }
     };
