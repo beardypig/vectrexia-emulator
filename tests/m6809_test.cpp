@@ -2,32 +2,37 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+auto getRegisters() {
+    static M6809 cpu;
+    return cpu.getRegisters();
+}
+
 TEST(ComputeFlags, ZeroFlagNotSetOn1)
 {
-    uint8_t flags = 0;
-    M6809::ComputeZeroFlag<uint8_t>(flags, 1);
-    EXPECT_EQ(0, flags);
+    auto regs = getRegisters();
+    regs.UpdateFlagZero<uint8_t>(1);
+    EXPECT_EQ(0, regs.CC);
 }
 
 TEST(ComputeFlags, ZeroFlagSetOn0)
 {
-    uint8_t flags = 0;
-    M6809::ComputeZeroFlag<uint8_t>(flags, 0);
-    EXPECT_EQ(FLAG_Z, flags);
+    auto regs = getRegisters();
+    regs.UpdateFlagZero<uint8_t>(0);
+    EXPECT_EQ(FLAG_Z, regs.CC);
 }
 
 TEST(ComputeFlags, NegativeFlagNotSetOn1)
 {
-    uint8_t flags = 0;
-    M6809::ComputeNegativeFlag<uint8_t>(flags, 0);
-    EXPECT_EQ(0, flags);
+    auto regs = getRegisters();
+    regs.UpdateFlagNegative<uint8_t>(0);
+    EXPECT_EQ(0, regs.CC);
 }
 
 TEST(ComputeFlags, NegativeFlagSetOnFF)
 {
-    uint8_t flags = 0;
-    M6809::ComputeNegativeFlag<uint8_t>(flags, 0xff);
-    EXPECT_EQ(FLAG_N, flags);
+    auto regs = getRegisters();
+    regs.UpdateFlagNegative<uint8_t>(0xff);
+    EXPECT_EQ(FLAG_N, regs.CC);
 }
 
 
