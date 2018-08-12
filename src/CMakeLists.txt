@@ -67,6 +67,12 @@ if(CLANG_TIDY_EXE)
 	)
 endif()
 
+if (WITH_ASM)
+	if (MSVC)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FA /O2t")
+	endif()
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")        ## Optimize
 endif()
