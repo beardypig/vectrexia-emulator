@@ -44,4 +44,4 @@ build/
 cmake-build-*/
 .vs
 coverage.info
-
+CMakeSettings.json
