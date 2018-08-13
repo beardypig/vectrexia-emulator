@@ -59,7 +59,7 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero_, uint8_t blank
                              UpdateSignals(ramp_, zero_, {new_integrator_x, new_integrator_y}, n);
                          });
 
-#ifdef DEBUGGING
+#ifdef VECTOR_DEBUG
     min_x = std::min(axes.x, min_x);
     max_x = std::max(axes.x, max_x);
     min_y = std::min(axes.y, min_y);
@@ -157,7 +157,7 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
         {
             if (!vect->blank)
             {
-#ifdef DEBUGGING
+#ifdef VECTOR_DEBUG
                 line_vector_t debug_vect(vect->pos, vect->end_cycle);
                 debug_to_draw.push_back(debug_vect);
 #endif
@@ -175,7 +175,7 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
                 to_draw.push_back(new_vect);
                 beam = true;
             }
-#ifdef DEBUGGING
+#ifdef VECTOR_DEBUG
             if (!debug_to_draw.empty()) // is off, or just ending
             {
                 // extend the debug vector
@@ -208,7 +208,7 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
         }
     }
 
-#ifdef DEBUGGING
+#ifdef VECTOR_DEBUG
     for (const auto &debug_vect: debug_to_draw)
     {
         debug_framebuffer.draw_line(debug_vect.x0 * scale_factor, debug_vect.y0 * scale_factor,
