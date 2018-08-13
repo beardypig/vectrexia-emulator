@@ -19,7 +19,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef VECTREXIA_M6809_H
 #define VECTREXIA_M6809_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
 #include <array>
 #include <iostream>

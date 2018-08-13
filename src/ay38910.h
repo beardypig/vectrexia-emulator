@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2016 Beardypig
+Copyright (C) 2016 beardypig
 
 This file is part of Vectrexia.
 
@@ -19,7 +19,8 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef VECTREXIA_AY38910_H
 #define VECTREXIA_AY38910_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cmath>
 #include <algorithm>
 
 const double pi = std::acos(-1);
