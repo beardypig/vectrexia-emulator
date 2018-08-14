@@ -76,6 +76,8 @@ struct M6809Registers;
 
 class M6809
 {
+    using ptr_t = M6809*;
+
     using read_callback_t = uint8_t (*)(intptr_t, uint16_t);
     using write_callback_t = void (*)(intptr_t, uint16_t, uint8_t);
     using opcode_handler_t = void (*)(M6809 &, uint64_t &);
@@ -696,27 +698,26 @@ class M6809
 
     // assign one register to the other and resize
     template <typename T1, typename T2>
-    static void op_reg_assign(T1 &reg_1, const T2 &reg_2) {
-      reg_1 = reg_2;
+    static void op_reg_assign(T1 *reg_1, const T2 *reg_2) {
+      *reg_1 = *reg_2;
     }
 
     template <typename T1 = uint8_t, typename T2 = uint16_t>
-    static void op_reg_assign(uint8_t &reg_1, const uint16_t &reg_2) {
-      reg_1 = static_cast<uint8_t>(reg_2 >> 8);
+    static void op_reg_assign(uint8_t *reg_1, const uint16_t *reg_2) {
+      *reg_1 = static_cast<uint8_t>((*reg_2) >> 8);
     }
 
     template <typename T1 = uint16_t, typename T2 = uint8_t>
-    static void op_reg_assign(uint16_t &reg_1, const uint8_t &reg_2) {
-      reg_1 = static_cast<uint16_t>(reg_2) | 0xFF00;
+    static void op_reg_assign(uint16_t *reg_1, const uint8_t *reg_2) {
+      *reg_1 = static_cast<uint16_t>((*reg_2) | 0xFF00);
     }
 
     // swap two registers
     template <typename T1, typename T2>
-    static void op_swap_registers(T1 &reg_1, T2 &reg_2)
-    {
-        T2 temp = reg_2;
+    static void op_swap_registers(T1 *reg_1, T2 *reg_2) {
+        T2 temp = *reg_2;
         op_reg_assign(reg_2, reg_1);
-        op_reg_assign(reg_1, temp);
+        op_reg_assign(reg_1, &temp);
     }
 
     /*
@@ -737,17 +738,17 @@ class M6809
             const uint8_t reg1 = operand & 0xf;
 
             if ((reg0 & 0x8) && (reg1 & 0x08)) // both are 8 bit
-                op_swap_registers((uint8_t&)*cpu.registers.exg_table_8[reg1 & 0x7],
-                                  (uint8_t&)*cpu.registers.exg_table_8[reg0 & 0x7]);
+                op_swap_registers(cpu.registers.exg_table_8[reg1 & 0x7],
+                                  cpu.registers.exg_table_8[reg0 & 0x7]);
             else if (!(reg0 & 0x8) && !(reg1 & 0x08))  // both are 16 bit
-                op_swap_registers((uint16_t&)*cpu.registers.exg_table_16[reg1],
-                                  (uint16_t&)*cpu.registers.exg_table_16[reg0]);
+                op_swap_registers(cpu.registers.exg_table_16[reg1],
+                                  cpu.registers.exg_table_16[reg0]);
             else if ((reg0 & 0x8))  // reg 0 is 8 bit and reg 1 is 16 bit
-                op_swap_registers((uint16_t&)*cpu.registers.exg_table_16[reg1],
-                                  (uint8_t&)*cpu.registers.exg_table_8[reg0 & 0x7]);
+                op_swap_registers(cpu.registers.exg_table_16[reg1],
+                                  cpu.registers.exg_table_8[reg0 & 0x7]);
             else if ((reg1 & 0x8))  // reg 0 is 16 bit and reg 1 is 8 bit
-                op_swap_registers((uint8_t&)*cpu.registers.exg_table_8[reg1 & 0x7],
-                                  (uint16_t&)*cpu.registers.exg_table_16[reg0]);
+                op_swap_registers(cpu.registers.exg_table_8[reg1 & 0x7],
+                                  cpu.registers.exg_table_16[reg0]);
             return 0;
         }
     };
@@ -758,17 +759,17 @@ class M6809
             const auto reg1 = operand & 0xf;
 
             if ((reg0 & 0x8) && (reg1 & 0x08)) // both are 8 bit
-                op_reg_assign((uint8_t&)*cpu.registers.exg_table_8[reg1 & 0x7],
-                              (uint8_t&)*cpu.registers.exg_table_8[reg0 & 0x7]);
+                op_reg_assign(cpu.registers.exg_table_8[reg1 & 0x7],
+                              cpu.registers.exg_table_8[reg0 & 0x7]);
             else if ((reg0 & 0x8))  // reg 0 is 8 bit and reg 1 is 16 bit
-                op_reg_assign((uint16_t&)*cpu.registers.exg_table_16[reg1],
-                              (uint8_t&)*cpu.registers.exg_table_8[reg0 & 0x7]);
+                op_reg_assign(cpu.registers.exg_table_16[reg1],
+                              cpu.registers.exg_table_8[reg0 & 0x7]);
             else if ((reg1 & 0x8))  // reg 0 is 16 bit and reg 1 is 8 bit
-                op_reg_assign((uint8_t&)*cpu.registers.exg_table_8[reg1 & 0x7],
-                              (uint16_t&)*cpu.registers.exg_table_16[reg0]);
+                op_reg_assign(cpu.registers.exg_table_8[reg1 & 0x7],
+                              cpu.registers.exg_table_16[reg0]);
             else  // both are 16 bit
-                op_reg_assign((uint16_t&)*cpu.registers.exg_table_16[reg1],
-                              (uint16_t&)*cpu.registers.exg_table_16[reg0]);
+                op_reg_assign(cpu.registers.exg_table_16[reg1],
+                              cpu.registers.exg_table_16[reg0]);
             return 0;
         }
     };
