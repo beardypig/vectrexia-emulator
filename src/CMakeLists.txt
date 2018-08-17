@@ -25,10 +25,9 @@ set(VECTREXIA_SOURCE
 	cartridge.cpp
 	m6809_disassemble.cpp
 	m6809.cpp
-    via6522.cpp via6522.h updatetimer.h
-    ay38910.cpp ay38910.h
-	vectorizer.cpp vectorizer.h
-    gfxutil.h)
+    via6522.cpp
+    ay38910.cpp
+	vectorizer.cpp)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)
@@ -77,5 +76,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")        ## Optimize
 endif()
 
-set(CMAKE_C_FLAGS_DEBUG "-DVECTOR_DEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "-DVECTOR_DEBUG")
+if (VECTORIZER_DEBUG)
+	set(CMAKE_C_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
+	set(CMAKE_CXX_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
+endif()
