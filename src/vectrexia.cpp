@@ -119,7 +119,7 @@ static uint8_t read_via_porta(intptr_t ref)
 
 static uint8_t read_via_portb(intptr_t ref)
 {
-    reinterpret_cast<Vectrex*>(ref)->ReadPortB();
+    return reinterpret_cast<Vectrex*>(ref)->ReadPortB();
 }
 
 Vectrex::Vectrex() noexcept
