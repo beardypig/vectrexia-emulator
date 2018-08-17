@@ -72,8 +72,6 @@ enum m6809_interrupt_t
     NONE, IRQ, FIRQ, NMI
 };
 
-struct M6809Registers;
-
 class M6809
 {
     using ptr_t = M6809*;
@@ -93,16 +91,16 @@ class M6809
 
     M6809Disassemble dis_;
 
-    struct M6809Registers
+    struct Registers
     {
 
-        M6809Registers() noexcept {
+        Registers() noexcept {
             InitEXGTable();
         }
-        M6809Registers(const M6809Registers &rhs) {
+        Registers(const Registers &rhs) {
             *this = rhs;
         }
-        M6809Registers &operator=(const M6809Registers &rhs) noexcept {
+        Registers &operator=(const Registers &rhs) noexcept {
             D = rhs.D;
             X = rhs.X;
             Y = rhs.Y;
@@ -114,7 +112,7 @@ class M6809
             InitEXGTable();
             return *this;
         }
-        ~M6809Registers() = default;
+        ~Registers() = default;
         union
         {
             struct
@@ -1440,7 +1438,7 @@ public:
     // Exceture one instruction and updated the number of cycles that it took
     m6809_error_t Execute(uint64_t &cycles, m6809_interrupt_t irq=NONE);
 
-    M6809Registers &getRegisters() { return registers; }
+    Registers &getRegisters() { return registers; }
 };
 
 #endif //VECTREXIA_M6809_H
