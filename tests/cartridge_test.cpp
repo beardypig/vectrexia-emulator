@@ -32,6 +32,17 @@ TEST(CartridgeTest, TestLoad64K)
     Cartridge cart;
     cart.Load((const uint8_t *)romdata.data(), 0x10000);
 
+    EXPECT_TRUE(cart.is_loaded());
+}
+
+TEST(CartridgeTest, TestLoadTooLarge)
+{
+    std::array<uint8_t, 0x10001> romdata;
+    romdata.fill(0xbe);
+
+    Cartridge cart;
+    cart.Load((const uint8_t *)romdata.data(), 0x10001);
+
     EXPECT_FALSE(cart.is_loaded());
 }
 

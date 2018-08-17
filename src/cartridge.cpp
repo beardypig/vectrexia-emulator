@@ -29,8 +29,9 @@ void Cartridge::Load(const uint8_t *data, size_t size)
         {
             memcpy(rom_.data()+REGULAR_ROM_SIZE, data, size);
         }
-        else
+        else {
             printf("[CART]: Loading a bank switched ROM\n");
+        }
         is_loaded_flag_ = true;
     }
     else
