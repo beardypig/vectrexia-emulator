@@ -25,6 +25,11 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <array>
 #include <vector>
 #include <memory>
+
+#ifdef _MSC_VER >= 1910 && !__INTEL_COMPILER
+#include "win32.h"
+#endif
+
 #include "cartridge.h"
 #include "sysrom.h"
 #include "m6809.h"
