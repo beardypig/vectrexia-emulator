@@ -21,8 +21,13 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <memory>
 
+#ifdef _MSC_VER >= 1910 && !__INTEL_COMPILER
+#include "win32.h"
+#endif
+
 #include "libretro.h"
 #include "vectrexia.h"
+
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 FILE* sound_out;
@@ -68,6 +73,7 @@ bool retro_load_game(const struct retro_game_info *info)
             { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "4" },
             { 1, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X,  "Analog X" },
             { 1, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y,  "Analog Y" },
+            { 1, RETRO_DEVICE_NONE, 0, 0,  nullptr },
     };
 
     environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
@@ -144,7 +150,7 @@ void retro_init(void)
  */
 void retro_get_system_info(struct retro_system_info *info)
 {
-    memset(info, 0, sizeof(*info));
+    memset(info, 0, sizeof(retro_system_info));
     info->library_name = vectrex->GetName();
     info->library_version = vectrex->GetVersion();
     info->need_fullpath = false;
@@ -159,7 +165,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
     int pixel_format = RETRO_PIXEL_FORMAT_RGB565;
 
-    memset(info, 0, sizeof(*info));
+    memset(info, 0, sizeof(retro_system_av_info));
     info->timing.fps            = 50.0;
     info->timing.sample_rate    = 44100.0;
     info->geometry.base_width   = FRAME_WIDTH;
@@ -171,7 +177,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
     // the performance level is guide to frontend to give an idea of how intensive this core is to run
     environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &pixel_format);
 }
-
 
 // Reset the Vectrex
 void retro_reset(void)
