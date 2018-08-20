@@ -3,9 +3,46 @@
 
 #include <cstdint>
 #include <array>
+#include <memory>
 #include <string>
 #include <cstdarg>
 #include <stdlib.h>
+
+namespace vxgfx
+{
+
+template<int W, int H, typename PF>
+class framebuffer
+{
+public:
+    const int width = W;
+    const int height = H;
+    using pixelformat_t = PF;
+    using buffer_t = std::array<pixelformat_t, W*H>;
+    using buffer_ptr_t = buffer_t * ;
+
+    framebuffer() {
+        buffer_ = std::make_unique<buffer_t>();
+    }
+
+    void clear() noexcept {
+        for (auto &p : buffer_) {
+            p = pixelformat_t.clear();
+        }
+    }
+
+    buffer_ptr_t data() const noexcept {
+        auto test = buffer_.get();
+        return buffer_.get();
+    }
+
+private:
+    framebuffer(const framebuffer&) = default;
+    framebuffer &operator=(const framebuffer&) = default;
+    std::unique_ptr<buffer_t> buffer_{};
+};
+
+}
 
 struct color_t
 {
