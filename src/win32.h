@@ -19,7 +19,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef WIN32_H
 #define WIN32_H
 
-#ifdef _MSC_VER >= 1910 && !__INTEL_COMPILER
+#if _MSC_VER >= 1910 && !__INTEL_COMPILER
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x0600
 #include <SDKDDKVer.h>
