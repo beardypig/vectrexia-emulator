@@ -26,7 +26,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <memory>
 
-#ifdef _MSC_VER >= 1910 && !__INTEL_COMPILER
+#if _MSC_VER >= 1910 && !__INTEL_COMPILER
 #include "win32.h"
 #endif
 
