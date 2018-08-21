@@ -22,6 +22,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #if _MSC_VER >= 1910 && !__INTEL_COMPILER
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x0600
+#define NOMINMAX
 #include <SDKDDKVer.h>
 #include <windows.h>
 #endif

@@ -4,23 +4,188 @@
 #include <cstdint>
 #include <array>
 #include <memory>
+#include <algorithm>
+#include <cmath>
 #include <string>
 #include <cstdarg>
 #include <type_traits>
+#include <cassert>
 #include <stdlib.h>
 
 namespace vxgfx
 {
 
-template<size_t W, size_t H>
-struct wrap {
-    auto operator()(size_t x, size_t y) -> std::pair<bool, size_t> {
-        return (register auto ndx = (y * W) + x; ndx >= 0 && ndx < (W * H))
-        ? { true, ndx } : { false, ndx };
+/*
+ * color channel blending function
+ */
+constexpr float blend_channel(const float a, const float b, const float t) {
+    return ::sqrt((1.0f - t) * ::pow(a, 2.0f) + t * ::pow(b, 2.0f));
+}
+
+/*
+ * alpha channel blending function
+ */
+constexpr float blend_alpha(const float a, const float b, const float t) {
+    return (1.0f - t) * a + t * b;
+}
+
+/*
+ * Implementation of std::clamp
+ * See https://en.cppreference.com/w/cpp/algorithm/clamp
+ * std::clamp is new in C++17
+ */
+template<class T>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+    return clamp(v, lo, hi, std::less<>());
+}
+
+template<class T, class Compare>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
+    return assert(!comp(hi, lo)),
+        comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+
+/*
+ * pixel format namespace
+ */
+namespace pf {
+
+/*
+ * ARGB pixel format
+ */
+struct argb_t {
+
+    using type = uint32_t;
+
+    type value = static_cast<type>(0xff) << 24;
+
+    inline argb_t() = default;
+    inline argb_t(type v) noexcept : value(v) {}
+    inline argb_t(const argb_t&) = default;
+    inline argb_t(argb_t&&) = default;
+    inline argb_t &operator=(const argb_t&) = default;
+    inline argb_t &operator=(argb_t &&)= default;
+
+    inline argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
+        value = static_cast<type>(0xff) << 24
+            | static_cast<type>(r) << 16
+            | static_cast<type>(g) << 8
+            | static_cast<type>(b);
+    }
+
+    inline argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
+        value = static_cast<type>(a) << 24
+            | static_cast<type>(r) << 16
+            | static_cast<type>(g) << 8
+            | static_cast<type>(b);
+    }
+
+    constexpr static uint8_t to_c8(const float &v) {
+        return static_cast<uint8_t>(v * 255.0f);
+    }
+
+    constexpr static type comp_a(const argb_t &c) {
+        return (c.value & static_cast<type>(0xff << 24)) >> 24;
+    }
+
+    constexpr static type comp_r(const argb_t &c) {
+        return (c.value & static_cast<type>(0xff << 16)) >> 16;
+    }
+
+    constexpr static type comp_g(const argb_t &c) {
+        return (c.value & static_cast<type>(0xff << 8)) >> 8;
+    }
+
+    constexpr static type comp_b(const argb_t &c) {
+        return c.value & 0xff;
+    }
+
+    constexpr float a() const {
+        return 1.0f / comp_a(*this);
+    }
+
+    constexpr float r() const {
+        return 1.0f / comp_r(*this);
+    }
+
+    constexpr float g() const {
+        return 1.0f / comp_g(*this);
+    }
+
+    constexpr float b() const {
+        return 1.0f / comp_b(*this);
+    }
+
+    inline void a(uint8_t v) {
+        value |= static_cast<type>(v) << 24;
+    }
+
+    inline void r(uint8_t v) {
+        value |= static_cast<type>(v) << 16;
+    }
+
+    inline void g(uint8_t v) {
+        value |= static_cast<type>(v) << 8;
+    }
+
+    inline void b(uint8_t v) {
+        value |= static_cast<type>(v);
+    }
+
+    constexpr argb_t blend(const argb_t &rhs, const float blend_point) const {
+        return {
+            static_cast<uint8_t>(blend_alpha(a(),   rhs.a(), blend_point) * 255.0f),
+            static_cast<uint8_t>(blend_channel(r(), rhs.r(), blend_point) * 255.0f),
+            static_cast<uint8_t>(blend_channel(g(), rhs.g(), blend_point) * 255.0f),
+            static_cast<uint8_t>(blend_channel(b(), rhs.b(), blend_point) * 255.0f),
+        };
+    }
+
+    constexpr argb_t brightness(const float v) {
+        auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
+        auto g_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
+        auto b_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
+        return {r_, g_, b_};
     }
 };
 
-template<size_t W, size_t H, typename PF, typename N = wrap<W, H>>
+/*
+ * Monochrome luminosity based pixel format
+ */
+struct mono_t {
+
+    using type = float;
+
+    type value = 0.0f;
+
+    mono_t() = default;
+
+    mono_t(type v) : value(v) {}
+
+    void operator()(argb_t argb) noexcept {
+        value = (1.0f / 0xff) * argb.a() * (0.2627f * argb.r() + 0.6780f * argb.g() + 0.0593f * argb.b());
+    }
+
+    void operator()(uint8_t r, uint8_t g, uint8_t b) noexcept {
+        value = 0.2627f * r + 0.6780f * g + 0.0593f * b;
+    }
+
+    mono_t operator+(const mono_t &rhs) {
+        return mono_t{ value + rhs.value };
+    }
+
+    void operator+=(const mono_t &rhs) {
+        value += rhs.value;
+    }
+
+    void operator+=(const type &rhs) {
+        value += rhs;
+    }
+};
+
+}
+
+template<size_t W, size_t H, typename PF>
 class framebuffer
 {
 public:
@@ -36,29 +201,52 @@ public:
 
     inline void clear() noexcept {
         for (auto &p : buffer_) {
-            p = pixelformat_t.clear();
+            p = pixelformat_t{};
         }
     }
-
+        
     inline buffer_ptr_t data() const noexcept {
         return buffer_.get();
     }
-
-    void set(const size_t x, const size_t y, const PF in,
-        typename std::enable_if<std::is_scalar<PF>::value>::type* = 0) {
-
-    }
-
-    void set(const size_t x, const size_t y, const PF &in,
-        typename std::enable_if<!std::is_scalar<PF>::value>::type* = 0) {
-
-    }
-
 private:
     framebuffer(const framebuffer&) = default;
     framebuffer &operator=(const framebuffer&) = default;
     std::unique_ptr<buffer_t> buffer_{};
 };
+
+template<typename FB, typename Mode>
+void draw_line(int x0, int y0, int x1, int y1, color_t color)
+{
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+    int sx = x0 < x1 ? 1 : -1;
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx - dy;
+
+    while (1)
+    {
+        auto pos = (y0 * width) + x0;
+        if (x0 < width && x0 > 0 && y0 < height && y0 > 0)
+            framebuffer_[pos] += color;
+
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy)
+        {
+            err = err - dy;
+            x0 = x0 + sx;
+        }
+
+        if (e2 < dx)
+        {
+            err = err + dx;
+            y0 = y0 + sy;
+        }
+
+    }
+}
 
 }
 
