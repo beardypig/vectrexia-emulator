@@ -6,34 +6,52 @@
 #include <memory>
 #include <string>
 #include <cstdarg>
+#include <type_traits>
 #include <stdlib.h>
 
 namespace vxgfx
 {
 
-template<int W, int H, typename PF>
+template<size_t W, size_t H>
+struct wrap {
+    auto operator()(size_t x, size_t y) -> std::pair<bool, size_t> {
+        return (register auto ndx = (y * W) + x; ndx >= 0 && ndx < (W * H))
+        ? { true, ndx } : { false, ndx };
+    }
+};
+
+template<size_t W, size_t H, typename PF, typename N = wrap<W, H>>
 class framebuffer
 {
 public:
-    const int width = W;
-    const int height = H;
+    const size_t width = W;
+    const size_t height = H;
     using pixelformat_t = PF;
     using buffer_t = std::array<pixelformat_t, W*H>;
     using buffer_ptr_t = buffer_t * ;
 
-    framebuffer() {
+    inline framebuffer() {
         buffer_ = std::make_unique<buffer_t>();
     }
 
-    void clear() noexcept {
+    inline void clear() noexcept {
         for (auto &p : buffer_) {
             p = pixelformat_t.clear();
         }
     }
 
-    buffer_ptr_t data() const noexcept {
-        auto test = buffer_.get();
+    inline buffer_ptr_t data() const noexcept {
         return buffer_.get();
+    }
+
+    void set(const size_t x, const size_t y, const PF in,
+        typename std::enable_if<std::is_scalar<PF>::value>::type* = 0) {
+
+    }
+
+    void set(const size_t x, const size_t y, const PF &in,
+        typename std::enable_if<!std::is_scalar<PF>::value>::type* = 0) {
+
     }
 
 private:
@@ -411,6 +429,8 @@ public:
         }
         return fb;
     };
+
+    vxgfx::framebuffer<10, 10, uint32_t> test{};
 };
 
 
