@@ -34,15 +34,15 @@ inline float blend_alpha(const float a, const float b, const float t) {
  * See https://en.cppreference.com/w/cpp/algorithm/clamp
  * std::clamp is new in C++17
  */
-template<class T>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
-    return clamp(v, lo, hi, std::less<>());
-}
-
 template<class T, class Compare>
 constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
     return assert(!comp(hi, lo)),
         comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+
+template<class T>
+constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
+    return clamp(v, lo, hi, std::less<>());
 }
 
 /*
@@ -54,20 +54,21 @@ struct pf_argb_t {
     value_type value = static_cast<value_type>(0xff) << 24;
 
     inline pf_argb_t() = default;
-    inline pf_argb_t(value_type v) noexcept : value(v) {}
+    inline ~pf_argb_t() = default;
+    inline explicit pf_argb_t(value_type v) noexcept : value(v) {}
     inline pf_argb_t(const pf_argb_t&) = default;
     inline pf_argb_t(pf_argb_t&&) = default;
     inline pf_argb_t &operator=(const pf_argb_t&) = default;
     inline pf_argb_t &operator=(pf_argb_t &&) = default;
 
-    inline pf_argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
+    constexpr pf_argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
         value = static_cast<value_type>(0xff) << 24
             | static_cast<value_type>(r) << 16
             | static_cast<value_type>(g) << 8
             | static_cast<value_type>(b);
     }
 
-    inline pf_argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
+    constexpr pf_argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
         value = static_cast<value_type>(a) << 24
             | static_cast<value_type>(r) << 16
             | static_cast<value_type>(g) << 8
@@ -110,23 +111,23 @@ struct pf_argb_t {
         return 1.0f / comp_b(*this);
     }
 
-    inline void a(uint8_t v) {
+    constexpr void a(uint8_t v) {
         value |= static_cast<value_type>(v) << 24;
     }
 
-    inline void r(uint8_t v) {
+    constexpr void r(uint8_t v) {
         value |= static_cast<value_type>(v) << 16;
     }
 
-    inline void g(uint8_t v) {
+    constexpr void g(uint8_t v) {
         value |= static_cast<value_type>(v) << 8;
     }
 
-    inline void b(uint8_t v) {
+    constexpr void b(uint8_t v) {
         value |= static_cast<value_type>(v);
     }
 
-    pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
+    constexpr pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
         return {
             static_cast<uint8_t>(blend_alpha(a(),   rhs.a(), blend_point) * 255.0f),
             static_cast<uint8_t>(blend_channel(r(), rhs.r(), blend_point) * 255.0f),
@@ -135,7 +136,7 @@ struct pf_argb_t {
         };
     }
 
-    pf_argb_t brightness(const float v) {
+    constexpr pf_argb_t brightness(const float v) {
         auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
         auto g_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
         auto b_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
@@ -147,38 +148,65 @@ struct pf_argb_t {
  * Monochrome luminosity based pixel format
  */
 struct pf_mono_t {
-
-    using type = float;
-
-    type value = 0.0f;
+    using value_type = float;
+    value_type value = 0.0f;
 
     pf_mono_t() = default;
+    ~pf_mono_t() = default;
+    inline pf_mono_t(const pf_mono_t&) = default;
+    inline pf_mono_t(pf_mono_t&&) = default;
+    inline pf_mono_t &operator=(const pf_mono_t&) = default;
+    inline pf_mono_t &operator=(pf_mono_t &&) = default;
 
-    pf_mono_t(type v) : value(v) {}
+    constexpr explicit pf_mono_t(value_type v) noexcept : value(v) {}
 
-    void operator()(pf_argb_t argb) noexcept {
+    constexpr explicit pf_mono_t(pf_argb_t argb) noexcept {
         value = (1.0f / 0xff) * argb.a() * (0.2627f * argb.r() + 0.6780f * argb.g() + 0.0593f * argb.b());
     }
 
-    void operator()(uint8_t r, uint8_t g, uint8_t b) noexcept {
+    constexpr pf_mono_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
         value = 0.2627f * r + 0.6780f * g + 0.0593f * b;
     }
 
-    pf_mono_t operator+(const pf_mono_t &rhs) {
-        return pf_mono_t{ value + rhs.value };
+    constexpr float a() const {
+        return value;
     }
 
-    void operator+=(const pf_mono_t &rhs) {
-        value += rhs.value;
+    constexpr float r() const {
+        return value;
     }
 
-    void operator+=(const type &rhs) {
-        value += rhs;
+    constexpr float g() const {
+        return value;
+    }
+
+    constexpr float b() const {
+        return value;
+    }
+
+    constexpr void operator+= (const float &v) {
+        value += v;
+    }
+
+    constexpr void operator+= (const pf_mono_t &v) {
+        value += v.value;
+    }
+
+    constexpr pf_mono_t blend(const pf_mono_t &rhs, const float blend_point) const {
+        return pf_mono_t{ (value * blend_point) + rhs.value * (1.0f - blend_point) };
+    }
+
+    constexpr void blend(const pf_mono_t &rhs, const float blend_point) {
+        value = (value * blend_point) + rhs.value * (1.0f - blend_point);
+    }
+
+    constexpr pf_mono_t brightness(const pf_mono_t &v) const {
+        return pf_mono_t{ value + v.value };
     }
 };
 
 /*
- * Line drawing mode: direct
+ * Line drawing mode: direct (overwrite)
  */
 struct m_direct {
     template<typename FB, typename PF = decltype(FB::value_type)>
@@ -187,49 +215,138 @@ struct m_direct {
     }
 };
 
+/*
+ * Line drawing mode: brightness (additive)
+ */
 struct m_brightness {
     template<typename FB, typename PF = decltype(FB::value_type)>
     constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
-        (*fb)[pos].brightness(color);
+        (*fb)[pos] += color;
     }
 };
 
+/*
+ * Line drawing mode: colour blending
+ */
+template <int Bp = 50>
 struct m_blend {
     template<typename FB, typename PF = decltype(FB::value_type)>
     constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
-        (*fb)[pos].blend(color);
+        (*fb)[pos].blend(color, (Bp / 100.0f));
     }
 };
 
-template<size_t W, size_t H, typename PF>
+/*
+ * Framebuffer class, thin wrapper for an array in a unique_ptr
+ */
+template<size_t W, size_t H, typename Pf>
 class framebuffer
 {
+private:
+    using data_type = std::array<Pf, W*H>;
 public:
+    using value_type = Pf;
+    using pointer = data_type * ;
+    using reference = data_type & ;
+    using iterator = typename data_type::iterator;
+    using const_iterator = typename data_type::const_iterator;
+
     const size_t width = W;
     const size_t height = H;
-    using value_type = PF;
-    using buffer_t = std::array<value_type, W*H>;
-    using pointer = buffer_t * ;
 
-    inline framebuffer() {
-        buffer_ = std::make_unique<buffer_t>();
+    constexpr auto begin()->iterator {
+        return buffer->begin();
     }
 
-    inline void clear() {
-        for (auto &p : buffer_) {
-            p = value_type{};
-        }
+    constexpr auto begin() const ->const_iterator {
+        return buffer->cbegin();
+    }
+
+    constexpr auto cbegin() const ->const_iterator {
+        return buffer->cbegin();
+    }
+
+    constexpr auto end()->iterator {
+        return buffer->end();
+    }
+
+    constexpr auto end() const ->const_iterator {
+        return buffer->end();
+    }
+
+    constexpr auto cend() const ->const_iterator {
+        return buffer->cend();
+    }
+
+    constexpr framebuffer() {
+        buffer = std::make_unique<data_type>();
+    }
+
+    constexpr void clear() {
+        buffer->fill(Pf{});
+    }
+
+    constexpr size_t size() const {
+        return buffer->size();
     }
 
     constexpr pointer data() const {
-        return buffer_.get();
+        return buffer.get();
     }
+
+    constexpr framebuffer(const framebuffer &rhs)
+        : framebuffer() {
+        *this = rhs;
+    }
+
+    constexpr framebuffer &operator=(const framebuffer &rhs) {
+        *buffer = *rhs.buffer;
+        return *this;
+    }
+
+    constexpr framebuffer(framebuffer &&rhs) {
+        *this = std::move(rhs);
+    }
+
+    constexpr framebuffer &operator=(framebuffer &&rhs) {
+        buffer = std::move(rhs.buffer);
+        return *this;
+    }
+
+    ~framebuffer() = default;
+
 private:
-    framebuffer(const framebuffer&) = default;
-    framebuffer &operator=(const framebuffer&) = default;
-    std::unique_ptr<buffer_t> buffer_{};
+    std::unique_ptr<data_type> buffer{};
 };
 
+/*
+ * vectrex viewport voltage span
+ */
+struct viewport {
+    float l = -2.5f;
+    float r = +2.5f;
+    float t = -5.0f;
+    float b = +5.0f;
+    using pointer = viewport * ;
+    viewport() = default;
+    viewport(float width, float height) :
+        l(-width / 2), t(-height / 2),
+        r(width / 2), b(height / 2) {}
+    void offset(float x, float y) {
+        l += x; r += x;
+        t += y; b += y;
+    }
+    auto translate(float x, float y, size_t w, size_t h)
+        ->std::pair<size_t, size_t> {
+        return std::make_pair(
+            static_cast<size_t>((x - l) / (r - l) * w),
+            static_cast<size_t>((y - t) / (b - t) * h));
+    }
+};
+
+/*
+ * Basic line drawing function
+ */
 template<typename DrawMode, typename T, typename PF = decltype(T::value_type)>
 void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
 {
@@ -264,12 +381,19 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
     }
 }
 
-template<typename FB>
-void transform(FB &fb) {
-
+/*
+ * Voltage based line drawing
+ */
+template<typename DrawMode, typename T, typename PF = decltype(T::value_type)>
+void draw_line(T &fb, viewport &vp, float x0, float y0, float x1, float y1, const PF &c) {
+    auto p1 = vp.translate(x0, y0, fb.width, fb.height);
+    auto p2 = vp.translate(x1, y1, fb.width, fb.height);
+    draw_line(fb, p1.first, p1.second, p2.first, p2.second, c);
 }
 
-}
+} // namespace vxgfx
+
+
 struct color_t
 {
     float r, g, b;
