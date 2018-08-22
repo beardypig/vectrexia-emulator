@@ -127,6 +127,10 @@ struct pf_argb_t {
         value |= static_cast<value_type>(v);
     }
 
+    constexpr void operator+=(const float v) {
+        *this = brightness(v);
+    }
+
     constexpr pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
         return {
             static_cast<uint8_t>(blend_alpha(a(),   rhs.a(), blend_point) * 255.0f),
@@ -136,11 +140,67 @@ struct pf_argb_t {
         };
     }
 
-    constexpr pf_argb_t brightness(const float v) {
+    constexpr pf_argb_t brightness(const float v) const {
         auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
-        auto g_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
-        auto b_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
+        auto g_ = to_c8(clamp(g() + v, 0.0f, 1.0f));
+        auto b_ = to_c8(clamp(b() + v, 0.0f, 1.0f));
         return { r_, g_, b_ };
+    }
+};
+
+struct pf_rgb565_t {
+    using value_type = uint16_t;
+    value_type value = 0;
+    
+    constexpr pf_rgb565_t() = default;
+
+    constexpr static value_type comp_r(const pf_rgb565_t &c) {
+        return (c.value & 0xf8) >> 8;
+    }
+
+    constexpr static value_type comp_g(const pf_rgb565_t &c) {
+        return (c.value & 0x7e0) >> 3;
+    }
+
+    constexpr static value_type comp_b(const pf_rgb565_t &c) {
+        return (c.value & 0x1f) << 3;
+    }
+
+    constexpr float r() const {
+        return 1.0f / comp_r(*this);
+    }
+
+    constexpr float g() const {
+        return 1.0f / comp_g(*this);
+    }
+
+    constexpr float b() const {
+        return 1.0f / comp_b(*this);
+    }
+
+    constexpr static uint8_t to_c8(const float &v) {
+        return static_cast<uint8_t>(v * 255.0f);
+    }
+
+    constexpr pf_rgb565_t brightness(const float v) const {
+        auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
+        auto g_ = to_c8(clamp(g() + v, 0.0f, 1.0f));
+        auto b_ = to_c8(clamp(b() + v, 0.0f, 1.0f));
+        return { r_, g_, b_ };
+    }
+
+    constexpr explicit pf_rgb565_t(const pf_argb_t v)
+        : pf_rgb565_t(
+            static_cast<uint8_t>(v.r() * v.a()),
+            static_cast<uint8_t>(v.g() * v.a()),
+            static_cast<uint8_t>(v.b() * v.a()))
+    { /* ... */ }
+
+    constexpr pf_rgb565_t(uint8_t r, uint8_t g, uint8_t b) {
+        value = static_cast<uint16_t>(
+            ((r >> 3) & 0x1f) << 11 |
+            ((g >> 2) & 0x3f) << 5 |
+            ((b >> 3) & 0x1f));
     }
 };
 
