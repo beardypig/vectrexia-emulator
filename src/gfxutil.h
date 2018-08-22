@@ -160,10 +160,15 @@ struct pf_mono_t {
 
     constexpr explicit pf_mono_t(value_type v) noexcept : value(v) {}
 
+    //
+    // This constructor performs color to grayscale conversion. The alpha value will
+    // darken or brighten the image since this pixel format has no alpha support.
     constexpr explicit pf_mono_t(pf_argb_t argb) noexcept {
         value = (1.0f / 0xff) * argb.a() * (0.2627f * argb.r() + 0.6780f * argb.g() + 0.0593f * argb.b());
     }
 
+    //
+    // This consructor performs color to grayscale conversion of the three RGB arguments
     constexpr pf_mono_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
         value = 0.2627f * r + 0.6780f * g + 0.0593f * b;
     }
@@ -238,6 +243,10 @@ struct m_blend {
 
 /*
  * Framebuffer class, thin wrapper for an array in a unique_ptr
+ *
+ * Usage:
+ *    vxgfx::framebuffer<WIDTH, HEIGHT, PIXEL_FORMAT> buffer;
+ *
  */
 template<size_t W, size_t H, typename Pf>
 class framebuffer
@@ -245,6 +254,10 @@ class framebuffer
 private:
     using data_type = std::array<Pf, W*H>;
 public:
+
+    //
+    // define some types that can referenced by others
+
     using value_type = Pf;
     using pointer = data_type * ;
     using reference = data_type & ;
@@ -253,6 +266,9 @@ public:
 
     const size_t width = W;
     const size_t height = H;
+
+    //
+    // STL compatible iterator pass-throughs
 
     constexpr auto begin()->iterator {
         return buffer->begin();
@@ -282,17 +298,24 @@ public:
         buffer = std::make_unique<data_type>();
     }
 
+    
+    // Clears the internal array<> using the pixel format default (Pf)
     constexpr void clear() {
         buffer->fill(Pf{});
     }
 
+    // Returns the array size
     constexpr size_t size() const {
         return buffer->size();
     }
 
+    // Returns a pointer to the internal array<>
     constexpr pointer data() const {
         return buffer.get();
     }
+
+    //
+    // Move and copy constructors / operators
 
     constexpr framebuffer(const framebuffer &rhs)
         : framebuffer() {
@@ -392,7 +415,6 @@ void draw_line(T &fb, viewport &vp, float x0, float y0, float x1, float y1, cons
 }
 
 } // namespace vxgfx
-
 
 struct color_t
 {
