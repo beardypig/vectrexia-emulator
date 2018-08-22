@@ -18,14 +18,14 @@ namespace vxgfx
 /*
  * color channel blending function
  */
-constexpr float blend_channel(const float a, const float b, const float t) {
+inline float blend_channel(const float a, const float b, const float t) {
     return ::sqrt((1.0f - t) * ::pow(a, 2.0f) + t * ::pow(b, 2.0f));
 }
 
 /*
  * alpha channel blending function
  */
-constexpr float blend_alpha(const float a, const float b, const float t) {
+inline float blend_alpha(const float a, const float b, const float t) {
     return (1.0f - t) * a + t * b;
 }
 
@@ -46,57 +46,51 @@ constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
 }
 
 /*
- * pixel format namespace
- */
-namespace pf {
-
-/*
  * ARGB pixel format
  */
-struct argb_t {
+struct pf_argb_t {
 
-    using type = uint32_t;
+    using value_type = uint32_t;
+    value_type value = static_cast<value_type>(0xff) << 24;
 
-    type value = static_cast<type>(0xff) << 24;
+    inline pf_argb_t() = default;
+    inline pf_argb_t(value_type v) noexcept : value(v) {}
+    inline pf_argb_t(const pf_argb_t&) = default;
+    inline pf_argb_t(pf_argb_t&&) = default;
+    inline pf_argb_t &operator=(const pf_argb_t&) = default;
+    inline pf_argb_t &operator=(pf_argb_t &&) = default;
 
-    inline argb_t() = default;
-    inline argb_t(type v) noexcept : value(v) {}
-    inline argb_t(const argb_t&) = default;
-    inline argb_t(argb_t&&) = default;
-    inline argb_t &operator=(const argb_t&) = default;
-    inline argb_t &operator=(argb_t &&)= default;
-
-    inline argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
-        value = static_cast<type>(0xff) << 24
-            | static_cast<type>(r) << 16
-            | static_cast<type>(g) << 8
-            | static_cast<type>(b);
+    inline pf_argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
+        value = static_cast<value_type>(0xff) << 24
+            | static_cast<value_type>(r) << 16
+            | static_cast<value_type>(g) << 8
+            | static_cast<value_type>(b);
     }
 
-    inline argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
-        value = static_cast<type>(a) << 24
-            | static_cast<type>(r) << 16
-            | static_cast<type>(g) << 8
-            | static_cast<type>(b);
+    inline pf_argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
+        value = static_cast<value_type>(a) << 24
+            | static_cast<value_type>(r) << 16
+            | static_cast<value_type>(g) << 8
+            | static_cast<value_type>(b);
     }
 
     constexpr static uint8_t to_c8(const float &v) {
         return static_cast<uint8_t>(v * 255.0f);
     }
 
-    constexpr static type comp_a(const argb_t &c) {
-        return (c.value & static_cast<type>(0xff << 24)) >> 24;
+    constexpr static value_type comp_a(const pf_argb_t &c) {
+        return (c.value & static_cast<value_type>(0xff << 24)) >> 24;
     }
 
-    constexpr static type comp_r(const argb_t &c) {
-        return (c.value & static_cast<type>(0xff << 16)) >> 16;
+    constexpr static value_type comp_r(const pf_argb_t &c) {
+        return (c.value & static_cast<value_type>(0xff << 16)) >> 16;
     }
 
-    constexpr static type comp_g(const argb_t &c) {
-        return (c.value & static_cast<type>(0xff << 8)) >> 8;
+    constexpr static value_type comp_g(const pf_argb_t &c) {
+        return (c.value & static_cast<value_type>(0xff << 8)) >> 8;
     }
 
-    constexpr static type comp_b(const argb_t &c) {
+    constexpr static value_type comp_b(const pf_argb_t &c) {
         return c.value & 0xff;
     }
 
@@ -117,22 +111,22 @@ struct argb_t {
     }
 
     inline void a(uint8_t v) {
-        value |= static_cast<type>(v) << 24;
+        value |= static_cast<value_type>(v) << 24;
     }
 
     inline void r(uint8_t v) {
-        value |= static_cast<type>(v) << 16;
+        value |= static_cast<value_type>(v) << 16;
     }
 
     inline void g(uint8_t v) {
-        value |= static_cast<type>(v) << 8;
+        value |= static_cast<value_type>(v) << 8;
     }
 
     inline void b(uint8_t v) {
-        value |= static_cast<type>(v);
+        value |= static_cast<value_type>(v);
     }
 
-    constexpr argb_t blend(const argb_t &rhs, const float blend_point) const {
+    pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
         return {
             static_cast<uint8_t>(blend_alpha(a(),   rhs.a(), blend_point) * 255.0f),
             static_cast<uint8_t>(blend_channel(r(), rhs.r(), blend_point) * 255.0f),
@@ -141,28 +135,28 @@ struct argb_t {
         };
     }
 
-    constexpr argb_t brightness(const float v) {
+    pf_argb_t brightness(const float v) {
         auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
         auto g_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
         auto b_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
-        return {r_, g_, b_};
+        return { r_, g_, b_ };
     }
 };
 
 /*
  * Monochrome luminosity based pixel format
  */
-struct mono_t {
+struct pf_mono_t {
 
     using type = float;
 
     type value = 0.0f;
 
-    mono_t() = default;
+    pf_mono_t() = default;
 
-    mono_t(type v) : value(v) {}
+    pf_mono_t(type v) : value(v) {}
 
-    void operator()(argb_t argb) noexcept {
+    void operator()(pf_argb_t argb) noexcept {
         value = (1.0f / 0xff) * argb.a() * (0.2627f * argb.r() + 0.6780f * argb.g() + 0.0593f * argb.b());
     }
 
@@ -170,11 +164,11 @@ struct mono_t {
         value = 0.2627f * r + 0.6780f * g + 0.0593f * b;
     }
 
-    mono_t operator+(const mono_t &rhs) {
-        return mono_t{ value + rhs.value };
+    pf_mono_t operator+(const pf_mono_t &rhs) {
+        return pf_mono_t{ value + rhs.value };
     }
 
-    void operator+=(const mono_t &rhs) {
+    void operator+=(const pf_mono_t &rhs) {
         value += rhs.value;
     }
 
@@ -183,7 +177,29 @@ struct mono_t {
     }
 };
 
-}
+/*
+ * Line drawing mode: direct
+ */
+struct m_direct {
+    template<typename FB, typename PF = decltype(FB::value_type)>
+    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
+        (*fb)[pos] = color;
+    }
+};
+
+struct m_brightness {
+    template<typename FB, typename PF = decltype(FB::value_type)>
+    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
+        (*fb)[pos].brightness(color);
+    }
+};
+
+struct m_blend {
+    template<typename FB, typename PF = decltype(FB::value_type)>
+    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
+        (*fb)[pos].blend(color);
+    }
+};
 
 template<size_t W, size_t H, typename PF>
 class framebuffer
@@ -191,21 +207,21 @@ class framebuffer
 public:
     const size_t width = W;
     const size_t height = H;
-    using pixelformat_t = PF;
-    using buffer_t = std::array<pixelformat_t, W*H>;
-    using buffer_ptr_t = buffer_t * ;
+    using value_type = PF;
+    using buffer_t = std::array<value_type, W*H>;
+    using pointer = buffer_t * ;
 
     inline framebuffer() {
         buffer_ = std::make_unique<buffer_t>();
     }
 
-    inline void clear() noexcept {
+    inline void clear() {
         for (auto &p : buffer_) {
-            p = pixelformat_t{};
+            p = value_type{};
         }
     }
-        
-    inline buffer_ptr_t data() const noexcept {
+
+    constexpr pointer data() const {
         return buffer_.get();
     }
 private:
@@ -214,8 +230,8 @@ private:
     std::unique_ptr<buffer_t> buffer_{};
 };
 
-template<typename FB, typename Mode>
-void draw_line(int x0, int y0, int x1, int y1, color_t color)
+template<typename DrawMode, typename T, typename PF = decltype(T::value_type)>
+void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
 {
     int dx = abs(x1 - x0);
     int dy = abs(y1 - y0);
@@ -225,9 +241,10 @@ void draw_line(int x0, int y0, int x1, int y1, color_t color)
 
     while (1)
     {
-        auto pos = (y0 * width) + x0;
-        if (x0 < width && x0 > 0 && y0 < height && y0 > 0)
-            framebuffer_[pos] += color;
+        auto pos = (y0 * fb.width) + x0;
+        if (x0 < fb.width && x0 >= 0 && y0 < fb.height && y0 >= 0) {
+            DrawMode()(fb.data(), pos, c);
+        }
 
         if (x0 == x1 && y0 == y1)
             break;
@@ -244,12 +261,15 @@ void draw_line(int x0, int y0, int x1, int y1, color_t color)
             err = err + dx;
             y0 = y0 + sy;
         }
-
     }
 }
 
+template<typename FB>
+void transform(FB &fb) {
+
 }
 
+}
 struct color_t
 {
     float r, g, b;
@@ -499,7 +519,7 @@ public:
         while(1)
         {
             auto pos = (y0 * width) + x0;
-            if (x0 < width && x0 > 0 && y0 < height && y0 > 0)
+            if (x0 < width && x0 >= 0 && y0 < height && y0 >= 0)
                 framebuffer_[pos] += color;
 
             if (x0 == x1 && y0 == y1)
