@@ -1,16 +1,34 @@
+/*
+Copyright (C) 2016 beardypig, pelorat
+
+This file is part of Vectrexia.
+
+Vectrexia is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Vectrexia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef VECTREXIA_GFXUTIL_H
 #define VECTREXIA_GFXUTIL_H
 
 #include <cstdint>
+#include <cstdlib>
+#include <cmath>
+#include <type_traits>
 #include <array>
 #include <memory>
 #include <algorithm>
-#include <cmath>
 #include <string>
-#include <cstdarg>
-#include <type_traits>
-#include <cassert>
-#include <stdlib.h>
+#include "veclib.h"
 
 namespace vxgfx
 {
@@ -27,22 +45,6 @@ inline float blend_channel(const float a, const float b, const float t) {
  */
 inline float blend_alpha(const float a, const float b, const float t) {
     return (1.0f - t) * a + t * b;
-}
-
-/*
- * Implementation of std::clamp
- * See https://en.cppreference.com/w/cpp/algorithm/clamp
- * std::clamp is new in C++17
- */
-template<class T, class Compare>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
-    return assert(!comp(hi, lo)),
-        comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
-
-template<class T>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
-    return clamp(v, lo, hi, std::less<>());
 }
 
 /*
@@ -141,9 +143,9 @@ struct pf_argb_t {
     }
 
     constexpr pf_argb_t brightness(const float v) const {
-        auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
-        auto g_ = to_c8(clamp(g() + v, 0.0f, 1.0f));
-        auto b_ = to_c8(clamp(b() + v, 0.0f, 1.0f));
+        auto r_ = to_c8(vxl::clamp(r() + v, 0.0f, 1.0f));
+        auto g_ = to_c8(vxl::clamp(g() + v, 0.0f, 1.0f));
+        auto b_ = to_c8(vxl::clamp(b() + v, 0.0f, 1.0f));
         return { r_, g_, b_ };
     }
 };
@@ -183,9 +185,9 @@ struct pf_rgb565_t {
     }
 
     constexpr pf_rgb565_t brightness(const float v) const {
-        auto r_ = to_c8(clamp(r() + v, 0.0f, 1.0f));
-        auto g_ = to_c8(clamp(g() + v, 0.0f, 1.0f));
-        auto b_ = to_c8(clamp(b() + v, 0.0f, 1.0f));
+        auto r_ = to_c8(vxl::clamp(r() + v, 0.0f, 1.0f));
+        auto g_ = to_c8(vxl::clamp(g() + v, 0.0f, 1.0f));
+        auto b_ = to_c8(vxl::clamp(b() + v, 0.0f, 1.0f));
         return { r_, g_, b_ };
     }
 
@@ -364,6 +366,10 @@ public:
         buffer->fill(Pf{});
     }
 
+    constexpr void fill(Pf c) {
+        buffer->fill(std::move(c));
+    }
+
     // Returns the array size
     constexpr size_t size() const {
         return buffer->size();
@@ -375,7 +381,12 @@ public:
     }
 
     //
-    // Move and copy constructors / operators
+    // copy / constructors / operators
+
+    constexpr explicit framebuffer(Pf c)
+    : framebuffer() {
+        fill(std::move(c));
+    }
 
     constexpr framebuffer(const framebuffer &rhs)
         : framebuffer() {
@@ -420,10 +431,10 @@ struct viewport {
         t += y; b += y;
     }
     auto translate(float x, float y, size_t w, size_t h)
-        ->std::pair<size_t, size_t> {
+        ->std::pair<int, int> {
         return std::make_pair(
-            static_cast<size_t>((x - l) / (r - l) * w),
-            static_cast<size_t>((y - t) / (b - t) * h));
+            static_cast<int>((x - l) / (r - l) * w),
+            static_cast<int>((y - t) / (b - t) * h));
     }
 };
 
@@ -467,15 +478,40 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
 /*
  * Voltage based line drawing
  */
-template<typename DrawMode, typename T, typename PF = decltype(T::value_type)>
-void draw_line(T &fb, viewport &vp, float x0, float y0, float x1, float y1, const PF &c) {
+template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
+void draw_line(T &fb, viewport &vp, float x0, float y0, float x1, float y1, const Pf &c) {
     auto p1 = vp.translate(x0, y0, fb.width, fb.height);
     auto p2 = vp.translate(x1, y1, fb.width, fb.height);
-    draw_line(fb, p1.first, p1.second, p2.first, p2.second, c);
+    draw_line<DrawMode>(fb, p1.first, p1.second, p2.first, p2.second, c);
+}
+
+/*
+ * Text drawing
+ */
+constexpr int PIXEL_WIDTH = 8;
+constexpr int PIXEL_HEIGHT = 8;
+constexpr int PIXEL_SPACING = 1;
+
+template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
+void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
+    for (auto &m : message) {
+        // each character is 8 x 8 pixels
+        for (auto y_pixel = 0; y_pixel < PIXEL_HEIGHT; y_pixel++) {
+            for (auto x_pixel = 0; x_pixel < PIXEL_WIDTH; x_pixel++) {
+                auto fchar = font8x8_basic[m & 0x7f][y_pixel];
+                if (fchar & (1 << x_pixel)) {  // draw the pixel or not
+                    auto pos = ((y + y_pixel) * fb.width) + x + x_pixel;
+                    DrawMode()(fb.data(), pos, c);
+                }
+            }
+        }
+        x += PIXEL_WIDTH + PIXEL_SPACING;
+    }
 }
 
 } // namespace vxgfx
 
+/*
 struct color_t
 {
     float r, g, b;
@@ -534,7 +570,7 @@ struct color_t
     }
 
 };
-
+*/
 //<editor-fold desc="Font Data">
 
 // Constant: font8x8_basic
@@ -671,6 +707,7 @@ static uint8_t font8x8_basic[128][8] = {
 };
 //</editor-fold>
 
+/*
 template <int width, int height>
 class Framebuffer
 {
@@ -846,6 +883,6 @@ public:
 
     vxgfx::framebuffer<10, 10, uint32_t> test{};
 };
-
+*/
 
 #endif //VECTREXIA_GFXUTIL_H
