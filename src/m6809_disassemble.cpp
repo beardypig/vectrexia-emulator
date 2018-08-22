@@ -21,11 +21,11 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <bitset>
 #include "m6809_disassemble.h"
-
+#include "veclib.h"
 
 std::string M6809Disassemble::disasm(uint16_t &addr)
 {
-    std::string addr_ = str_format("$%04x: ", addr);
+    std::string addr_ = vxl::format("$%04x: ", addr);
     std::string instr;
     auto opcode = Read8(addr++);
 
@@ -36,7 +36,7 @@ std::string M6809Disassemble::disasm(uint16_t &addr)
     }
     else
     {
-        instr = str_format("ILLEGAL: %02x", opcode);
+        instr = vxl::format("ILLEGAL: %02x", opcode);
     }
 
     return addr_ + instr;
@@ -333,7 +333,7 @@ std::string M6809Disassemble::disasm_page1(M6809Disassemble &dis, uint16_t &addr
     }
     else
     {
-        return str_format("ILLEGAL PAGE1: %02x", opcode);
+        return vxl::format("ILLEGAL PAGE1: %02x", opcode);
     }
 }
 
@@ -347,7 +347,7 @@ std::string M6809Disassemble::disasm_page2(M6809Disassemble &dis, uint16_t &addr
     }
     else
     {
-        return str_format("ILLEGAL PAGE2: %02x", opcode);
+        return vxl::format("ILLEGAL PAGE2: %02x", opcode);
     }
 }
 
@@ -357,21 +357,3 @@ void M6809Disassemble::SetReadCallback(M6809Disassemble::read_callback_t func, i
     read_callback_ref = ref;
 }
 
-std::string M6809Disassemble::str_format(const char *fmt, ...)
-{
-    va_list ap, ap2;
-    va_start(ap, fmt);
-    va_copy(ap2, ap);
-    std::string out;
-
-    int size = vsnprintf(nullptr, 0, fmt, ap);
-    va_end(ap);
-    if (size > 0) {
-        out = std::string(size+1, 0);
-        vsnprintf(&out[0], out.size(), fmt, ap2);
-        out.resize(static_cast<size_t>(size));
-    }
-
-    va_end(ap2);
-    return out;
-}
