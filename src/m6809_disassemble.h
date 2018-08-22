@@ -22,12 +22,12 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
 #include <sstream>
-#include <cstdarg>
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
 #include <sstream>
 #include <array>
 #include <vector>
+#include "veclib.h"
 
 class M6809Disassemble
 {
@@ -192,7 +192,7 @@ class M6809Disassemble
     struct DirectAddressing {
         std::string operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            return str_format("<$%02X", dis.Read8(addr++));
+            return vxl::format("<$%02X", dis.Read8(addr++));
         }
     };
 
@@ -205,15 +205,15 @@ class M6809Disassemble
             if (sizeof(T) == 1)
             {
                 auto a = dis.Read8(addr++);
-                r = str_format("$%04X", addr + static_cast<int8_t>(a));
+                r = vxl::format("$%04X", addr + static_cast<int8_t>(a));
             }
             else
             {
                 auto a = dis.Read16(addr);
-                r = str_format("$%04X", addr + static_cast<int16_t>(a));
+                r = vxl::format("$%04X", addr + static_cast<int16_t>(a));
                 addr += 2;
             }
-            r += str_format("  # $%04X", addr);
+            r += vxl::format("  # $%04X", addr);
             return r;
         }
     };
@@ -226,11 +226,11 @@ class M6809Disassemble
         {
             if (sizeof(T) == 1)
             {
-                return str_format("#$%02X", dis.Read8(addr++));
+                return vxl::format("#$%02X", dis.Read8(addr++));
             }
             else
             {
-                auto r = str_format("#$%04X", dis.Read16(addr));
+                auto r = vxl::format("#$%04X", dis.Read16(addr));
                 addr += 2;
                 return r;
             }
@@ -244,7 +244,7 @@ class M6809Disassemble
     struct ExtendedAddressing {
         std::string operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            auto r = str_format("$%04x", dis.Read16(addr));
+            auto r = vxl::format("$%04x", dis.Read16(addr));
             addr += 2;
             return r;
         }
@@ -260,7 +260,7 @@ class M6809Disassemble
             if (!(post_byte >> 7))
             {
                 // (+/- 4 bit offset),R
-                return str_format("%02d,%c", (int8_t)((post_byte & 0xf) - (post_byte & 0x10)), reg);
+                return vxl::format("%02d,%c", (int8_t)((post_byte & 0xf) - (post_byte & 0x10)), reg);
             }
             else
             {
@@ -270,61 +270,61 @@ class M6809Disassemble
                 {
                     case 0:
                         // ,R+
-                        mode = str_format(",%c+", reg);
+                        mode = vxl::format(",%c+", reg);
                         break;
                     case 1:
                         // ,R++
                         // register is incremented by 1 or 2
-                        mode = str_format(",%c++", reg);
+                        mode = vxl::format(",%c++", reg);
                         break;
                     case 2:
                         // ,-R
-                        mode = str_format(",-%c", reg);
+                        mode = vxl::format(",-%c", reg);
                         break;
                     case 3:
                         // ,--R
-                        mode = str_format(",--%c", reg);
+                        mode = vxl::format(",--%c", reg);
                         break;
                     case 4:
                         // ,R
-                        mode = str_format(",%c", reg);
+                        mode = vxl::format(",%c", reg);
                         break;
                     case 5:
                         // (+/- B), R
-                        mode = str_format("b, %c", reg);
+                        mode = vxl::format("b, %c", reg);
                         break;
                     case 6:
                         // (+/- A), R
-                        mode = str_format("a, %c", reg);
+                        mode = vxl::format("a, %c", reg);
                         break;
                     case 8:
                         // (+/- 7 bit offset), R
                         b8 = dis.Read8(addr++);
-                        mode = str_format("%d,%c", (int8_t)b8, reg);
+                        mode = vxl::format("%d,%c", (int8_t)b8, reg);
                         break;
                     case 9:
                         // (+/- 15 bit offset), R
                         b16 = dis.Read16(addr);
-                        mode = str_format("%d,%c", (int16_t)b16, reg);
+                        mode = vxl::format("%d,%c", (int16_t)b16, reg);
                         addr += 2;
                         break;
                     case 0xb:
                         // (+/- D), R
-                        mode = str_format("d, %c", reg);
+                        mode = vxl::format("d, %c", reg);
                         break;
                     case 0xc:
                         // (+/- 7 bit offset), PC
                         b8 = dis.Read8(addr++);
-                        mode = str_format("%d,PC", (int8_t)b8);
+                        mode = vxl::format("%d,PC", (int8_t)b8);
                         break;
                     case 0xd:
                         // (+/- 15 bit offset), PC
                         b16 = dis.Read16(addr);
-                        mode = str_format("%d,PC", (int16_t)b16);
+                        mode = vxl::format("%d,PC", (int16_t)b16);
                         addr += 2;
                         break;
                     case 0xf:
-                        mode = str_format("$%04x", dis.Read16(addr));
+                        mode = vxl::format("$%04x", dis.Read16(addr));
                         addr += 2;
                         break;
                     default:
@@ -360,7 +360,7 @@ class M6809Disassemble
         auto post_byte = dis.Read8(addr++);
         auto reg_a = dis.exg_register_table[(post_byte >> 4) & 0xf];
         auto reg_b = dis.exg_register_table[post_byte & 0x0f];
-        return mnemonic()() + str_format(" %s, %s", reg_a, reg_b);
+        return mnemonic()() + vxl::format(" %s, %s", reg_a, reg_b);
     }
 
     template<typename Op>
@@ -371,9 +371,6 @@ class M6809Disassemble
 
     static std::string disasm_page1(M6809Disassemble& dis, uint16_t &addr);
     static std::string disasm_page2(M6809Disassemble& dis, uint16_t &addr);
-
-    static std::string str_format(const char *fmt, ...);
-
 
 public:
     M6809Disassemble();
