@@ -292,9 +292,14 @@ void Vectrex::StorePSGReg(uint8_t reg)
     psg_port = reg;
 }
 
-VectrexFramebuffer Vectrex::getFramebuffer()
+VectorBuffer *Vectrex::getFramebuffer()
 {
     return vector_buffer_.getVectorBuffer();
+}
+
+DebugBuffer *Vectrex::getDebugbuffer()
+{
+    return vector_buffer_.getDebugBuffer();
 }
 
 M6809 &Vectrex::GetM6809()

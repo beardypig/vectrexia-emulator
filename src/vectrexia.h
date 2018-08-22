@@ -86,7 +86,8 @@ public:
 
     void message(const char *fmt, ...);
 
-    VectrexFramebuffer getFramebuffer();
+    VectorBuffer *getFramebuffer();
+    DebugBuffer *getDebugbuffer();
 
     uint8_t ReadPortA();
     uint8_t ReadPortB();

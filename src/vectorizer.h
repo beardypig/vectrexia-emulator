@@ -38,7 +38,8 @@ struct axes_t
     }
 };
 
-using VectrexFramebuffer = Framebuffer<FRAME_WIDTH, FRAME_HEIGHT>;
+using VectorBuffer = vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_mono_t>;
+using DebugBuffer = vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_argb_t>;
 
 class Vectorizer
 {
@@ -92,15 +93,22 @@ class Vectorizer
 
     uint64_t cycles = 0;
 
+    vxgfx::viewport vp;
+
     std::vector<Vector> vectors_;
-    VectrexFramebuffer framebuffer = VectrexFramebuffer(VECTOR_MIN_V, VECTOR_MAX_V);
-    VectrexFramebuffer debug_framebuffer = VectrexFramebuffer(VECTOR_MIN_V, VECTOR_MAX_V);
+    VectorBuffer vector_buffer{};
+    DebugBuffer debug_buffer{};
 
     float min_x, max_x, min_y, max_y;
 
 public:
     void Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank);
-    VectrexFramebuffer getVectorBuffer();
+
+    // Returns a vxgfx::framebuffer<vxgfx::pf_mono_t>
+    VectorBuffer *getVectorBuffer();
+
+    // Returns a vxgfx::framebuffer<vxgfx::pf_argb_t>
+    DebugBuffer *getDebugBuffer();
 
     uint64_t signal_delay = 7800;
     int decay_cycles = 40000; // a beam lasts for 40k cycles
@@ -109,11 +117,6 @@ public:
     float pan_offset_y = 0.0f;
 
     void UpdateSignals(uint8_t ramp, uint8_t zero, const integrators_t &integrators, uint64_t remaining_nanos);
-
-    void draw_debug_text(int x, int y, color_t color, std::string message);
-    void draw_debug_text(int x, int y, color_t color, const char* fmt, ...);
-    void vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args);
-
 };
 
 

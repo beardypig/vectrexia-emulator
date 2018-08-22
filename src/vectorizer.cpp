@@ -115,7 +115,7 @@ void Vectorizer::UpdateSignals(uint8_t ramp_, uint8_t zero_, const integrators_t
 
 //<editor-fold desc="Drawing Methods">
 
-VectrexFramebuffer Vectorizer::getVectorBuffer()
+VectorBuffer *Vectorizer::getVectorBuffer()
 {
     struct line_vector_t
     {
@@ -145,7 +145,7 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
 
     float x, y;
     // start with black
-    framebuffer.fill();
+    vector_buffer.clear();
 
     std::vector<line_vector_t> to_draw;
     std::vector<line_vector_t> debug_to_draw;
@@ -202,9 +202,10 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
     {
         if (vect.intensity0 > 0.0f)
         {
-            framebuffer.draw_line(vect.x0 * scale_factor, vect.y0 * scale_factor,
-                                  vect.x1 * scale_factor, vect.y1 * scale_factor,
-                                  vect.intensity0);
+            vxgfx::draw_line<vxgfx::m_direct>(vector_buffer, vp,
+                vect.x0 * scale_factor, vect.y0 * scale_factor,
+                vect.x1 * scale_factor, vect.y1 * scale_factor,
+                vxgfx::pf_mono_t{ vect.intensity0 });
         }
     }
 
@@ -242,24 +243,10 @@ VectrexFramebuffer Vectorizer::getVectorBuffer()
 
 #endif
 
-    return framebuffer;
+    return &vector_buffer;
 }
-
+DebugBuffer * Vectorizer::getDebugBuffer()
+{
+    return &debug_buffer;
+}
 //</editor-fold>
-void Vectorizer::draw_debug_text(int x, int y, color_t color, std::string message)
-{
-    debug_framebuffer.draw_debug_text(x, y, color, message);
-}
-
-void Vectorizer::draw_debug_text(int x, int y, color_t color, const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vdraw_debug_text(x, y, color, fmt, args);
-    va_end(args);
-}
-
-void Vectorizer::vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args)
-{
-    debug_framebuffer.vdraw_debug_text(x, y, color, fmt, args);
-}
