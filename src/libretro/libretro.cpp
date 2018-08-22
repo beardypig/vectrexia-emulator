@@ -30,6 +30,8 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
+vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_rgb565_t> out_buffer{};
+
 FILE* sound_out;
 
 // Callbacks
@@ -212,8 +214,7 @@ void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint
     b4 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 1 : 0);
 }
 
-static const auto green = color_t{0.0f, 1.0f, 0.0f, 0.5f};
-
+static const auto green = vxgfx::pf_argb_t(255, 255, 0, 128 );
 
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
@@ -239,13 +240,28 @@ void retro_run(void)
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
     auto cycles_run = vectrex->Run(30000);
 
-    vectrex->vector_buffer_.draw_debug_text(2, 10, green, "@ %.fHz", (double)(cycles_run * 50));
-    vectrex->vector_buffer_.draw_debug_text(2, 20, green, "Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled);
-    vectrex->vector_buffer_.draw_debug_text(2, 30, green, "Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled);
-    vectrex->vector_buffer_.draw_debug_text(2, 40, green, "Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled);
-
+    // Get buffers
     auto fb = vectrex->getFramebuffer();
-    auto fb1 = fb.rgb565();
+    auto db = vectrex->getDebugbuffer();
+
+    // Print sound debugging text
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, green, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 20, green, vxl::format("Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 30, green, vxl::format("Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 40, green, vxl::format("Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled));
+
+
+    // Define the pf_mono_t => pf_rgb565_t transform
+    auto mono_to_rgb565 = [](const vxgfx::pf_mono_t &p) {
+        // TODO
+        return vxgfx::pf_rgb565_t{};
+    };
+
+    // fb => out_buffer transform
+    std::transform(fb->begin(), fb->end(), out_buffer.begin(), mono_to_rgb565);
+
+    // TODO
+    // some blending of db on top of out_buffer
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     uint8_t buffer[882];
@@ -257,6 +273,7 @@ void retro_run(void)
         short convs = (short) ((buffer[i] << 8) - 0x7ff);
         audio_cb(convs, convs);
     }
-
-    video_cb(fb1.data(), FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
+    
+    video_cb(reinterpret_cast<const uint16_t*>(out_buffer.data()->data()),
+        FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
 }
