@@ -298,8 +298,9 @@ class M6809
     struct direct { uint16_t operator()(M6809& cpu, uint64_t &cycles) { return (cpu.registers.DP << 8) | cpu.ReadPC8(); } };
     template<typename T>
     struct relative { uint16_t operator()(M6809& cpu, uint64_t &cycles) {
-        return cpu.registers.PC + static_cast<T>((sizeof(T) == 1) ? cpu.ReadPC8() : cpu.ReadPC16());
-        } };
+        auto pc = cpu.registers.PC;
+        return pc + sizeof(T) + static_cast<T>((sizeof(T) == 1) ? cpu.ReadPC8() : cpu.ReadPC16());
+    } };
     struct extended { uint16_t operator()(M6809& cpu, uint64_t &cycles) { return cpu.ReadPC16(); } };
     struct indexed { uint16_t operator()(M6809& cpu, uint64_t &cycles) {
             uint16_t ea;
