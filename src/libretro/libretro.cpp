@@ -253,8 +253,9 @@ void retro_run(void)
 
     // Define the pf_mono_t => pf_rgb565_t transform
     auto mono_to_rgb565 = [](const vxgfx::pf_mono_t &p) {
-        // TODO
-        return vxgfx::pf_rgb565_t{};
+        return vxgfx::pf_rgb565_t(static_cast<uint8_t>(0xff * p.value),
+                                  static_cast<uint8_t>(0xff * p.value),
+                                  static_cast<uint8_t>(0xff * p.value));
     };
 
     // fb => out_buffer transform
