@@ -30,6 +30,8 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include "veclib.h"
 
+extern uint8_t font8x8_basic[128][8];
+
 namespace vxgfx
 {
 
