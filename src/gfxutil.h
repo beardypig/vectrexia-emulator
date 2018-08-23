@@ -522,17 +522,61 @@ struct rect_t
     int32_t    top = 0;
     int32_t    right = 0;
     int32_t    bottom = 0;
-    
+
     rect_t() = default;
+
+    rect_t(int32_t w, int32_t h)
+        : right(w), bottom(h)
+    { /* ... */
+    }
 
     rect_t(const point_t tl, const point_t br)
         :left(tl.x), top(tl.y), right(br.x), bottom(br.y)
-    { /* ... */ }
+    { /* ... */
+    }
 
     rect_t(const point_t *tl, const point_t *br)
         :left(tl->x), top(tl->y), right(br->x), bottom(br->y)
-    { /* ... */ }
+    { /* ... */
+    }
+
+    int32_t area() const {
+        return (left - right) * (bottom - top);
+    }
+
+    operator bool() const {
+        return area() > 0;
+    }
+
+    void normalize() {
+        if (left > right) {
+            std::swap(left, right);
+        }
+        if (top > bottom) {
+            std::swap(top, bottom);
+        }
+    }
 };
+
+constexpr rect_t intersect(const rect_t *a, const rect_t *b) {
+
+    const point_t p0{
+        std::max(a->left, b->left),
+        std::max(a->top, b->top)
+    };
+
+    const point_t p1{
+        std::min(a->right, b->right),
+        std::min(a->bottom, b->bottom)
+    };
+
+    return (p0.x >= p1.x || p0.y >= p1.y)
+        ? rect_t{} : rect_t{ p0, p1 };
+}
+
+constexpr rect_t intersect(const rect_t &a, const rect_t &b) {
+    return intersect(&a, &b);
+}
 
 template<typename Dst, typename Src>
 void draw(Dst &dest, Src &source) {
