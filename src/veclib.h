@@ -58,7 +58,7 @@ inline std::string format(const char *fmt, ...)
     va_end(ap);
     if (size > 0) {
         out = std::string(size, 0);
-        vsnprintf(&out[0], out.size(), fmt, ap2);
+        vsnprintf(&out[0], out.size()+1, fmt, ap2);
     }
 
     va_end(ap2);
