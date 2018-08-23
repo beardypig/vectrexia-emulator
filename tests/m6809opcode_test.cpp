@@ -389,6 +389,31 @@ TEST(M6809OpCodes, TFRRegistersAB)
     // no flags should be set
     EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
 }
+
+/*
+ * Branch Subroutine BSR
+ */
+TEST(M6809OpCodes, BSRCorrectJump)
+{
+    MockMemory mem;
+    uint64_t cycles;
+    M6809 cpu = OpCodeTestHelper(mem);
+    auto &registers = cpu.getRegisters();
+
+    // provide the OP codes
+    EXPECT_CALL(mem, Read(_))
+        .WillOnce(Return(0x8D))  // BSR
+        .WillOnce(Return(0x10)); // A -> B
+
+    // write the return address to the stack
+    EXPECT_CALL(mem, Write(0xffff, 0x02));
+    EXPECT_CALL(mem, Write(0xfffe, 0x00));
+
+    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
+    // should jump forward 0x10 from the end of the BSR instruction
+    EXPECT_EQ(0x0012, registers.PC);
+}
+
 /*
  * Illegal Opcode
  */
