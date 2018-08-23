@@ -54,7 +54,7 @@ class Vectorizer
     // Sample and hold voltages (-5v - 5v) for Y axis and Z axis
     float sample_y = 0.0f;
     float sample_z = 0.0f;
-    // not really a sample and hold, the value of X is whatever is whatever is out of the DAC ie. PORTA
+    // not really a sample and hold, the value of X is whatever is out of the DAC ie. PORTA
     float sample_x = 0.0f;
 
     // DAC voltage for the X/Y axes
@@ -81,7 +81,7 @@ class Vectorizer
 
     // signals that control switches/beam
     // RAMP and ZERO both control analog switches (IC305, MC54/74HC4066)
-    // IC305 has VCC conencted to +5v and GND connected to -5v - according to the datasheet this will cause a delay
+    // IC305 has VCC connected to +5v and GND connected to -5v - according to the datasheet this will cause a delay
     // of ~400ns.
     // The transistor Q301 adds further delay of ~260ns.
     uint8_t zero = 1;
