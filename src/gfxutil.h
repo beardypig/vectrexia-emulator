@@ -133,7 +133,7 @@ struct pf_argb_t {
         *this = brightness(v);
     }
 
-    constexpr pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
+    inline pf_argb_t blend(const pf_argb_t &rhs, const float blend_point) const {
         return {
             static_cast<uint8_t>(blend_alpha(a(),   rhs.a(), blend_point) * 255.0f),
             static_cast<uint8_t>(blend_channel(r(), rhs.r(), blend_point) * 255.0f),
@@ -184,14 +184,14 @@ struct pf_rgb565_t {
         return static_cast<uint8_t>(v * 255.0f);
     }
 
-    constexpr pf_rgb565_t brightness(const float v) const {
+    inline pf_rgb565_t brightness(const float v) const {
         auto r_ = to_c8(vxl::clamp(r() + v, 0.0f, 1.0f));
         auto g_ = to_c8(vxl::clamp(g() + v, 0.0f, 1.0f));
         auto b_ = to_c8(vxl::clamp(b() + v, 0.0f, 1.0f));
         return { r_, g_, b_ };
     }
 
-    constexpr explicit pf_rgb565_t(const pf_argb_t v)
+    inline explicit pf_rgb565_t(const pf_argb_t v)
         : pf_rgb565_t(
             static_cast<uint8_t>(v.r() * v.a()),
             static_cast<uint8_t>(v.g() * v.a()),
@@ -259,7 +259,7 @@ struct pf_mono_t {
         value += v.value;
     }
 
-    constexpr pf_mono_t blend(const pf_mono_t &rhs, const float blend_point) const {
+    inline pf_mono_t blend(const pf_mono_t &rhs, const float blend_point) const {
         return pf_mono_t{ (value * blend_point) + rhs.value * (1.0f - blend_point) };
     }
 
@@ -267,7 +267,7 @@ struct pf_mono_t {
         value = (value * blend_point) + rhs.value * (1.0f - blend_point);
     }
 
-    constexpr pf_mono_t brightness(const pf_mono_t &v) const {
+    inline pf_mono_t brightness(const pf_mono_t &v) const {
         return pf_mono_t{ value + v.value };
     }
 };
@@ -507,6 +507,34 @@ void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
         }
         x += PIXEL_WIDTH + PIXEL_SPACING;
     }
+}
+
+struct point_t {
+    int32_t  x;
+    int32_t  y;
+};
+
+struct rect_t
+{
+    int32_t    left = 0;
+    int32_t    top = 0;
+    int32_t    right = 0;
+    int32_t    bottom = 0;
+    
+    rect_t() = default;
+
+    rect_t(const point_t tl, const point_t br)
+        :left(tl.x), top(tl.y), right(br.x), bottom(br.y)
+    { /* ... */ }
+
+    rect_t(const point_t *tl, const point_t *br)
+        :left(tl->x), top(tl->y), right(br->x), bottom(br->y)
+    { /* ... */ }
+};
+
+template<typename Dst, typename Src>
+void draw(Dst &dest, Src &source) {
+
 }
 
 } // namespace vxgfx
