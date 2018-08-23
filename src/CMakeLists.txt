@@ -27,7 +27,7 @@ set(VECTREXIA_SOURCE
 	m6809.cpp
     via6522.cpp
     ay38910.cpp
-	vectorizer.cpp)
+	vectorizer.cpp gfxutil.h)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)
