@@ -232,7 +232,7 @@ struct pf_mono_t {
     }
 
     //
-    // This consructor performs color to grayscale conversion of the three RGB arguments
+    // This constructor performs color to grayscale conversion of the three RGB arguments
     constexpr pf_mono_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
         value = 0.2627f * r + 0.6780f * g + 0.0593f * b;
     }
@@ -558,7 +558,7 @@ struct rect_t
     }
 };
 
-constexpr rect_t intersect(const rect_t *a, const rect_t *b) {
+inline rect_t intersect(const rect_t *a, const rect_t *b) {
 
     const point_t p0{
         std::max(a->left, b->left),
@@ -574,7 +574,7 @@ constexpr rect_t intersect(const rect_t *a, const rect_t *b) {
         ? rect_t{} : rect_t{ p0, p1 };
 }
 
-constexpr rect_t intersect(const rect_t &a, const rect_t &b) {
+inline rect_t intersect(const rect_t &a, const rect_t &b) {
     return intersect(&a, &b);
 }
 
