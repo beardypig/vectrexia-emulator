@@ -55,7 +55,7 @@ inline float blend_alpha(const float a, const float b, const float t) {
 struct pf_argb_t {
 
     using value_type = uint32_t;
-    value_type value = static_cast<value_type>(0xff) << 24;
+    value_type value = static_cast<value_type>(0xff) << 24u;
 
     inline pf_argb_t() = default;
     inline ~pf_argb_t() = default;
@@ -66,16 +66,16 @@ struct pf_argb_t {
     inline pf_argb_t &operator=(pf_argb_t &&) = default;
 
     constexpr pf_argb_t(uint8_t r, uint8_t g, uint8_t b) noexcept {
-        value = static_cast<value_type>(0xff) << 24
-            | static_cast<value_type>(r) << 16
-            | static_cast<value_type>(g) << 8
+        value = static_cast<value_type>(0xff) << 24u
+            | static_cast<value_type>(r) << 16u
+            | static_cast<value_type>(g) << 8u
             | static_cast<value_type>(b);
     }
 
     constexpr pf_argb_t(uint8_t a, uint8_t r, uint8_t g, uint8_t b) noexcept {
-        value = static_cast<value_type>(a) << 24
-            | static_cast<value_type>(r) << 16
-            | static_cast<value_type>(g) << 8
+        value = static_cast<value_type>(a) << 24u
+            | static_cast<value_type>(r) << 16u
+            | static_cast<value_type>(g) << 8u
             | static_cast<value_type>(b);
     }
 
@@ -84,19 +84,19 @@ struct pf_argb_t {
     }
 
     constexpr static value_type comp_a(const pf_argb_t &c) {
-        return (c.value & static_cast<value_type>(0xff << 24)) >> 24;
+        return (c.value >> 24u) & 0xffu;
     }
 
     constexpr static value_type comp_r(const pf_argb_t &c) {
-        return (c.value & static_cast<value_type>(0xff << 16)) >> 16;
+        return (c.value >> 16u) & 0xffu;
     }
 
     constexpr static value_type comp_g(const pf_argb_t &c) {
-        return (c.value & static_cast<value_type>(0xff << 8)) >> 8;
+        return (c.value >> 8u) & 0xffu;
     }
 
     constexpr static value_type comp_b(const pf_argb_t &c) {
-        return c.value & 0xff;
+        return c.value & 0xffu;
     }
 
     constexpr float a() const {
@@ -116,15 +116,15 @@ struct pf_argb_t {
     }
 
     constexpr void a(uint8_t v) {
-        value |= static_cast<value_type>(v) << 24;
+        value |= static_cast<value_type>(v) << 24u;
     }
 
     constexpr void r(uint8_t v) {
-        value |= static_cast<value_type>(v) << 16;
+        value |= static_cast<value_type>(v) << 16u;
     }
 
     constexpr void g(uint8_t v) {
-        value |= static_cast<value_type>(v) << 8;
+        value |= static_cast<value_type>(v) << 8u;
     }
 
     constexpr void b(uint8_t v) {
@@ -159,15 +159,15 @@ struct pf_rgb565_t {
     constexpr pf_rgb565_t() = default;
 
     constexpr static value_type comp_r(const pf_rgb565_t &c) {
-        return (c.value & 0xf8) >> 8;
+        return static_cast<value_type>(c.value & 0xf8u) >> 8u;
     }
 
     constexpr static value_type comp_g(const pf_rgb565_t &c) {
-        return (c.value & 0x7e0) >> 3;
+        return static_cast<value_type>(c.value & 0x7e0u) >> 3u;
     }
 
     constexpr static value_type comp_b(const pf_rgb565_t &c) {
-        return (c.value & 0x1f) << 3;
+        return static_cast<value_type>(c.value & 0x1fU) << 3U;
     }
 
     constexpr float r() const {
@@ -202,9 +202,9 @@ struct pf_rgb565_t {
 
     constexpr pf_rgb565_t(uint8_t r, uint8_t g, uint8_t b) {
         value = static_cast<uint16_t>(
-            ((r >> 3) & 0x1f) << 11 |
-            ((g >> 2) & 0x3f) << 5 |
-            ((b >> 3) & 0x1f));
+            (r >> 3u & 0x1fu) << 11u |
+            (g >> 2u & 0x3fu) << 5u |
+            (b >> 3u & 0x1fu));
     }
 };
 
@@ -272,6 +272,7 @@ struct pf_mono_t {
     inline pf_mono_t brightness(const pf_mono_t &v) const {
         return pf_mono_t{ value + v.value };
     }
+
 };
 
 /*
@@ -490,18 +491,18 @@ void draw_line(T &fb, viewport &vp, float x0, float y0, float x1, float y1, cons
 /*
  * Text drawing
  */
-constexpr int PIXEL_WIDTH = 8;
-constexpr int PIXEL_HEIGHT = 8;
-constexpr int PIXEL_SPACING = 1;
+constexpr unsigned int PIXEL_WIDTH = 8;
+constexpr unsigned int PIXEL_HEIGHT = 8;
+constexpr unsigned int PIXEL_SPACING = 1;
 
 template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
 void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
     for (auto &m : message) {
         // each character is 8 x 8 pixels
         for (auto y_pixel = 0; y_pixel < PIXEL_HEIGHT; y_pixel++) {
-            for (auto x_pixel = 0; x_pixel < PIXEL_WIDTH; x_pixel++) {
-                auto fchar = font8x8_basic[m & 0x7f][y_pixel];
-                if (fchar & (1 << x_pixel)) {  // draw the pixel or not
+            for (uint8_t x_pixel = 0; x_pixel < PIXEL_WIDTH; x_pixel++) {
+                auto fchar = font8x8_basic[m & 0x7fu][y_pixel];
+                if (fchar & (1u << x_pixel)) {  // draw the pixel or not
                     auto pos = ((y + y_pixel) * fb.width) + x + x_pixel;
                     DrawMode()(fb.data(), pos, c);
                 }
