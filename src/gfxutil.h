@@ -167,19 +167,19 @@ struct pf_rgb565_t {
     }
 
     constexpr static value_type comp_b(const pf_rgb565_t &c) {
-        return static_cast<value_type>(c.value & 0x1fU) << 3U;
+        return static_cast<value_type>(c.value & 0x1fu) << 3u;
     }
 
     constexpr float r() const {
-        return 1.0f / comp_r(*this);
+        return comp_r(*this) / 255.0f;
     }
 
     constexpr float g() const {
-        return 1.0f / comp_g(*this);
+        return comp_g(*this) / 255.0f;
     }
 
     constexpr float b() const {
-        return 1.0f / comp_b(*this);
+        return comp_b(*this) / 255.0f;
     }
 
     constexpr static uint8_t to_c8(const float &v) {
