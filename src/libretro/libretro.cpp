@@ -31,6 +31,9 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_rgb565_t> out_buffer{};
+#ifdef DEBUG
+vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_argb_t> debug_merge_buffer{};
+#endif
 
 FILE* sound_out;
 
@@ -214,7 +217,7 @@ void get_joystick_state(unsigned port, uint8_t &x, uint8_t &y, uint8_t &b1, uint
     b4 = (unsigned char) (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y ) ? 1 : 0);
 }
 
-static const auto green = vxgfx::pf_argb_t(255, 255, 0, 128 );
+static const auto debug_text_color = vxgfx::pf_argb_t(255, 255, 0, 128 );
 
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
@@ -242,27 +245,50 @@ void retro_run(void)
 
     // Get buffers
     auto fb = vectrex->getFramebuffer();
+#ifdef DEBUG
     auto db = vectrex->getDebugbuffer();
 
     // Print sound debugging text
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, green, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 20, green, vxl::format("Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 30, green, vxl::format("Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 40, green, vxl::format("Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled));
+    db->clear();
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, debug_text_color, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 20, debug_text_color, vxl::format("Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 30, debug_text_color, vxl::format("Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled));
+    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 40, debug_text_color, vxl::format("Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled));
 
-
-    // Define the pf_mono_t => pf_rgb565_t transform
-    auto mono_to_rgb565 = [](const vxgfx::pf_mono_t &p) {
-        return vxgfx::pf_rgb565_t(static_cast<uint8_t>(0xff * p.value),
-                                  static_cast<uint8_t>(0xff * p.value),
-                                  static_cast<uint8_t>(0xff * p.value));
+    // pf_mono_t => pf_argb_t
+    auto mono_to_argb = [](const vxgfx::pf_mono_t &p) {
+        return vxgfx::pf_argb_t(static_cast<uint8_t>(0xff * p.value),
+                                static_cast<uint8_t>(0xff * p.value),
+                                static_cast<uint8_t>(0xff * p.value));
+    };
+    // pf_mono_t => pf_argb_t
+    auto argb_to_rgb565 = [](const vxgfx::pf_argb_t &p) {
+        return vxgfx::pf_rgb565_t(static_cast<uint8_t>(0xff * p.r()),
+                                  static_cast<uint8_t>(0xff * p.g()),
+                                  static_cast<uint8_t>(0xff * p.b()));
     };
 
+    // copy the vectrex vector framebuffer to a working buffer
+    std::transform(fb->begin(), fb->end(), debug_merge_buffer.begin(), mono_to_argb);
+
+    // blend the debug framer buffer on top
+    vxgfx::draw(debug_merge_buffer, *db,
+                [](vxgfx::pf_argb_t &d, const vxgfx::pf_argb_t &s) {
+                 d = d.blend(s, 0.5f);
+      });
+
+    // transform the working buffer to rgb565 for output
+    std::transform(debug_merge_buffer.begin(), debug_merge_buffer.end(), out_buffer.begin(), argb_to_rgb565);
+#else
+    // Define the pf_mono_t => pf_rgb565_t transform
+    auto mono_to_rgb565 = [](const vxgfx::pf_mono_t &p) {
+      return vxgfx::pf_rgb565_t(static_cast<uint8_t>(0xff * p.value),
+                                static_cast<uint8_t>(0xff * p.value),
+                                static_cast<uint8_t>(0xff * p.value));
+    };
     // fb => out_buffer transform
     std::transform(fb->begin(), fb->end(), out_buffer.begin(), mono_to_rgb565);
-
-    // TODO
-    // some blending of db on top of out_buffer
+#endif
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     uint8_t buffer[882];

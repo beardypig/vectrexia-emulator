@@ -1,5 +1,7 @@
 include_directories(.)
 set(LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/link.T")
+string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+
 
 #
 # Locate the clang-tidy executable and set variable CLANG_TIDY_EXE
@@ -27,7 +29,8 @@ set(VECTREXIA_SOURCE
 	m6809.cpp
     via6522.cpp
     ay38910.cpp
-	vectorizer.cpp gfxutil.h
+	vectorizer.cpp
+    gfxutil.h veclib.h
 	debugfont.cpp)
 
 # vectrexia_libretro
@@ -77,7 +80,13 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")        ## Optimize
 endif()
 
-if (VECTORIZER_DEBUG)
-	set(CMAKE_C_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
-	set(CMAKE_CXX_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
+
+if ("${CMAKE_BUILD_TYPE_LOWER}" MATCHES "debug")
+    set(CMAKE_C_FLAGS_DEBUG "-DDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
+
+    if (VECTORIZER_DEBUG)
+        set(CMAKE_C_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
+        set(CMAKE_CXX_FLAGS_DEBUG "-DVECTORIZER_DEBUG")
+    endif()
 endif()

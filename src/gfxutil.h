@@ -608,6 +608,11 @@ inline rect_t intersect(const rect_t &a, const rect_t &b) {
 }
 
 template<typename Dst, typename Src, typename Fn>
+void draw(Dst &dst, Src &src, Fn draw_) {
+  draw(dst, point_t{ 0, 0 }, src, rect_t{static_cast<uint32_t>(src.width), static_cast<uint32_t>(src.height)}, draw_);
+}
+
+template<typename Dst, typename Src, typename Fn>
 void draw(Dst &dst, point_t offset, Src &src, const rect_t &passepartout, Fn draw) {
 
     // Rectangle representing the entire source framebuffer
