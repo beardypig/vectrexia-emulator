@@ -275,6 +275,6 @@ void retro_run(void)
         audio_cb(convs, convs);
     }
     
-    video_cb(reinterpret_cast<const uint16_t*>(out_buffer.data()->data()),
+    video_cb(reinterpret_cast<const uint16_t*>(out_buffer.data()),
         FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
 }

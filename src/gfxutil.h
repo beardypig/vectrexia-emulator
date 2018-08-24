@@ -279,9 +279,9 @@ struct pf_mono_t {
  * Line drawing mode: direct (overwrite)
  */
 struct m_direct {
-    template<typename FB, typename PF = decltype(FB::value_type)>
-    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
-        (*fb)[pos] = color;
+    template<typename Fb, typename Pf = decltype(Fb::value_type)>
+    constexpr void operator()(Fb &fb, size_t pos, const Pf &color) const {
+        fb.data()[pos] = color;
     }
 };
 
@@ -289,9 +289,9 @@ struct m_direct {
  * Line drawing mode: brightness (additive)
  */
 struct m_brightness {
-    template<typename FB, typename PF = decltype(FB::value_type)>
-    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
-        (*fb)[pos] += color;
+    template<typename Fb, typename Pf = decltype(Fb::value_type)>
+    constexpr void operator()(Fb &fb, size_t pos, const Pf &color) const {
+        fb.data()[pos] += color;
     }
 };
 
@@ -300,9 +300,9 @@ struct m_brightness {
  */
 template <int Bp = 50>
 struct m_blend {
-    template<typename FB, typename PF = decltype(FB::value_type)>
-    constexpr void operator()(FB *fb, size_t pos, const PF &color) const {
-        (*fb)[pos].blend(color, (Bp / 100.0f));
+    template<typename Fb, typename Pf = decltype(Fb::value_type)>
+    constexpr void operator()(Fb &fb, size_t pos, const Pf &color) const {
+        fb.data()[pos].blend(color, (Bp / 100.0f));
     }
 };
 
@@ -324,8 +324,8 @@ public:
     // define some types that can referenced by others
 
     using value_type = Pf;
-    using pointer = data_type * ;
-    using reference = data_type & ;
+    using pointer = value_type * ;
+    using reference = value_type & ;
     using iterator = typename data_type::iterator;
     using const_iterator = typename data_type::const_iterator;
 
@@ -380,7 +380,7 @@ public:
 
     // Returns a pointer to the internal array<>
     constexpr pointer data() const {
-        return buffer.get();
+        return buffer.get()->data();
     }
 
     //
@@ -444,8 +444,8 @@ struct viewport {
 /*
  * Basic line drawing function
  */
-template<typename DrawMode, typename T, typename PF = decltype(T::value_type)>
-void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
+template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
+void draw_line(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
 {
     int dx = abs(x1 - x0);
     int dy = abs(y1 - y0);
@@ -457,7 +457,7 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const PF &c)
     {
         auto pos = (y0 * fb.width) + x0;
         if (x0 < fb.width && x0 >= 0 && y0 < fb.height && y0 >= 0) {
-            DrawMode()(fb.data(), pos, c);
+            DrawMode()(fb, pos, c);
         }
 
         if (x0 == x1 && y0 == y1)
@@ -504,7 +504,7 @@ void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
                 auto fchar = font8x8_basic[m & 0x7fu][y_pixel];
                 if (fchar & (1u << x_pixel)) {  // draw the pixel or not
                     auto pos = ((y + y_pixel) * fb.width) + x + x_pixel;
-                    DrawMode()(fb.data(), pos, c);
+                    DrawMode()(fb, pos, c);
                 }
             }
         }
