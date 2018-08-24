@@ -19,20 +19,26 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtest/gtest.h>
 #include "gfxutil.h"
 
-TEST(Mono, TestMonoToARGB)
+TEST(Mono, TestARGBChannels)
 {
-  auto mono_pixel = vxgfx::pf_mono_t(0.5f);
-  auto argb_pixel = vxgfx::pf_argb_t(static_cast<uint8_t>(vxl::clamp(mono_pixel.value, 0.0f, 1.0f) * 0xff),
-                                     static_cast<uint8_t>(vxl::clamp(mono_pixel.value, 0.0f, 1.0f) * 0xff),
-                                     static_cast<uint8_t>(vxl::clamp(mono_pixel.value, 0.0f, 1.0f) * 0xff));
+  auto pixel = vxgfx::pf_argb_t(0x7f, 0x7f, 0x7f);
 
-  EXPECT_EQ(static_cast<uint8_t>(argb_pixel.r() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(argb_pixel.g() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(argb_pixel.b() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(argb_pixel.a() * 0xff), 0xff);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.a() * 0xff), 0xff);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x7f);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0x7f);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x7f);
 }
 
-TEST(ARGB, TestExtractChannel)
+TEST(Mono, TestRGB565Channels)
+{
+  auto pixel = vxgfx::pf_rgb565_t(0x7f, 0x7f, 0x7f);
+
+  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x7f);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0x7f);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x7f);
+}
+
+TEST(ARGB, TestExtractChannelARGB)
 {
   auto argb_pixel = vxgfx::pf_argb_t(0x00, 0x10, 0x20, 0x30);
 
