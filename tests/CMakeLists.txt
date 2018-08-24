@@ -7,7 +7,7 @@ include(GoogleTest)
 
 include_directories(. ../src)
 
-set(GTEST_SOURCE m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp)
+set(GTEST_SOURCE m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp gfxutil_test.cpp)
 
 add_executable(tests test_runner.cpp ${GTEST_SOURCE})
 
