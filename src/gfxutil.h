@@ -159,27 +159,27 @@ struct pf_rgb565_t {
     constexpr pf_rgb565_t() = default;
 
     constexpr static value_type comp_r(const pf_rgb565_t &c) {
-        return static_cast<value_type>(c.value & 0xf8u) >> 8u;
+        return static_cast<value_type>(c.value >> 11u & 0x1fu);
     }
 
     constexpr static value_type comp_g(const pf_rgb565_t &c) {
-        return static_cast<value_type>(c.value & 0x7e0u) >> 3u;
+        return static_cast<value_type>(c.value >> 5u & 0x3fu);
     }
 
     constexpr static value_type comp_b(const pf_rgb565_t &c) {
-        return static_cast<value_type>(c.value & 0x1fu) << 3u;
+        return static_cast<value_type>(c.value & 0x1fu);
     }
 
     constexpr float r() const {
-        return comp_r(*this) / 255.0f;
+        return comp_r(*this) / 31.0f;
     }
 
     constexpr float g() const {
-        return comp_g(*this) / 255.0f;
+        return comp_g(*this) / 63.0f;
     }
 
     constexpr float b() const {
-        return comp_b(*this) / 255.0f;
+        return comp_b(*this) / 31.0f;
     }
 
     constexpr static uint8_t to_c8(const float &v) {

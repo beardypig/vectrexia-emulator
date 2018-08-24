@@ -31,11 +31,12 @@ TEST(Mono, TestARGBChannels)
 
 TEST(Mono, TestRGB565Channels)
 {
-  auto pixel = vxgfx::pf_rgb565_t(0x7f, 0x7f, 0x7f);
+  // Round trip GREEN
+  auto pixel = vxgfx::pf_rgb565_t(0x00, 0xff, 0x00);
 
-  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x7f);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x00);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0xff);
+  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x00);
 }
 
 TEST(ARGB, TestExtractChannelARGB)
