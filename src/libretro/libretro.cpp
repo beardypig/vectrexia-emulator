@@ -269,9 +269,9 @@ void retro_run(void)
     vectrex->psg_->FillBuffer(buffer, sizeof(buffer));
     fwrite(buffer, sizeof(uint8_t), sizeof(buffer), sound_out);
 
-    for (int i = 0; i < sizeof(buffer); i++)
-    {
-        short convs = (short) ((buffer[i] << 8) - 0x7ff);
+    for (unsigned char i : buffer) {
+        auto convs = static_cast<short>((i << 8u) - 0x7ffu);
+        // mono sound, same data for both channels
         audio_cb(convs, convs);
     }
     
