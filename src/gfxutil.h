@@ -100,19 +100,19 @@ struct pf_argb_t {
     }
 
     constexpr float a() const {
-        return 1.0f / comp_a(*this);
+        return static_cast<float>(comp_a(*this)) / 255.0f;
     }
 
     constexpr float r() const {
-        return 1.0f / comp_r(*this);
+        return static_cast<float>(comp_r(*this)) / 255.0f;
     }
 
     constexpr float g() const {
-        return 1.0f / comp_g(*this);
+        return static_cast<float>(comp_g(*this)) / 255.0f;
     }
 
     constexpr float b() const {
-        return 1.0f / comp_b(*this);
+        return static_cast<float>(comp_b(*this)) / 255.0f;
     }
 
     constexpr void a(uint8_t v) {
