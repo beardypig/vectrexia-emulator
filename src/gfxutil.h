@@ -524,32 +524,60 @@ struct rect_t
     int32_t    right = 0;
     int32_t    bottom = 0;
 
-    rect_t() = default;
+    constexpr rect_t() = default;
 
-    rect_t(int32_t w, int32_t h)
+    constexpr rect_t(int32_t x, int32_t y, int32_t w, int32_t h)
+        : left(x), top(y), right(x + w), bottom(y + h)
+    { /* ... */
+    }
+
+    constexpr rect_t(int32_t w, int32_t h)
         : right(w), bottom(h)
     { /* ... */
     }
 
-    rect_t(const point_t tl, const point_t br)
-        :left(tl.x), top(tl.y), right(br.x), bottom(br.y)
+    constexpr rect_t(const point_t tl, const point_t br)
+        : left(tl.x), top(tl.y), right(br.x), bottom(br.y)
     { /* ... */
     }
 
-    rect_t(const point_t *tl, const point_t *br)
-        :left(tl->x), top(tl->y), right(br->x), bottom(br->y)
+    constexpr rect_t(const point_t *tl, const point_t *br)
+        : left(tl->x), top(tl->y), right(br->x), bottom(br->y)
     { /* ... */
     }
 
-    int32_t area() const {
-        return (left - right) * (bottom - top);
+    constexpr int32_t area() const {
+        return width() * height();
     }
 
-    operator bool() const {
+    constexpr operator bool() const {
         return area() > 0;
     }
 
-    void normalize() {
+    constexpr int32_t width() const {
+        return right - left;
+    }
+
+    constexpr int32_t height() const {
+        return bottom - top;
+    }
+
+    constexpr void offset(const int32_t x, const int32_t y) {
+        left += x;
+        right += x;
+        top += y;
+        bottom += y;
+    }
+
+    constexpr void move(const point_t &p) {
+        return move(p.x, p.y);
+    }
+
+    constexpr void move(const int32_t x, const int32_t y) {
+        offset(x - left, y - top);
+    }
+
+    constexpr void normalize() {
         if (left > right) {
             std::swap(left, right);
         }
@@ -579,9 +607,65 @@ inline rect_t intersect(const rect_t &a, const rect_t &b) {
     return intersect(&a, &b);
 }
 
-template<typename Dst, typename Src>
-void draw(Dst &dest, Src &source) {
+template<typename Dst, typename Src, typename Fn>
+void draw(Dst &dst, point_t offset, Src &src, const rect_t &passepartout, Fn draw) {
 
+    // Rectangle representing the entire source framebuffer
+    rect_t srcRect{
+        static_cast<int32_t>(src.width),
+        static_cast<int32_t>(src.height)
+    };
+
+    // Rectangle representing the entire destination framebuffer
+    const rect_t dstRect{
+        static_cast<int32_t>(dst.width),
+        static_cast<int32_t>(dst.height)
+    };
+
+    // Calcuate the source cutout rectangle, and if it's empty
+    // we do nothing, just exit the function.
+    auto ppRect = intersect(srcRect, passepartout);
+    if (!ppRect)
+        return;
+
+    // Create a rect for calculating the intersection with the
+    // destination framebuffer. This is the cutout adjusted to
+    // the offset. We also create a copy so we can record how
+    // the rectangle changes (i.e. which edges are moved).
+    rect_t dstIntersect(offset.x, offset.y, ppRect.width(), ppRect.height());
+    rect_t dstIntersectCopy = dstIntersect;
+
+    // calculate the intersection and exit if empty
+    dstIntersect = intersect(dstRect, dstIntersect);
+    if (!dstIntersect)
+        return;
+
+    // Calculate how the intersection changed relative to the copy
+    // this is how we will need to adjust the original cutout
+    int ld = dstIntersect.left - dstIntersectCopy.left;
+    int td = dstIntersect.top - dstIntersectCopy.top;
+    int rd = dstIntersect.right - dstIntersectCopy.right;
+    int bd = dstIntersect.bottom - dstIntersectCopy.bottom;
+
+    // Adjust the original cutout rect. This is the absolute source
+    // rect we need to copy to the destination buffer. If the math
+    // has worked out it's entierly contained in the bounds of srcRect.
+    ppRect.left += ld;
+    ppRect.top += td;
+    ppRect.right += rd;
+    ppRect.bottom += bd;
+
+    auto rawDst = dst.data();
+    auto rawSrc = src.data();
+
+    // Copy loop.
+    for (int32_t y = 0; y < ppRect.height(); y++) {
+        for (int32_t x = 0; x < ppRect.width(); x++) {
+            auto srcPos = ((y + ppRect.top) * src.width) + (x + ppRect.left);
+            auto dstPos = ((y + offset.y) * dst.width) + (x + offset.x);
+            draw(rawDst[dstPos], rawSrc[srcPos]);
+        }
+    }
 }
 
 } // namespace vxgfx
