@@ -1,8 +1,8 @@
 #include <cstdlib>
-#include <unistd.h>
 #include <memory>
 #include <vectrexia.h>
 #include "gif.h"
+#include "getopt.h"
 
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 std::array<uint8_t , FRAME_WIDTH * FRAME_HEIGHT * 4> gif_buffer{};
