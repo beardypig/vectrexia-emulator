@@ -32,8 +32,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_rgb565_t> out_buffer{};
 
-FILE* sound_out;
-
 // Callbacks
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -110,9 +108,7 @@ bool retro_serialize(void *data, size_t size) { return false; }
 bool retro_unserialize(const void *data, size_t size) { return false; }
 
 // End of retrolib
-void retro_deinit(void) {
-    fclose(sound_out);
-}
+void retro_deinit(void) { }
 
 // libretro global setters
 void retro_set_environment(retro_environment_t cb)
@@ -143,7 +139,6 @@ void retro_init(void)
     environ_cb(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL, &level);
 
     vectrex->Reset();
-    sound_out = fopen("test.wav", "wb");
 }
 
 
@@ -267,7 +262,6 @@ void retro_run(void)
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     uint8_t buffer[882];
     vectrex->psg_->FillBuffer(buffer, sizeof(buffer));
-    fwrite(buffer, sizeof(uint8_t), sizeof(buffer), sound_out);
 
     for (unsigned char i : buffer) {
         auto convs = static_cast<short>((i << 8u) - 0x7ffu);
