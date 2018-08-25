@@ -68,17 +68,18 @@ int main(int argc, char *argv[])
 
   for (int frame = 0; frame < skipframes+outframes; frame++) {
     vectrex->Run(30000);
-    auto framebuffer = vectrex->getFramebuffer();
 
-    auto gb = gif_buffer.begin();
-    for (auto &fb : *framebuffer) {
-      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-    }
     if (frame > skipframes) {
-      GifWriteFrame(&gw, gif_buffer.data(), FRAME_WIDTH, FRAME_HEIGHT, 2);
+      auto framebuffer = vectrex->getFramebuffer();
+
+      auto gb = gif_buffer.begin();
+      for (auto &fb : *framebuffer) {
+        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+      }
+        GifWriteFrame(&gw, gif_buffer.data(), FRAME_WIDTH, FRAME_HEIGHT, 2);
     }
 
     if (frame % 100 == 0) {
