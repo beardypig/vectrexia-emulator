@@ -306,6 +306,81 @@ struct m_blend {
     }
 };
 
+struct point_t {
+    int32_t  x;
+    int32_t  y;
+};
+
+struct rect_t
+{
+    int32_t    left = 0;
+    int32_t    top = 0;
+    int32_t    right = 0;
+    int32_t    bottom = 0;
+
+    constexpr rect_t() = default;
+
+    constexpr rect_t(int32_t x, int32_t y, int32_t w, int32_t h)
+        : left(x), top(y), right(x + w), bottom(y + h)
+    { /* ... */
+    }
+
+    constexpr rect_t(int32_t w, int32_t h)
+        : right(w), bottom(h)
+    { /* ... */
+    }
+
+    constexpr rect_t(const point_t tl, const point_t br)
+        : left(tl.x), top(tl.y), right(br.x), bottom(br.y)
+    { /* ... */
+    }
+
+    constexpr rect_t(const point_t *tl, const point_t *br)
+        : left(tl->x), top(tl->y), right(br->x), bottom(br->y)
+    { /* ... */
+    }
+
+    constexpr int32_t area() const {
+        return width() * height();
+    }
+
+    constexpr operator bool() const {
+        return area() > 0;
+    }
+
+    constexpr int32_t width() const {
+        return right - left;
+    }
+
+    constexpr int32_t height() const {
+        return bottom - top;
+    }
+
+    constexpr void offset(const int32_t x, const int32_t y) {
+        left += x;
+        right += x;
+        top += y;
+        bottom += y;
+    }
+
+    constexpr void move(const point_t &p) {
+        return move(p.x, p.y);
+    }
+
+    constexpr void move(const int32_t x, const int32_t y) {
+        offset(x - left, y - top);
+    }
+
+    constexpr void normalize() {
+        if (left > right) {
+            std::swap(left, right);
+        }
+        if (top > bottom) {
+            std::swap(top, bottom);
+        }
+    }
+};
+
 /*
  * Framebuffer class, thin wrapper for an array in a unique_ptr
  *
@@ -369,6 +444,7 @@ public:
         buffer->fill(Pf{});
     }
 
+    // Fill buffer with colour
     constexpr void fill(Pf c) {
         buffer->fill(std::move(c));
     }
@@ -381,6 +457,13 @@ public:
     // Returns a pointer to the internal array<>
     constexpr pointer data() const {
         return buffer.get()->data();
+    }
+
+    const rect_t rect() const {
+        return rect_t(
+            static_cast<int32_t>(W),
+            static_cast<int32_t>(H)
+        );
     }
 
     //
@@ -512,81 +595,6 @@ void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
     }
 }
 
-struct point_t {
-    int32_t  x;
-    int32_t  y;
-};
-
-struct rect_t
-{
-    int32_t    left = 0;
-    int32_t    top = 0;
-    int32_t    right = 0;
-    int32_t    bottom = 0;
-
-    constexpr rect_t() = default;
-
-    constexpr rect_t(int32_t x, int32_t y, int32_t w, int32_t h)
-        : left(x), top(y), right(x + w), bottom(y + h)
-    { /* ... */
-    }
-
-    constexpr rect_t(int32_t w, int32_t h)
-        : right(w), bottom(h)
-    { /* ... */
-    }
-
-    constexpr rect_t(const point_t tl, const point_t br)
-        : left(tl.x), top(tl.y), right(br.x), bottom(br.y)
-    { /* ... */
-    }
-
-    constexpr rect_t(const point_t *tl, const point_t *br)
-        : left(tl->x), top(tl->y), right(br->x), bottom(br->y)
-    { /* ... */
-    }
-
-    constexpr int32_t area() const {
-        return width() * height();
-    }
-
-    constexpr operator bool() const {
-        return area() > 0;
-    }
-
-    constexpr int32_t width() const {
-        return right - left;
-    }
-
-    constexpr int32_t height() const {
-        return bottom - top;
-    }
-
-    constexpr void offset(const int32_t x, const int32_t y) {
-        left += x;
-        right += x;
-        top += y;
-        bottom += y;
-    }
-
-    constexpr void move(const point_t &p) {
-        return move(p.x, p.y);
-    }
-
-    constexpr void move(const int32_t x, const int32_t y) {
-        offset(x - left, y - top);
-    }
-
-    constexpr void normalize() {
-        if (left > right) {
-            std::swap(left, right);
-        }
-        if (top > bottom) {
-            std::swap(top, bottom);
-        }
-    }
-};
-
 inline rect_t intersect(const rect_t *a, const rect_t *b) {
 
     const point_t p0{
@@ -607,304 +615,78 @@ inline rect_t intersect(const rect_t &a, const rect_t &b) {
     return intersect(&a, &b);
 }
 
-template<typename Dst, typename Src, typename Fn>
-void draw(Dst &dst, point_t offset, Src &src, const rect_t &passepartout, Fn draw) {
+template<typename PfDst, typename PfSrc, typename Fn>
+void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout, Fn draw) {
 
-    // Rectangle representing the entire source framebuffer
-    rect_t srcRect{
-        static_cast<int32_t>(src.width),
-        static_cast<int32_t>(src.height)
-    };
+    // Initialized in all branches so not needed here
+    uint32_t px;
+    uint32_t py;
+    uint32_t pw;
+    uint32_t ph;
 
-    // Rectangle representing the entire destination framebuffer
-    const rect_t dstRect{
-        static_cast<int32_t>(dst.width),
-        static_cast<int32_t>(dst.height)
-    };
+    // Get framebuffer rects
+    const auto srcRect = pfSrc.rect();
+    const auto dstRect = pfDst.rect();
 
-    // Calcuate the source cutout rectangle, and if it's empty
-    // we do nothing, just exit the function.
-    auto ppRect = intersect(srcRect, passepartout);
-    if (!ppRect)
-        return;
+    if (srcRect == dstRect && offset.x == 0 && offset.y == 0)
+    {   
+        // This is a 1:1 overlay, so take a shortcut
+        px = 0;             // cutout x
+        py = 0;             // cutout y
+        pw = pfSrc.width;     // cutout w
+        ph = pfSrc.height;    // cutout h
+    }
+    else
+    {
+        // Calcuate the source cutout rectangle, and if it's empty
+        // we do nothing, just exit the function.
+        auto ppRect = (passepartout == srcRect)
+            ? srcRect : intersect(srcRect, passepartout);
 
-    // Create a rect for calculating the intersection with the
-    // destination framebuffer. This is the cutout adjusted to
-    // the offset. We also create a copy so we can record how
-    // the rectangle changes (i.e. which edges are moved).
-    rect_t dstIntersect(offset.x, offset.y, ppRect.width(), ppRect.height());
-    rect_t dstIntersectCopy = dstIntersect;
+        if (!ppRect)
+            return;
 
-    // calculate the intersection and exit if empty
-    dstIntersect = intersect(dstRect, dstIntersect);
-    if (!dstIntersect)
-        return;
+        // Create a rect for calculating the intersection with the
+        // destination framebuffer. This is the cutout adjusted to
+        // the offset. We also create a copy so we can record how
+        // the rectangle changes (i.e. which edges are moved).
+        rect_t dstIntersect(offset.x, offset.y, ppRect.width(), ppRect.height());
+        rect_t dstIntersectCopy = dstIntersect;
 
-    // Calculate how the intersection changed relative to the copy
-    // this is how we will need to adjust the original cutout
-    int ld = dstIntersect.left - dstIntersectCopy.left;
-    int td = dstIntersect.top - dstIntersectCopy.top;
-    int rd = dstIntersect.right - dstIntersectCopy.right;
-    int bd = dstIntersect.bottom - dstIntersectCopy.bottom;
+        // calculate the intersection and exit if empty
+        dstIntersect = intersect(dstRect, dstIntersect);
+        if (!dstIntersect)
+            return;
 
-    // Adjust the original cutout rect. This is the absolute source
-    // rect we need to copy to the destination buffer. If the math
-    // has worked out it's entierly contained in the bounds of srcRect.
-    ppRect.left += ld;
-    ppRect.top += td;
-    ppRect.right += rd;
-    ppRect.bottom += bd;
+        // Calculate how the intersection changed relative to the copy
+        // this is how we will need to adjust the original cutout, then
+        // adjust the original cutout rect. This is the absolute source
+        // rect we need to copy to the destination buffer. If the math
+        // has worked out it's entierly contained in the bounds of srcRect.
+        ppRect.left += (dstIntersect.left - dstIntersectCopy.left);
+        ppRect.top += (dstIntersect.top - dstIntersectCopy.top);
+        ppRect.right += (dstIntersect.right - dstIntersectCopy.right);
+        ppRect.bottom += (dstIntersect.bottom - dstIntersectCopy.bottom);
 
-    auto rawDst = dst.data();
-    auto rawSrc = src.data();
+        px = ppRect.left;
+        py = ppRect.top;
+        pw = ppRect.width();
+        ph = ppRect.height();
+    }
+
+    auto rawDst = pfDst.data();
+    auto rawSrc = pfSrc.data();
 
     // Copy loop.
-    for (int32_t y = 0; y < ppRect.height(); y++) {
-        for (int32_t x = 0; x < ppRect.width(); x++) {
-            auto srcPos = ((y + ppRect.top) * src.width) + (x + ppRect.left);
-            auto dstPos = ((y + offset.y) * dst.width) + (x + offset.x);
+    for (int32_t y = 0; y < ph; y++) {
+        for (int32_t x = 0; x < pw; x++) {
+            auto srcPos = ((y + py) * pfSrc.width) + (x + px);
+            auto dstPos = ((y + offset.y) * pfDst.width) + (x + offset.x);
             draw(rawDst[dstPos], rawSrc[srcPos]);
         }
     }
 }
 
 } // namespace vxgfx
-
-/*
-struct color_t
-{
-    float r, g, b;
-    float intensity; // clamped to 0.0f, 1.0f
-    color_t operator+(const color_t&color) const
-    {
-        return color_t{color.intensity * color.r + (1 - color.intensity) * r,
-                       color.intensity * color.g + (1 - color.intensity) * g,
-                       color.intensity * color.b + (1 - color.intensity) * b,
-                       1.0f}; // intensity is now 1.0f
-    }
-    color_t operator-(const float &intensity) const
-    {
-        return color_t{(1.0f - intensity) * r,
-                       (1.0f - intensity) * g,
-                       (1.0f - intensity) * b,
-                       1.0f};
-    }
-    color_t& operator+=(const color_t& color)
-    {
-        r = color.intensity * color.r + (1 - color.intensity) * r,
-        g = color.intensity * color.g + (1 - color.intensity) * g,
-        b = color.intensity * color.b + (1 - color.intensity) * b,
-        intensity = 1.0f;
-        return *this;
-    }
-    color_t& operator-=(const float& intensity)
-    {
-        r = (1.0f - intensity) * r;
-        g = (1.0f - intensity) * g;
-        b = (1.0f - intensity) * b;
-        this->intensity = 1.0f;
-        return *this;
-    }
-    color_t& operator=(const color_t& color)
-    {
-        r = color.r;
-        g = color.g;
-        b = color.b;
-        intensity = color.intensity;
-        return *this;
-    }
-    uint16_t rgb565() const
-    {
-        uint8_t ri = (uint8_t)(r*0xff);
-        uint8_t gi = (uint8_t)(g*0xff);
-        uint8_t bi = (uint8_t)(b*0xff);
-        return (uint16_t) (((ri >> 3) & 0x1f) << 11 | ((gi >> 2) & 0x3f) << 5 | ((bi >> 3) & 0x1f));
-    }
-    uint32_t rgba8() const
-    {
-        uint8_t ri = (uint8_t)(r*0xff);
-        uint8_t gi = (uint8_t)(g*0xff);
-        uint8_t bi = (uint8_t)(b*0xff);
-        return (uint32_t) (ri << 16) | (gi << 8) | (bi);
-    }
-
-};
- 
-template <int width, int height>
-class Framebuffer
-{
-
-    float min_v, max_v;
-    std::array<color_t, width*height> framebuffer_;
-
-    inline float normalise(float x, float min, float max)
-    {
-        return (x - min) / (max - min);
-    }
-
-public:
-    Framebuffer(float min_v, float max_v)
-    {
-        this->min_v = min_v;
-        this->max_v = max_v;
-    }
-
-    Framebuffer<width, height> operator+(const Framebuffer<width, height> &rhs)
-    {
-        Framebuffer<width, height> fb(min_v, max_v);
-        for (int i = 0; i < width * height; i++)
-        {
-            fb.framebuffer_[i] = framebuffer_[i] + rhs.framebuffer_[i];
-        }
-        return fb;
-    }
-
-    void operator+=(const Framebuffer<width, height> &rhs)
-    {
-        for (int i; i < width * height; i++)
-        {
-            framebuffer_[i] += rhs.framebuffer_[i];
-        }
-    }
-
-    void draw_line(int x0, int y0, int x1, int y1, float intensity)
-    {
-        draw_line(x0, y0, x1, y1, color_t{1.0f, 1.0f, 1.0f, intensity});
-    }
-
-    void draw_line(int x0, int y0, int x1, int y1, color_t color)
-    {
-        int dx = abs(x1-x0);
-        int dy = abs(y1-y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx - dy;
-        int e2;
-
-        while(1)
-        {
-            auto pos = (y0 * width) + x0;
-            if (x0 < width && x0 >= 0 && y0 < height && y0 >= 0)
-                framebuffer_[pos] += color;
-
-            if (x0 == x1 && y0 == y1)
-                break;
-
-            e2 = 2 * err;
-            if (e2 > -dy)
-            {
-                err = err - dy;
-                x0 = x0 + sx;
-            }
-
-            if (e2 < dx)
-            {
-                err = err + dx;
-                y0 = y0 + sy;
-            }
-
-        }
-    }
-
-    void draw_debug_text(int x, int y, color_t color, std::string message)
-    {
-        for (const char &c: message)
-        {
-            for (int fy=0; fy < 8; fy++) {
-                for (int fx=0; fx < 8; fx++) {
-                    auto fchar = font8x8_basic[c & 0x7f][fy];
-                    if (fchar & (1 << fx))
-                        framebuffer_[((y + fy) * width) + x + fx] += color;
-                }
-            }
-            x += 8 + 1; // + 1 for spacing
-        }
-    }
-
-    void draw_debug_text(int x, int y, color_t color, const char* fmt, ...)
-    {
-        va_list args;
-
-        va_start(args, fmt);
-        vdraw_debug_text(x, y, color, fmt, args);
-        va_end(args);
-    }
-
-    void vdraw_debug_text(int x, int y, color_t color, const char* fmt, va_list args)
-    {
-        char buf[2000];
-        vsnprintf(buf, 2000, fmt, args);
-        draw_debug_text(x, y, color, std::string(buf));
-    }
-
-    void draw_line(float fx0, float fy0, float fx1, float fy1, float intensity)
-    {
-        draw_line(fx0, fy0, fx1, fy1, color_t{1.0f, 1.0f, 1.0f, intensity});
-    }
-
-    void draw_line(float fx0, float fy0, float fx1, float fy1, color_t color)
-    {
-        int x0 = (int) (normalise(fx0, min_v / 2, max_v / 2) * (float) width);
-        int y0 = (int) (normalise(fy0, min_v, max_v) * (float) height);
-        int x1 = (int) (normalise(fx1, min_v / 2, max_v / 2) * (float) width);
-        int y1 = (int) (normalise(fy1, min_v, max_v) * (float) height);
-        draw_line(x0, y0, x1, y1, color);
-    }
-
-    // draw grid at voltage inteval
-    void draw_debug_grid(color_t line, float xi, float yi)
-    {
-        // left + right
-        draw_line(min_v / 2, min_v, min_v / 2, max_v, line);
-        draw_line(max_v / 2, min_v, max_v / 2, max_v, line);
-
-        for (float x = (min_v / 2) + xi; x < max_v / 2.0f; x += xi)
-        {
-            draw_line(x, min_v, x, max_v, line);
-        }
-
-        // top + bottom
-        draw_line(min_v / 2, min_v, max_v / 2, min_v, line);
-        draw_line(min_v / 2, max_v, max_v / 2, max_v, line);
-
-        for (float y = min_v + yi; y < max_v; y += yi)
-        {
-            draw_line(min_v / 2.0f, y, max_v / 2.0f, y, line);
-        }
-    }
-
-    void fill(color_t color)
-    {
-        framebuffer_.fill(color);
-    }
-
-    void fill()
-    {
-        fill({0.0f, 0.0f, 0.0f, 0.0f});
-    }
-
-    std::array<uint16_t, width * height> rgb565() const
-    {
-        std::array<uint16_t, width * height> fb;
-        for (int i = 0; i < width * height; i++)
-        {
-            fb[i] = framebuffer_[i].rgb565();
-        }
-        return fb;
-    };
-
-    std::array<uint32_t, width * height> rgb8() const
-    {
-        std::array<uint32_t, width * height> fb;
-        for (int i = 0; i < width * height; i++)
-        {
-            fb[i] = framebuffer_[i].rgb565();
-        }
-        return fb;
-    };
-
-    vxgfx::framebuffer<10, 10, uint32_t> test{};
-};
-*/
 
 #endif //VECTREXIA_GFXUTIL_H
