@@ -1,6 +1,7 @@
 add_executable(vectgif
         main.cpp
-        gif.h)
+        gif.h
+        getopt.h)
 
 include_directories(../src)
 
