@@ -626,7 +626,7 @@ void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout
 
     // Get framebuffer rects
     const auto srcRect = pfSrc.rect();
-    const auto dstRect = pfDst.rect();
+    auto dstRect = pfDst.rect();
 
     if (srcRect == dstRect && offset.x == 0 && offset.y == 0)
     {   
@@ -654,8 +654,8 @@ void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout
         rect_t dstIntersectCopy = dstIntersect;
 
         // calculate the intersection and exit if empty
-        dstIntersect = intersect(dstRect, dstIntersect);
-        if (!dstIntersect)
+        dstRect = intersect(dstRect, dstIntersect);
+        if (!dstRect)
             return;
 
         // Calculate how the intersection changed relative to the copy
@@ -663,10 +663,10 @@ void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout
         // adjust the original cutout rect. This is the absolute source
         // rect we need to copy to the destination buffer. If the math
         // has worked out it's entierly contained in the bounds of srcRect.
-        ppRect.left += (dstIntersect.left - dstIntersectCopy.left);
-        ppRect.top += (dstIntersect.top - dstIntersectCopy.top);
-        ppRect.right += (dstIntersect.right - dstIntersectCopy.right);
-        ppRect.bottom += (dstIntersect.bottom - dstIntersectCopy.bottom);
+        ppRect.left += (dstRect.left - dstIntersectCopy.left);
+        ppRect.top += (dstRect.top - dstIntersectCopy.top);
+        ppRect.right += (dstRect.right - dstIntersectCopy.right);
+        ppRect.bottom += (dstRect.bottom - dstIntersectCopy.bottom);
 
         px = ppRect.left;
         py = ppRect.top;
