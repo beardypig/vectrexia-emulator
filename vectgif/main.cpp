@@ -9,11 +9,14 @@ std::array<uint8_t , FRAME_WIDTH * FRAME_HEIGHT * 4> gif_buffer{};
 
 int main(int argc, char *argv[])
 {
-  int c, ch, index, r = 0;
-  long skipframes = 0, outframes = 1000;
+  int c = 0;
+  int ch = 0;
+  int r = 0;
+  long skipframes = 0;
+  long outframes = 1000;
   FILE *romfile;
-  char giffilename[2000];
-  uint8_t rombuffer[65536];
+  char giffilename[2000]{};
+  uint8_t rombuffer[65536]{};
   GifWriter gw = {};
 
   opterr = 0;
@@ -38,19 +41,16 @@ int main(int argc, char *argv[])
   romfile = fopen(argv[optind], "rb");
 
   while( ( ch = fgetc(romfile) ) != EOF && r < 65536) {
-    rombuffer[r++] = (uint8_t) ch;
+    rombuffer[r++] = static_cast<uint8_t>(ch);
   }
+  fclose(romfile);
 
   printf("[ROM]: size = %d\n", r);
 
-  if (!vectrex->LoadCartridge(rombuffer, (size_t) r))
-  {
+  if (!vectrex->LoadCartridge(rombuffer, static_cast<size_t>(r))) {
     printf("Failed to load the ROM file\n");
-    fclose(romfile);
     return 1;
   }
-
-  fclose(romfile);
 
   if (nargs == 1) {
     sprintf(giffilename, "%s.gif", argv[optind]);
@@ -66,22 +66,21 @@ int main(int argc, char *argv[])
   vectrex->SetPlayerOne(0x80, 0x80, 1, 1, 1, 1);
   vectrex->SetPlayerTwo(0x80, 0x80, 1, 1, 1, 1);
 
-  for (int frame = 0; frame < skipframes+outframes; frame++) {
-    vectrex->Run(30000);
-
-    if (frame > skipframes) {
-      auto framebuffer = vectrex->getFramebuffer();
-
-      auto gb = gif_buffer.begin();
-      for (auto &fb : *framebuffer) {
-        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-        *++gb = static_cast<uint8_t>(fb.value * 0xffu);
-      }
-        GifWriteFrame(&gw, gif_buffer.data(), FRAME_WIDTH, FRAME_HEIGHT, 2);
+  for (int frame = 0; frame < outframes; frame++) {
+    for (int s = 0; s < skipframes+1; s++) {
+      vectrex->Run(30000);
     }
 
+    auto framebuffer = vectrex->getFramebuffer();
+
+    auto gb = gif_buffer.begin();
+    for (auto &fb : *framebuffer) {
+      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+      *++gb = static_cast<uint8_t>(fb.value * 0xffu);
+    }
+      GifWriteFrame(&gw, gif_buffer.data(), FRAME_WIDTH, FRAME_HEIGHT, 2);
     if (frame % 100 == 0) {
       printf("[VECTREX] frame = %d\n", frame);
     }
