@@ -143,7 +143,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
         }
     };
 
-    float x, y;
     // start with black
     vector_buffer.clear();
 
