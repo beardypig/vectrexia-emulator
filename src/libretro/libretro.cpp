@@ -16,8 +16,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <memory>
 
@@ -28,7 +28,8 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include "libretro.h"
 #include "vectrexia.h"
 
-
+constexpr int CYCLES_PER_FRAME = 30000;
+unsigned long cycles_per_frame = CYCLES_PER_FRAME;
 std::unique_ptr<Vectrex> vectrex = std::make_unique<Vectrex>();
 vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_rgb565_t> out_buffer{};
 
@@ -43,6 +44,8 @@ static retro_audio_sample_batch_t audio_batch_cb;
 
 unsigned retro_api_version(void) { return RETRO_API_VERSION; }
 
+static void update_variables(void);
+
 // Cheats
 void retro_cheat_reset(void) {}
 void retro_cheat_set(unsigned index, bool enabled, const char *code) {}
@@ -50,6 +53,9 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code) {}
 // Load a cartridge
 bool retro_load_game(const struct retro_game_info *info)
 {
+    // Load custom core settings
+    update_variables();
+
     // Set the controller descriptor
     struct retro_input_descriptor desc[] = {
             { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "Left" },
@@ -111,11 +117,19 @@ bool retro_unserialize(const void *data, size_t size) { return false; }
 void retro_deinit(void) { }
 
 // libretro global setters
-void retro_set_environment(retro_environment_t cb)
-{
-    environ_cb = cb;
-    bool no_rom = true;
-    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
+void retro_set_environment(retro_environment_t cb) {
+  environ_cb = cb;
+
+  struct retro_variable variables[] = {
+#ifdef VECTREXIA_DEBUG
+      { "vectrexia_internal_slowdown", "Internal Slowdown; 1x|2x|5x|10x|20x|50x|100x|1000x|10000x|30000x" },
+#endif
+      { NULL, NULL },
+  };
+
+  bool no_rom = true;
+  cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
+  cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
 void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {}
@@ -214,6 +228,9 @@ static const auto green = vxgfx::pf_argb_t(255, 255, 0, 128 );
 // Run a single frames with out Vectrex emulation.
 void retro_run(void)
 {
+    bool updated = false;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      update_variables();
 
     // User input
     input_poll_cb();
@@ -233,7 +250,7 @@ void retro_run(void)
     vectrex->psg_->channel_c_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3);
 
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
-    auto cycles_run = vectrex->Run(30000);
+    auto cycles_run = vectrex->Run(cycles_per_frame);
 
     // Get buffers
     auto fb = vectrex->getFramebuffer();
@@ -271,4 +288,26 @@ void retro_run(void)
     
     video_cb(reinterpret_cast<const uint16_t*>(out_buffer.data()),
         FRAME_WIDTH, FRAME_HEIGHT, sizeof(unsigned short) * FRAME_WIDTH);
+}
+
+
+static void update_variables(void) {
+#ifdef VECTREXIA_DEBUG
+  struct retro_variable var = {
+      .key = "vectrexia_internal_slowdown",
+  };
+
+  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+    char str[100];
+    snprintf(str, sizeof(str), "%s", var.value);
+
+    auto pch = strtok(str, "x");
+    if (pch) {
+      auto factor = strtoul(pch, nullptr, 0);
+      cycles_per_frame = CYCLES_PER_FRAME / factor;
+    }
+
+    log_cb(RETRO_LOG_DEBUG, "[vectrexia]: Running at %lu cycles per frame.\n", cycles_per_frame);
+  }
+#endif
 }
