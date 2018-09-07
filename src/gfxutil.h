@@ -307,25 +307,25 @@ struct m_blend {
 };
 
 struct point_t {
-    int32_t  x;
-    int32_t  y;
+    int x;
+    int y;
 };
 
 struct rect_t
 {
-    int32_t    left = 0;
-    int32_t    top = 0;
-    int32_t    right = 0;
-    int32_t    bottom = 0;
+    int left = 0;
+    int top = 0;
+    int right = 0;
+    int bottom = 0;
 
     constexpr rect_t() = default;
 
-    constexpr rect_t(int32_t x, int32_t y, int32_t w, int32_t h)
+    constexpr rect_t(int x, int y, int w, int h)
         : left(x), top(y), right(x + w), bottom(y + h)
     { /* ... */
     }
 
-    constexpr rect_t(int32_t w, int32_t h)
+    constexpr rect_t(int w, int h)
         : right(w), bottom(h)
     { /* ... */
     }
@@ -340,7 +340,7 @@ struct rect_t
     { /* ... */
     }
 
-    constexpr int32_t area() const {
+    constexpr int area() const {
         return width() * height();
     }
 
@@ -348,15 +348,15 @@ struct rect_t
         return area() > 0;
     }
 
-    constexpr int32_t width() const {
+    constexpr int width() const {
         return right - left;
     }
 
-    constexpr int32_t height() const {
+    constexpr int height() const {
         return bottom - top;
     }
 
-    constexpr void offset(const int32_t x, const int32_t y) {
+    constexpr void offset(const int x, const int y) {
         left += x;
         right += x;
         top += y;
@@ -367,7 +367,7 @@ struct rect_t
         return move(p.x, p.y);
     }
 
-    constexpr void move(const int32_t x, const int32_t y) {
+    constexpr void move(const int x, const int y) {
         offset(x - left, y - top);
     }
 
@@ -404,8 +404,8 @@ public:
     using iterator = typename data_type::iterator;
     using const_iterator = typename data_type::const_iterator;
 
-    const size_t width = W;
-    const size_t height = H;
+    const int width = W;
+    const int height = H;
 
     //
     // STL compatible iterator pass-throughs
@@ -460,10 +460,7 @@ public:
     }
 
     const rect_t rect() const {
-        return rect_t(
-            static_cast<int32_t>(W),
-            static_cast<int32_t>(H)
-        );
+        return rect_t(W, H);
     }
 
     //
@@ -493,6 +490,18 @@ public:
         return *this;
     }
 
+    template<typename DrawMode>
+    constexpr void plot_pixel(const int x, const int y, DrawMode mode, Pf color) {
+        if (x < width && x >= 0 && y < height && y >= 0) {
+            mode(*this, (y * width) + x, color);
+        }
+    }
+
+    const Pf get_pixel(const int x, const int y) const {
+        return (x < width && x >= 0 && y < height && y >= 0)
+            ? (*buffer.get())[(y * width) + x] : Pf();
+    }
+
     ~framebuffer() = default;
 
 private:
@@ -516,7 +525,7 @@ struct viewport {
         l += x; r += x;
         t += y; b += y;
     }
-    auto translate(float x, float y, size_t w, size_t h)
+    auto translate(float x, float y, int w, int h)
         ->std::pair<int, int> {
         return std::make_pair(
             static_cast<int>((x - l) / (r - l) * w),
@@ -538,10 +547,7 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
 
     while (1)
     {
-        auto pos = (y0 * fb.width) + x0;
-        if (x0 < fb.width && x0 >= 0 && y0 < fb.height && y0 >= 0) {
-            DrawMode()(fb, pos, c);
-        }
+        fb.plot_pixel(x0, y0, DrawMode(), c);
 
         if (x0 == x1 && y0 == y1)
             break;
@@ -586,8 +592,7 @@ void draw_text(T &fb, int x, int y, const Pf &c, std::string message) {
             for (uint8_t x_pixel = 0; x_pixel < PIXEL_WIDTH; x_pixel++) {
                 auto fchar = font8x8_basic[m & 0x7fu][y_pixel];
                 if (fchar & (1u << x_pixel)) {  // draw the pixel or not
-                    auto pos = ((y + y_pixel) * fb.width) + x + x_pixel;
-                    DrawMode()(fb, pos, c);
+                    fb.plot_pixel(x + x_pixel, y + y_pixel, DrawMode(), c);
                 }
             }
         }
@@ -619,10 +624,10 @@ template<typename PfDst, typename PfSrc, typename Fn>
 void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout, Fn draw) {
 
     // Initialized in all branches so not needed here
-    uint32_t px;
-    uint32_t py;
-    uint32_t pw;
-    uint32_t ph;
+    int px;
+    int py;
+    int pw;
+    int ph;
 
     // Get framebuffer rects
     const auto srcRect = pfSrc.rect();
@@ -678,8 +683,8 @@ void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout
     auto rawSrc = pfSrc.data();
 
     // Copy loop.
-    for (int32_t y = 0; y < ph; y++) {
-        for (int32_t x = 0; x < pw; x++) {
+    for (int y = 0; y < ph; y++) {
+        for (int x = 0; x < pw; x++) {
             auto srcPos = ((y + py) * pfSrc.width) + (x + px);
             auto dstPos = ((y + offset.y) * pfDst.width) + (x + offset.x);
             draw(rawDst[dstPos], rawSrc[srcPos]);
