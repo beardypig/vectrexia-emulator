@@ -273,6 +273,9 @@ struct pf_mono_t {
         return pf_mono_t{ value + v.value };
     }
 
+    inline pf_mono_t operator* (float v) const {
+        return pf_mono_t{ value * v };
+    }
 };
 
 /*
@@ -307,6 +310,7 @@ struct m_blend {
 };
 
 struct point_t {
+    constexpr point_t(int x_, int y_) : x(x_), y(y_) {}
     int x;
     int y;
 };
@@ -568,6 +572,61 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
 }
 
 /*
+ * Antialiased line drawing. No endpoint calculations due to int coordinates.
+ * https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
+ *
+ * TODO: Optimization for horizontal and vertical lines. Currently, no matter
+ * the drawing direction, it will always call plot_pixel() twice even when not
+ * needed, for instance when the brightness for one of them is 0.0f which is
+ * the case for vertical and horizontal lines.
+ */
+template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
+void draw_aline(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
+{
+    auto itrunc  = [](float v) ->int { return static_cast<int>(v); };
+    auto ftrunc  = [](float v) -> float { return std::floor(v); };
+    auto rftrunc = [](float v) -> float { return 1.0f - std::floor(v); };
+
+    auto steep = std::abs(y1 - y0) > std::abs(x1 - x0);
+    if (steep) {
+        std::swap(x0, y0);
+        std::swap(x1, y1);
+    }
+    if (x0 > x1) {
+        std::swap(x0, x1);
+        std::swap(y0, y1);
+    }
+
+    auto iy = static_cast<float>(y0);
+    auto dx = static_cast<float>(x1) - x0;
+    auto dy = static_cast<float>(y1) - y0;
+    auto gradient = (dx == 0.0f) ? 1.0f : dy / dx;
+    
+    if (steep)
+    {
+        for (int x = x0; x <= x1; ++x)
+        {
+            Pf p1 = c * rftrunc(iy);
+            Pf p2 = c * ftrunc(iy);
+            fb.plot_pixel(itrunc(iy), x, DrawMode(), p1);
+            fb.plot_pixel(itrunc(iy) - 1, x, DrawMode(), p2);
+            iy += gradient;
+        }
+    }
+    else
+    {
+        for (int x = x0; x <= x1; ++x)
+        {
+            Pf p1 = c * rftrunc(iy);
+            Pf p2 = c * ftrunc(iy);
+            fb.plot_pixel(x, itrunc(iy), DrawMode(), p1);
+            fb.plot_pixel(x, itrunc(iy) - 1, DrawMode(), p2);
+            iy += gradient;
+        }
+    }
+}
+
+/*
  * Voltage based line drawing
  */
 template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
@@ -619,6 +678,30 @@ inline rect_t intersect(const rect_t *a, const rect_t *b) {
 inline rect_t intersect(const rect_t &a, const rect_t &b) {
     return intersect(&a, &b);
 }
+
+struct transform {
+    rect_t src;
+    rect_t dst;
+    float wr;       // ratio width
+    float hr;       // ratio height
+
+    transform(const rect_t s, const rect_t d)
+    : src(std::move(s)), dst(std::move(d)) {
+        wr = static_cast<float>(s.width()) / d.width();
+        hr = static_cast<float>(s.height()) / d.height();
+    }
+    
+    point_t translate(const int dx, const int dy) const {
+        return point_t(
+            static_cast<int>(dx * wr),
+            static_cast<int>(dy * hr)
+        );
+    }
+
+    point_t translate(const point_t p) {
+        return translate(p.x, p.y);
+    }
+};
 
 template<typename PfDst, typename PfSrc, typename Fn>
 void draw(PfDst &pfDst, point_t offset, PfSrc &pfSrc, const rect_t &passepartout, Fn draw) {
