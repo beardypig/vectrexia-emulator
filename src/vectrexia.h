@@ -87,7 +87,6 @@ public:
     void message(const char *fmt, ...);
 
     VectorBuffer *getFramebuffer();
-    DebugBuffer *getDebugbuffer();
 
     uint8_t ReadPortA();
     uint8_t ReadPortB();

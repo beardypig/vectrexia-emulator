@@ -254,13 +254,13 @@ void retro_run(void)
 
     // Get buffers
     auto fb = vectrex->getFramebuffer();
-    auto db = vectrex->getDebugbuffer();
+    //auto db = vectrex->getDebugbuffer();
 
     // Print sound debugging text
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, green, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 20, green, vxl::format("Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 30, green, vxl::format("Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled));
-    vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 40, green, vxl::format("Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled));
+    //vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, green, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
+    //vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 20, green, vxl::format("Channel A: %3.0fHz (noise: %d)", vectrex->psg_->channel_a.frequency_, vectrex->psg_->channel_a.noise_enabled));
+    //vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 30, green, vxl::format("Channel B: %3.0fHz (noise: %d)", vectrex->psg_->channel_b.frequency_, vectrex->psg_->channel_b.noise_enabled));
+    //vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 40, green, vxl::format("Channel C: %3.0fHz (noise: %d)", vectrex->psg_->channel_c.frequency_, vectrex->psg_->channel_c.noise_enabled));
 
 
     // Define the pf_mono_t => pf_rgb565_t transform

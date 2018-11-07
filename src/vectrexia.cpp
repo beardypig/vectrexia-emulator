@@ -297,11 +297,6 @@ VectorBuffer *Vectrex::getFramebuffer()
     return vector_buffer_.getVectorBuffer();
 }
 
-DebugBuffer *Vectrex::getDebugbuffer()
-{
-    return vector_buffer_.getDebugBuffer();
-}
-
 M6809 &Vectrex::GetM6809()
 {
     return *cpu_;
