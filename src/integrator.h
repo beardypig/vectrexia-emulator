@@ -22,7 +22,15 @@ struct MPXPorts
   float out1B = 0.0f;    // Integrator offset
   float out1C = 0.0f;    // Z-axis voltage
   float out1D = 0.0f;    // Sound
-  float out2 = 0.0f;    // Compare
+  float out2 = 0.0f;     // Compare
+
+  void reset() {
+    out1A = 0.0f;
+    out1B = 0.0f;
+    out1C = 0.0f;
+    out1D = 0.0f;
+    out2 = 0.0f;
+  }
 };
 
 struct DACPorts

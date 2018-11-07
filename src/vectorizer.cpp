@@ -24,11 +24,20 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
 
   via.blank = blank == 0;
   via.zero = zero == 0;
-  via.ramp = (portb >> 7u) == 0;
+  via.ramp = ((portb >> 7u) & 0x01u) == 0;
 
-  via.sh = static_cast<bool>(portb & 0x1u);
-  via.sel0 = static_cast<bool>((portb >> 1u) & 0x1u);
-  via.sel1 = static_cast<bool>((portb >> 2u) & 0x1u);
+  // Multiplexer
+  mpx.reset();
+  if ((portb & 0x1u) == 0) { // if the mpx is enabled
+    auto sel = (portb >> 1u) & 0x3u;
+    if (sel == 0) {
+      mpx.out1A = dac.v;  // Y Buffer
+    } else if (sel == 1) {
+      mpx.out1B = dac.v;  // integrator offset
+    } else if (sel == 2) {
+      mpx.out1C = dac.v;  // Z Buffer
+    }
+  }
 
   auto X0 = static_cast<float>(integrators.vX);
   auto Y0 = static_cast<float>(integrators.vY);
