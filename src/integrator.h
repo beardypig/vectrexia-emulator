@@ -95,10 +95,6 @@ private:
   const double c_C306 = 1 / 100000000.0;  // Z buffer capacitance: 0.01uF
   const double c_C312 = 1 / 100000000.0;  // Y integrator capacitance: 0.01uF
   const double c_C313 = 1 / 100000000.0;  // X integrator capacitance: 0.01uF
-  const float r_RAMP = 15000.0f;          // RAMP delay resistance (R323)*
-  const float r_ZERO = 15000.0f;          // ZERO delay resistance (R325)*
-  const double c_RAMP = 1 / 100000000.0;  // RAMP delay capacitance*
-  const double c_ZERO = 1 / 100000000.0;  // ZERO delay capacitance*
   const float r_R316_319 = 10000.0f;      // RAMP resistor value
   const float r_R332_334 = 3300000.f;     // Zero-ref resistor value
   const float r_R317 = 220.0f;            // Y integrator discharge capacitor
@@ -137,10 +133,6 @@ public:
   double v_C306 = 0.0f;        // C306 buffer voltage (Z)
   double cc_C304 = 0.0;        // C304 charge constant (Y)
   double cc_C306 = 0.0;        // C306 charge constant (Z)
-  double v_RAMP = 0.0;         // Simulated RAMP charge(*)
-  double v_ZERO = 0.0;         // Simulated ZERO charge(*)
-  double cc_RAMP = 0.0;        // Simulated RAMP charge constant(*)
-  double cc_ZERO = 0.0;        // Simulated ZERO charge constant(*)
   double cc_C313 = 0.0;        // X integrator discharge constant
   double cc_C312 = 0.0;        // Y integrator discharge constant
 
@@ -172,8 +164,6 @@ public:
   void updateConstants() {
     cc_C304 = std::exp((-dt) / (r_CD4052B * c_C304));
     cc_C306 = std::exp((-dt) / (r_CD4052B * c_C306));
-    cc_RAMP = std::exp((-dt) / (r_RAMP * c_RAMP));
-    cc_ZERO = std::exp((-dt) / (r_ZERO * c_ZERO));
     cc_C313 = std::exp((-dt) / (r_R320 * c_C313));
     cc_C312 = std::exp((-dt) / (r_R317 * c_C312));
   }
@@ -281,8 +271,8 @@ public:
       v_C312 = v_C312 * cc_C312;
 
       // Set integrator resistance's (parallel of R316_319 and R316_319)
-      r_intX = (r_R316_319 * r_R332_334) / (r_R316_319 + r_R332_334);
-      r_intY = (r_R316_319 * r_R332_334) / (r_R316_319 + r_R332_334);
+      r_intX = ((r_R316_319+ r_CD4066B) * r_R332_334) / (r_R316_319 + r_R332_334 + r_CD4066B);
+      r_intY = ((r_R316_319+ r_CD4066B) * r_R332_334) / (r_R316_319 + r_R332_334 + r_CD4066B);
     }
     else if (ZERO && !RAMP) // ZERO = ON, RAMP = OFF
     {
@@ -306,8 +296,8 @@ public:
       int_vY = (rampY.output.voltage * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
 
       // Set integrator resistance's (parallel of R316_319 and R316_319)
-      r_intX = (r_R316_319 * r_R332_334) / (r_R316_319 + r_R332_334);
-      r_intY = (r_R316_319 * r_R332_334) / (r_R316_319 + r_R332_334);
+      r_intX = ((r_R316_319 + r_CD4066B) * r_R332_334) / (r_R316_319 + r_R332_334 + r_CD4066B);
+      r_intY = ((r_R316_319 + r_CD4066B) * r_R332_334) / (r_R316_319 + r_R332_334 + r_CD4066B);
     }
     else if (!ZERO && !RAMP) // ZERO = OFF, RAMP = OFF
     {
