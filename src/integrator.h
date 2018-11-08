@@ -181,7 +181,7 @@ public:
     //
 
     // Y axis buffer
-    if (mpx->out1A > 0.02f || mpx->out1A < -0.02f)
+    if (!via->sh)
     {
       // The capacitor is charging to mpx->out1A...
       v_C304 += (mpx->out1A - v_C304) * (1.0f - cc_C304);
@@ -193,7 +193,7 @@ public:
     }
 
     // Z axis buffer
-    if (mpx->out1C > 0.02f || mpx->out1C < -0.02f)
+    if (!via->sh)
     {
       // The capacitor is charging to mpx->out1C...
       v_C306 += (mpx->out1C - v_C306) * (1.0f - cc_C306);
@@ -208,6 +208,7 @@ public:
     // BEGIN: ZERO & RAMP DELAY CALCULATIONS
     //
 
+#if 0
     if (via->zero)
     {
       v_ZERO += (5.0f - v_ZERO) * (1.0f - cc_ZERO);
@@ -225,9 +226,10 @@ public:
     {
       v_RAMP = v_RAMP * cc_RAMP;
     }
+#endif
 
-    bool ZERO = v_ZERO > (5.0f * d_ZERO);
-    bool RAMP = v_RAMP > (5.0f * d_RAMP);
+    bool ZERO = via->zero; //v_ZERO > (5.0f * d_ZERO);
+    bool RAMP = via->ramp; //v_RAMP > (5.0f * d_RAMP);
 
     //
     // END: ZERO & RAMP DELAY CALCULATIONS
