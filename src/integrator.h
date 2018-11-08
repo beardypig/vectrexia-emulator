@@ -1,9 +1,42 @@
 #include <cassert>
-#include <vector>
-#include <tuple>
-#include <variant>
-#include <optional>
-#include <fstream>
+#include <deque>
+
+/**
+ * Signal delay deque
+ */
+template<typename T>
+class delay {
+public:
+
+    // Type to queue; voltage and state
+    struct output_t {
+        T voltage;
+        bool active;
+    };
+
+    // The signal output (read after step)
+    output_t output;
+
+    // Constructor; fills the queue with a zero signal
+    delay(int cycles, T Vin)
+    {
+        for (int i = 0; i < cycles; i++)
+        {
+            queue.emplace_front(output_t{ Vin, false });
+        }
+    }
+
+    // Pop the signal in the back and push a new one in the front
+    void step(bool on, T Vin)
+    {
+        output = queue.back();
+        queue.pop_back();
+        queue.emplace_front(output_t{ Vin, on });
+    }
+
+private:
+    std::deque<output_t> queue;
+};
 
 template<class T, class Compare>
 constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
@@ -86,12 +119,14 @@ private:
   float dt = 1 / 1500000.0f;  // Clock; 1.5Mhz
   float v_r333 = 0.0f;        // 0-ref voltage Y
   float v_r335 = 0.0f;        // 0-ref voltage X
-  float d_ZERO = 0.63f;       // ZERO delay threshold*
-  float d_RAMP = 0.63f;       // RAMP delay threshold*
   float d_C304 = 0.000000001f;  // C304 decay (Y). Real value unknown...
   float d_C306 = 0.000000001f;  // C306 decay (Z). Real value unknown...
   float d_C312 = 0.000000001f;  // C312 decay (Y). Real value unknown...
   float d_C313 = 0.000000001f;  // C313 decay (X). Real value unknown...
+  int d_ZERO_X = 15;
+  int d_RAMP_X = 15;
+  int d_ZERO_Y = 15;
+  int d_RAMP_Y = 15;
 
 public:
 
@@ -114,9 +149,17 @@ public:
   double vY = 0.0f;           // Y-axis output voltage
   double vZ = 0.0f;           // Z-axis output voltage
 
+  delay<float> rampX;
+  delay<double> rampY;
+  delay<double> zeroX;
+  delay<double> zeroY;
 
   XYZAxisIntegrators(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
-      : mpx(mpx_), via(via_), dac(dac_) {
+      : mpx(mpx_), via(via_), dac(dac_),
+      zeroX(d_ZERO_X, 0.0f),
+      zeroY(d_ZERO_Y, 0.0f),
+      rampX(d_RAMP_X, 0.0f),
+      rampY(d_RAMP_Y, 0.0f) {
     updateConstants();
   }
 
@@ -208,29 +251,13 @@ public:
     // BEGIN: ZERO & RAMP DELAY CALCULATIONS
     //
 
-#if 0
-    if (via->zero)
-    {
-      v_ZERO += (5.0f - v_ZERO) * (1.0f - cc_ZERO);
-    }
-    else
-    {
-      v_ZERO = v_ZERO * cc_ZERO;
-    }
-
-    if (via->ramp)
-    {
-      v_RAMP += (5.0f - v_RAMP) * (1.0f - cc_RAMP);
-    }
-    else
-    {
-      v_RAMP = v_RAMP * cc_RAMP;
-    }
-#endif
-
-    bool ZERO = via->zero; //v_ZERO > (5.0f * d_ZERO);
-    bool RAMP = via->ramp; //v_RAMP > (5.0f * d_RAMP);
-
+    rampY.step(via->ramp, v_C304);
+    rampX.step(via->ramp, dac->v);
+    zeroY.step(via->zero, v_C312);
+    zeroX.step(via->zero, v_C313);
+    
+    bool ZERO = zeroX.output.active && zeroY.output.active;
+    bool RAMP = rampX.output.active && rampY.output.active;
     //
     // END: ZERO & RAMP DELAY CALCULATIONS
     // ------------------------------------------------------------------------------
@@ -246,8 +273,8 @@ public:
     if (ZERO && RAMP) // ZERO = ON, RAMP = ON
     {
       // Integrator input voltage calculation
-      int_vX = (dac->v * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
-      int_vY = (v_C304 * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vX = (rampX.output.voltage * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vY = (rampY.output.voltage * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
 
       // Discharge the integrator capacitor(s)
       v_C313 = v_C313 * cc_C313;
@@ -275,8 +302,8 @@ public:
     else if (!ZERO && RAMP) // ZERO = OFF, RAMP = ON
     {
       // Integrator input voltage calculation
-      int_vX = (dac->v * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
-      int_vY = (v_C304 * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vX = (rampX.output.voltage * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vY = (rampY.output.voltage * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
 
       // Set integrator resistance's (parallel of R316_319 and R316_319)
       r_intX = (r_R316_319 * r_R332_334) / (r_R316_319 + r_R332_334);
