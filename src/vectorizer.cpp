@@ -5,15 +5,6 @@
 #include <cinttypes>
 #include "vectorizer.h"
 
-constexpr float normalise(float value, float min, float max) {
-  return (value - min) / (max - min);
-}
-
-float dac_(uint8_t value)
-{
-    return 2.5f - ((value ^ 0x80) * (5.0f / 256.0f));
-}
-
 void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
 {
     // porta is connected to the databus of the sound chip and DAC
@@ -26,7 +17,7 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
     // PB7 - RAMP
 
     // X input
-    dac.v = dac_(porta);
+    dac.v = digital_to_analog(porta);
 
     uint8_t switch_ = (uint8_t)(portb & 0x1);
     uint8_t select = (uint8_t)((portb >> 1) & 0x3);

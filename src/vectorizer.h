@@ -7,14 +7,20 @@
 #include <array>
 #include <string>
 #include "gfxutil.h"
-#include "updatetimer.h"
 #include "integrator.h"
-
 
 constexpr float time_per_clock = (float) (1.0f / 1.5e6);
 static const float DEBUG_LINE_INTENSITY = 0.03f;
 static const int FRAME_WIDTH  = 330;
 static const int FRAME_HEIGHT = 410;
+
+constexpr float normalise(float value, float min, float max) {
+    return (value - min) / (max - min);
+}
+
+constexpr float digital_to_analog(uint8_t value) {
+    return 2.5f - ((value ^ 0x80) * (5.0f / 256.0f));
+}
 
 using VectorBuffer = vxgfx::framebuffer<FRAME_WIDTH, FRAME_HEIGHT, vxgfx::pf_mono_t>;
 
