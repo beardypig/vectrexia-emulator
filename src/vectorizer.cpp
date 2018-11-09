@@ -17,7 +17,8 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
     // PB7 - RAMP
 
     // X input
-    dac.v = digital_to_analog(porta);
+    dac_delay.step(true, digital_to_analog(porta));
+    dac.v = dac_delay.output.voltage;
 
     uint8_t switch_ = (uint8_t)(portb & 0x1);
     uint8_t select = (uint8_t)((portb >> 1) & 0x3);
@@ -57,6 +58,16 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
     vxgfx::draw_line<vxgfx::m_brightness>(vector_buffer, vp,
                                           X0, Y0, X1, Y1,
                                           vxgfx::pf_mono_t{intensity});
+  }
+
+  // Run screen the fade everey 25K cycles (60fps)
+  // Quick and dirty hack to make it a bit usable ;)
+  static int cycles_fps = 0;
+  if (++cycles_fps == 25000) {
+      cycles_fps = 0;
+      for (auto &pixel : vector_buffer) {
+          pixel.darken(0.500f);
+      }
   }
 }
 
