@@ -1,5 +1,6 @@
 #include <cassert>
 #include <deque>
+#include "veclib.h"
 
 /**
  * Signal delay deque
@@ -37,17 +38,6 @@ public:
 private:
     std::deque<output_t> queue;
 };
-
-template<class T, class Compare>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp) {
-  return assert(!comp(hi, lo)),
-      comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
-
-template<class T>
-constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
-  return clamp(v, lo, hi, std::less<>());
-}
 
 struct MPXPorts
 {
@@ -341,7 +331,7 @@ public:
       if (integratorOut < Vss || integratorOut > Vdd)
       {
         // Saturated output, clamp to Vss || Vdd
-        integratorOut = clamp(integratorOut, (double)Vss, (double)Vdd);
+        integratorOut = vxl::clamp(integratorOut, (double)Vss, (double)Vdd);
 
         // Charge the capacitor to integratorOut (out) - int_vY (in)
         v_C312 += ((integratorOut - int_vY) - v_C312) * (1.0f - std::exp((-dt) / (r_intY * c_C312)));
@@ -353,7 +343,7 @@ public:
       }
 
       // Final output with added offset
-      vY = clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
+      vY = vxl::clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
     }
 
     // X Integration
@@ -367,7 +357,7 @@ public:
       if (integratorOut < Vss || integratorOut > Vdd)
       {
         // Saturated output, clamp to Vss || Vdd
-        integratorOut = clamp(integratorOut, (double)Vss, (double)Vdd);
+        integratorOut = vxl::clamp(integratorOut, (double)Vss, (double)Vdd);
 
         // Charge the capacitor to integratorOut (out) - int_vY (in)
         v_C313 += ((integratorOut - int_vX) - v_C313) * (1.0f - std::exp((-dt) / (r_intX * c_C313)));
@@ -379,7 +369,7 @@ public:
       }
 
       // Final output with added offset
-      vX = clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
+      vX = vxl::clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
     }
   };
 };
