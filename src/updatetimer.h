@@ -78,49 +78,4 @@ public:
     }
 };
 
-class CallbackTimer
-{
-    struct data
-    {
-        uint64_t cycles, remaining_nanos;
-        update_callback_t callback;
-
-        bool operator== (const uint64_t &count)
-        {
-            if (cycles <= count)
-            {
-                callback(remaining_nanos);
-                return true;
-            }
-            return false;
-        }
-    };
-
-    std::vector<data> items;
-public:
-    // enqueue and item to be updated at a later time
-    void enqueue(uint64_t current_cycle, uint64_t nanosecond, update_callback_t callback)
-    {
-        // eg. 7800e-9 / (1/1.5e6) == 7800e-3 / (1/1.5) == 7800 / (1/1.5e-3)
-        uint64_t cycles = TimerUtil::nanos_to_cycles(nanosecond);
-        uint64_t remainder = nanosecond - TimerUtil::cycles_to_nanos(cycles);
-        //printf("A delay of %lldns causes a delay of %lld cycles, with an extra delay of %lldns\n",
-        //       nanosecond, cycles, remainder);
-        items.push_back({ current_cycle + cycles, remainder, callback });
-
-        //printf("Callback queue length: %d\n", items.size());
-    }
-    void tick(uint64_t cycles)
-    {
-        // https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
-        items.erase(std::remove(items.begin(), items.end(), cycles), items.end());
-    }
-    void clear()
-    {
-        items.clear();
-    }
-
-};
-
-
 #endif //VECTREXIA_UPDATETIMER_H
