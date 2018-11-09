@@ -47,6 +47,10 @@ constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
     return clamp(v, lo, hi, std::less<>());
 }
 
+
+/*
+ * Simple string formatting function.
+ */
 inline std::string format(const char *fmt, ...)
 {
     va_list ap, ap2;
@@ -63,6 +67,20 @@ inline std::string format(const char *fmt, ...)
 
     va_end(ap2);
     return out;
+}
+
+/*
+ * Convert CPU cycles to nano seconds.
+ */
+constexpr uint64_t cycles_to_nanos(uint64_t cycles){
+    return (uint64_t)(cycles * (1 / 1.5e-3));
+}
+
+/*
+ * Convert nano seconds to CPU cycles.
+ */
+constexpr uint64_t nanos_to_cycles(uint64_t nanos){
+    return (uint64_t)(nanos / (1 / 1.5e-3));
 }
 
 }

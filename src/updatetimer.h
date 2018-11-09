@@ -26,20 +26,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 using update_callback_t = std::function<void(uint64_t)>;
 
-class TimerUtil
-{
-public:
-    static inline uint64_t cycles_to_nanos(uint64_t cycles)
-    {
-        return (uint64_t) (cycles * (1 / 1.5e-3));
-    }
-
-    static inline uint64_t nanos_to_cycles(uint64_t nanos)
-    {
-        return (uint64_t) (nanos / (1 / 1.5e-3));
-    }
-};
-
 template<typename T>
 class UpdateTimer
 {
