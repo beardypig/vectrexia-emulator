@@ -261,6 +261,10 @@ struct pf_mono_t {
         value += v.value;
     }
 
+    constexpr void darken(const float v) {
+        value += -(value * v);
+    }
+
     inline pf_mono_t blend(const pf_mono_t &rhs, const float blend_point) const {
         return pf_mono_t{ (value * blend_point) + rhs.value * (1.0f - blend_point) };
     }
