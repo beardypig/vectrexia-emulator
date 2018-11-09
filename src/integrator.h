@@ -30,9 +30,9 @@ public:
     // Pop the signal in the back and push a new one in the front
     void step(bool on, T Vin)
     {
-        output = queue.back();
-        queue.pop_back();
         queue.emplace_front(output_t{ Vin, on });
+        output = queue.back();
+        queue.pop_back();  
     }
 
 private:
