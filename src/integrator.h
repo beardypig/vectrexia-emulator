@@ -1,43 +1,5 @@
 #include <cassert>
-#include <deque>
 #include "veclib.h"
-
-/**
- * Signal delay deque
- */
-template<typename T>
-class delay {
-public:
-
-    // Type to queue; voltage and state
-    struct output_t {
-        T voltage;
-        bool active;
-    };
-
-    // The signal output (read after step)
-    output_t output;
-
-    // Constructor; fills the queue with a zero signal
-    delay(int cycles, T Vin)
-    {
-        for (int i = 0; i < cycles; i++)
-        {
-            queue.emplace_front(output_t{ Vin, false });
-        }
-    }
-
-    // Pop the signal in the back and push a new one in the front
-    void step(bool on, T Vin)
-    {
-        queue.emplace_front(output_t{ Vin, on });
-        output = queue.back();
-        queue.pop_back();  
-    }
-
-private:
-    std::deque<output_t> queue;
-};
 
 struct MPXPorts
 {
@@ -46,14 +8,6 @@ struct MPXPorts
   float out1C = 0.0f;    // Z-axis voltage
   float out1D = 0.0f;    // Sound
   float out2 = 0.0f;     // Compare
-
-  void reset() {
-    out1A = 0.0f;
-    out1B = 0.0f;
-    out1C = 0.0f;
-    out1D = 0.0f;
-    out2 = 0.0f;
-  }
 };
 
 struct DACPorts
@@ -78,8 +32,6 @@ private:
 
   // Constants
   const float r_CD4052B = 125.0f;         // Multiplexer impedance
-  const float r_LF347N = 200.0f;          // Op-amp impedance
-  const float r_MC1408P8 = 1000.0f;       // DAC impedance
   const float r_CD4066B = 125.0f;         // Switch impedance
   const double c_C304 = 1 / 100000000.0;  // Y buffer capacitance: 0.01uF
   const double c_C306 = 1 / 100000000.0;  // Z buffer capacitance: 0.01uF
@@ -131,10 +83,10 @@ public:
   double vY = 0.0f;           // Y-axis output voltage
   double vZ = 0.0f;           // Z-axis output voltage
 
-  delay<float> rampX;
-  delay<double> rampY;
-  delay<double> zeroX;
-  delay<double> zeroY;
+  vxl::delay<float> rampX;
+  vxl::delay<double> rampY;
+  vxl::delay<double> zeroX;
+  vxl::delay<double> zeroY;
 
   XYZAxisIntegrators(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
       : mpx(mpx_), via(via_), dac(dac_),
