@@ -316,6 +316,7 @@ class VIA6522
 public:
 
     struct ports_t {
+        uint8_t IRQ;    // IRQ
         uint8_t PA;     // Connected to the soundchip (AY3-8912)
         bool PB0;       // S/H
         bool PB1;       // Sel 0
@@ -325,6 +326,7 @@ public:
         bool PB5;       // Compare
         bool PB7;       // Ramp
         bool CA2;       // Zero
+        bool CB1;       // Not Connected
         bool CB2;       // Blank
     } ports;
 

@@ -364,7 +364,25 @@ void VIA6522::Step()
     if ((registers.PCR & CB2_MASK) == CB2_OUT_PULSE)
         delayed_signals.enqueue(clk+1, &ca2_state, 1);
 
+    // Set the outputs
+    ports.IRQ = registers.IFR & IRQ_MASK;
+    ports.PA  = registers.ORA;
 
+    uint8_t portb = (registers.ACR & T1_PB7_CONTROL)
+        ? (uint8_t)((registers.ORB & ~0x80) | registers.PB7)
+        : registers.ORB;
+
+    ports.PB0 = (portb >> 0) & 0x1;
+    ports.PB1 = (portb >> 1) & 0x1;
+    ports.PB2 = (portb >> 2) & 0x1;
+    ports.PB3 = (portb >> 3) & 0x1;
+    ports.PB4 = (portb >> 4) & 0x1;
+    ports.PB5 = (portb >> 5) & 0x1;
+    ports.PB7 = (portb >> 7) & 0x1;
+
+    ports.CA2 = ca2_state;
+    ports.CB1 = (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr;
+    ports.CB2 = (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state;
 }
 
 void VIA6522::SetPortAReadCallback(VIA6522::port_callback_t func, intptr_t ref)
