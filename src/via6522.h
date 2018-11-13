@@ -315,6 +315,16 @@ class VIA6522
 
 public:
 
+    struct PORTS {
+        bool sh = false;
+        bool sel0 = false;
+        bool sel1 = false;
+        bool zero = false;
+        bool ramp = false;
+        bool compare = false;
+        bool blank = false;
+    } ports;
+
     VIA6522() = default;
     void Step();
     void Reset();
