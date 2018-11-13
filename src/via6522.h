@@ -315,14 +315,17 @@ class VIA6522
 
 public:
 
-    struct PORTS {
-        bool sh = false;
-        bool sel0 = false;
-        bool sel1 = false;
-        bool zero = false;
-        bool ramp = false;
-        bool compare = false;
-        bool blank = false;
+    struct ports_t {
+        uint8_t PA;     // Connected to the soundchip (AY3-8912)
+        bool PB0;       // S/H
+        bool PB1;       // Sel 0
+        bool PB2;       // Sel 1
+        bool PB3;       // Sound (clock?)
+        bool PB4;       // Sound (clock?)
+        bool PB5;       // Compare
+        bool PB7;       // Ramp
+        bool CA2;       // Zero
+        bool CB2;       // Blank
     } ports;
 
     VIA6522() = default;

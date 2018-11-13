@@ -26,11 +26,9 @@ CD4052B::CD4052B(VIAPorts * const via_, DACPorts * const dac_)
 
 void CD4052B::step()
 {
-    uint8_t select = (uint8_t)((via->sel1 >> 1) & 0x3);
-
-    if (!(uint8_t)(via->sel1 & 0x1))
+    if (via->PB0)
     {
-        switch (select)
+        switch ((via->PB1 ? 1 : 0) + (via->PB2 ? 2 : 0))
         {
         case 0: // Y Axis Sample and Hold between [-5, +5]
             ports.out1A = dac->v * 2;

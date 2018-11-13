@@ -21,7 +21,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_CD4052B_H
 #include "via6522.h"
 
-using VIAPorts = VIA6522::PORTS;
+using VIAPorts = VIA6522::ports_t;
 
 struct DACPorts
 {
