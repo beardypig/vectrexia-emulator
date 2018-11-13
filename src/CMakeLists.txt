@@ -28,7 +28,8 @@ set(VECTREXIA_SOURCE
     via6522.cpp
     ay38910.cpp
 	vectorizer.cpp gfxutil.h
-	debugfont.cpp)
+	debugfont.cpp
+	cd4052b.cpp)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)
