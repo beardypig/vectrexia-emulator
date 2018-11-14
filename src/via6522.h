@@ -337,7 +337,6 @@ public:
     // Set callbacks for read and write, must be a static function
     void SetPortAReadCallback(port_callback_t func, intptr_t ref);
     void SetPortBReadCallback(port_callback_t func, intptr_t ref);
-    void SetUpdateCallback(update_callback_t func, intptr_t ref);
 
     uint8_t Read(uint8_t reg);              // read from VIA register
     void Write(uint8_t reg, uint8_t data);  // write to VIA register
