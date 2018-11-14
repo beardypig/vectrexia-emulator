@@ -1,34 +1,12 @@
 #include <cassert>
+#include "via6522.h"
+#include "cd4052b.h"
+#include "mc1408p8.h"
 #include "veclib.h"
 
-struct MPXPorts
-{
-  float out1A = 0.0f;    // Y-axis voltage
-  float out1B = 0.0f;    // Integrator offset
-  float out1C = 0.0f;    // Z-axis voltage
-  float out1D = 0.0f;    // Sound
-  float out2 = 0.0f;     // Compare
-};
-
-struct DACPorts
-{
-  float v = 0.0f;        // DAC voltage
-};
-
-struct VIAPorts
-{
-  bool sh = false;
-  bool sel0 = false;
-  bool sel1 = false;
-  bool zero = false;
-  bool ramp = false;
-  bool compare = false;
-  bool blank = false;
-};
-
-
-class XYZAxisIntegrators {
-private:
+template<typename Base>
+class Integrator : public Base {
+protected:
 
   // Constants
   const float r_CD4052B = 125.0f;         // Multiplexer impedance
@@ -88,7 +66,7 @@ public:
   vxl::delay<std::pair<bool, double>> zeroX;
   vxl::delay<std::pair<bool, double>> zeroY;
 
-  XYZAxisIntegrators(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
+  Integrator(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
       : mpx(mpx_), via(via_), dac(dac_),
       zeroX(d_ZERO_X, std::make_pair(false, 0.0)),
       zeroY(d_ZERO_Y, std::make_pair(false, 0.0)),
@@ -156,7 +134,7 @@ public:
     //
 
     // Y axis buffer
-    if (!via->sh)
+    if (!via->PB0)
     {
       // The capacitor is charging to mpx->out1A...
       v_C304 += (mpx->out1A - v_C304) * (1.0f - cc_C304);
@@ -168,7 +146,7 @@ public:
     }
 
     // Z axis buffer
-    if (!via->sh)
+    if (!via->PB0)
     {
       // The capacitor is charging to mpx->out1C...
       v_C306 += (mpx->out1C - v_C306) * (1.0f - cc_C306);
@@ -183,10 +161,10 @@ public:
     // BEGIN: ZERO & RAMP DELAY CALCULATIONS
     //
 
-    rampY.step({ via->ramp, v_C304 });
-    rampX.step({ via->ramp, dac->v });
-    zeroY.step({ via->zero, v_C312 });
-    zeroX.step({ via->zero, v_C313 });
+    rampY.step({ via->PB7, v_C304 });
+    rampX.step({ via->PB7, dac->Vout });
+    zeroY.step({ via->CA2, v_C312 });
+    zeroX.step({ via->CA2, v_C313 });
     
     bool ZERO = zeroX.output.first;
     bool RAMP = rampX.output.first;
@@ -258,7 +236,7 @@ public:
     }
 
     // Z-axis output; Either the voltage in v_C306, or 0v if BLANK is ON
-    vZ = (via->blank) ? 0.0f : v_C306;
+    vZ = (via->CB2) ? 0.0f : v_C306;
 
     // Intergration for X/Y.
     //

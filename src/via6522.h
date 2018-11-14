@@ -351,4 +351,6 @@ public:
     uint8_t getCB2State() { return (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state; };
 };
 
+using VIAPorts = VIA6522::ports_t;
+
 #endif //VECTREXIA_VIA6522_H
