@@ -17,8 +17,7 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank)
     // PB7 - RAMP
 
     // X input
-    dac_delay.step(true, digital_to_analog(porta));
-    dac.v = dac_delay.output.voltage;
+    dac.v = digital_to_analog(porta);
 
     uint8_t switch_ = (uint8_t)(portb & 0x1);
     uint8_t select = (uint8_t)((portb >> 1) & 0x3);

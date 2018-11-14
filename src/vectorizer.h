@@ -33,7 +33,6 @@ private:
   VIAPorts via{};
   DACPorts dac{};
   XYZAxisIntegrators integrators = XYZAxisIntegrators(&mpx, &via, &dac);
-  vxl::delay<float> dac_delay{0, 0.0f};
 
 public:
   void Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank);

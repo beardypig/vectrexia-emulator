@@ -24,6 +24,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdio>
 #include <cstdarg>
 #include <cassert>
+#include <deque>
 
 /*
  * Name space for vectrexia utility functions
@@ -82,6 +83,46 @@ constexpr uint64_t cycles_to_nanos(uint64_t cycles){
 constexpr uint64_t nanos_to_cycles(uint64_t nanos){
     return (uint64_t)(nanos / (1 / 1.5e-3));
 }
+
+/**
+ * Signal delay deque. Simple wrapper around std::deque
+ */
+template<typename T>
+class delay {
+public:
+    // The signal output (read after step)
+    T output;
+
+    // Constructor; fills the queue with a zero signal
+    delay(int cycles, T Vin)
+    {
+        for (int i = 0; i < cycles; i++)
+        {
+            queue.emplace_front(Vin);
+        }
+    }
+
+    void push(T Vin)
+    {
+        queue.emplace_front(Vin);
+    }
+
+    // Pop the signal in the back and push a new one in the front
+    void step(T Vin)
+    {
+        queue.emplace_front(Vin);
+        output = queue.back();
+        queue.pop_back();
+    }
+
+    void step() {
+        output = queue.back();
+        queue.pop_back();
+    }
+
+private:
+    std::deque<T> queue;
+};
 
 }
 

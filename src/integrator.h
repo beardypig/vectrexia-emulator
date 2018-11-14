@@ -83,17 +83,17 @@ public:
   double vY = 0.0f;           // Y-axis output voltage
   double vZ = 0.0f;           // Z-axis output voltage
 
-  vxl::delay<float> rampX;
-  vxl::delay<double> rampY;
-  vxl::delay<double> zeroX;
-  vxl::delay<double> zeroY;
+  vxl::delay<std::pair<bool, float>>  rampX;
+  vxl::delay<std::pair<bool, double>> rampY;
+  vxl::delay<std::pair<bool, double>> zeroX;
+  vxl::delay<std::pair<bool, double>> zeroY;
 
   XYZAxisIntegrators(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
       : mpx(mpx_), via(via_), dac(dac_),
-      zeroX(d_ZERO_X, 0.0f),
-      zeroY(d_ZERO_Y, 0.0f),
-      rampX(d_RAMP_X, 0.0f),
-      rampY(d_RAMP_Y, 0.0f) {
+      zeroX(d_ZERO_X, std::make_pair(false, 0.0)),
+      zeroY(d_ZERO_Y, std::make_pair(false, 0.0)),
+      rampX(d_RAMP_X, std::make_pair(false, 0.0f)),
+      rampY(d_RAMP_Y, std::make_pair(false, 0.0)) {
     updateConstants();
   }
 
@@ -183,13 +183,13 @@ public:
     // BEGIN: ZERO & RAMP DELAY CALCULATIONS
     //
 
-    rampY.step(via->ramp, v_C304);
-    rampX.step(via->ramp, dac->v);
-    zeroY.step(via->zero, v_C312);
-    zeroX.step(via->zero, v_C313);
+    rampY.step({ via->ramp, v_C304 });
+    rampX.step({ via->ramp, dac->v });
+    zeroY.step({ via->zero, v_C312 });
+    zeroX.step({ via->zero, v_C313 });
     
-    bool ZERO = zeroX.output.active && zeroY.output.active;
-    bool RAMP = rampX.output.active && rampY.output.active;
+    bool ZERO = zeroX.output.first;
+    bool RAMP = rampX.output.first;
     //
     // END: ZERO & RAMP DELAY CALCULATIONS
     // ------------------------------------------------------------------------------
@@ -205,8 +205,8 @@ public:
     if (ZERO && RAMP) // ZERO = ON, RAMP = ON
     {
       // Integrator input voltage calculation
-      int_vX = (rampX.output.voltage * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
-      int_vY = (rampY.output.voltage * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vX = (rampX.output.second * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vY = (rampY.output.second * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
 
       // Discharge the integrator capacitor(s)
       v_C313 = v_C313 * cc_C313;
@@ -234,8 +234,8 @@ public:
     else if (!ZERO && RAMP) // ZERO = OFF, RAMP = ON
     {
       // Integrator input voltage calculation
-      int_vX = (rampX.output.voltage * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
-      int_vY = (rampY.output.voltage * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vX = (rampX.output.second * r_R332_334 + v_r335 * r_R316_319) / (r_R316_319 + r_R332_334);
+      int_vY = (rampY.output.second * r_R332_334 + v_r333 * r_R316_319) / (r_R316_319 + r_R332_334);
 
       // Set integrator resistance's (parallel of R316_319 and R316_319)
       r_intX = ((r_R316_319 + r_CD4066B) * r_R332_334) / (r_R316_319 + r_R332_334 + r_CD4066B);
