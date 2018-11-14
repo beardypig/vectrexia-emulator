@@ -21,8 +21,6 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_CD4052B_H
 #include "via6522.h"
 
-using VIAPorts = VIA6522::ports_t;
-
 struct DACPorts
 {
     float v = 0.0f;        // DAC voltage
@@ -35,7 +33,7 @@ class CD4052B {
 public:
 
     // Multiplexer ouputs
-    struct PORTS {
+    struct ports_t {
         float out1A = 0.0f;    // Y-axis voltage
         float out1B = 0.0f;    // Integrator offset
         float out1C = 0.0f;    // Z-axis voltage
@@ -53,5 +51,7 @@ private:
     VIAPorts *via = nullptr;
     DACPorts *dac = nullptr;
 };
+
+using MPXPorts = CD4052B::ports_t;
 
 #endif // VECTREXIA_CD4052B_H
