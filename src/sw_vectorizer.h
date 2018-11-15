@@ -41,7 +41,19 @@ public:
     void draw();
 
 protected:
-    
+
+    struct vertex_t {
+        float x;
+        float y;
+        float z;
+    };
+
+    struct vector_t {
+        uint32_t count = 0;
+        uint32_t cycles = 0;
+        float length = 0.0f;
+    };
+
     // Invoked when BLANK turns OFF
     void vec_Begin(uint32_t cycle, float x, float y, float z);
 
@@ -51,8 +63,12 @@ protected:
     // Invoked when beam state changes (direction, brightness)
     void vec_Vertex(uint32_t cycle, float x, float y, float z);
 
-    // Framebuffer
     framebuffer_t frameBuffer;
+    std::vector<vertex_t> vertex;   // list of vertexes
+    std::vector<vector_t> vector;   // list of vectors
+    vector_t current{};             // the current vector being processed
+    float prevX = 0.0f;
+    float prevY = 0.0f;
 };
 
 #endif // !SWVECTORIZER_H

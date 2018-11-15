@@ -37,15 +37,26 @@ void SWVectorizer::draw()
 
 void SWVectorizer::vec_Begin(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: write vertex into vector buffer
+    current = {};
+    current.count++;
+    prevX = x;
+    prevY = y;
+    vertex.emplace_back(x, y, z);
 }
 
 void SWVectorizer::vec_End(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: write vertex into vector buffer
+    vec_Vertex(cycle, x, y, z);
+    current.length = sqrtf(current.length);
+    vector.push_back(current);
 }
 
 void SWVectorizer::vec_Vertex(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: write vertex into vector buffer
+    current.length += (x - prevX) * (x - prevX) + (y - prevY) * (y - prevY);
+    current.count++;
+    current.cycles = cycle;
+    vertex.emplace_back(x, y, z);
+    prevX = x;
+    prevY = y;
 }
