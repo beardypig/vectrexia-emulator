@@ -31,8 +31,12 @@ void SWVectorizer::step()
 
 void SWVectorizer::draw()
 {
-    // TODO: interate and draw the vectors in the buffer
-    // TODO: reset cycle count and state machine
+    // cycles = 0;
+    //
+    // 1. for each vector_t in 'vector'
+    // 2.   draw vector_t.count vectors from 'vertex'
+    // 3. move remaining vertex_t entries to the front of 'vertex' (should match current.count)
+    //
 }
 
 void SWVectorizer::vec_Begin(uint32_t cycle, float x, float y, float z)
