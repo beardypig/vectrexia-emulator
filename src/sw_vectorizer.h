@@ -43,17 +43,15 @@ public:
 protected:
     
     // Invoked when BLANK turns OFF
-    void vec_Begin(uint32_t cycle, double x, double y, double z);
+    void vec_Begin(uint32_t cycle, float x, float y, float z);
 
     // Invoked when BLANK turns ON
-    void vec_End(uint32_t cycle, double x, double y, double z);
+    void vec_End(uint32_t cycle, float x, float y, float z);
 
     // Invoked when beam state changes (direction, brightness)
-    void vec_Vertex(uint32_t cycle, double x, double y, double z);
+    void vec_Vertex(uint32_t cycle, float x, float y, float z);
 
-    // Vector duration count
-    uint32_t cycle = 0;
-    
+    // Framebuffer
     framebuffer_t frameBuffer;
 };
 

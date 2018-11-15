@@ -35,20 +35,17 @@ void SWVectorizer::draw()
     // TODO: reset cycle count and state machine
 }
 
-void SWVectorizer::vec_Begin(uint32_t cycle, double x, double y, double z)
+void SWVectorizer::vec_Begin(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: Add Integrator invoke call
     // TODO: write vertex into vector buffer
 }
 
-void SWVectorizer::vec_End(uint32_t cycle, double x, double y, double z)
+void SWVectorizer::vec_End(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: Add Integrator invoke call
     // TODO: write vertex into vector buffer
 }
 
-void SWVectorizer::vec_Vertex(uint32_t cycle, double x, double y, double z)
+void SWVectorizer::vec_Vertex(uint32_t cycle, float x, float y, float z)
 {
-    // TODO: Add Integrator invoke call
     // TODO: write vertex into vector buffer
 }

@@ -320,12 +320,18 @@ public:
         if (blank_state)
         {
             // BLANK turned ON; end of vector
-            static_cast<T*>(this)->vec_End(cycles, vX, vY, vZ);
+            static_cast<T*>(this)->vec_End(cycles,
+                static_cast<float>(vX),
+                static_cast<float>(vY),
+                static_cast<float>(vZ));
         }
         else
         {
             // BLANK turned OFF; beginning of vector
-            static_cast<T*>(this)->vec_Begin(cycles, vX, vY, vZ);
+            static_cast<T*>(this)->vec_Begin(cycles,
+                static_cast<float>(vX),
+                static_cast<float>(vY),
+                static_cast<float>(vZ));
         }
 
         // update state variables
@@ -343,7 +349,10 @@ public:
                 beamz_state != Vz)
             {
                 // Beam has changed, record new vertex
-                static_cast<T*>(this)->vec_Vertex(cycles, vX, vY, vZ);
+                static_cast<T*>(this)->vec_Vertex(cycles,
+                    static_cast<float>(vX),
+                    static_cast<float>(vY),
+                    static_cast<float>(vZ));
 
                 // update state variables
                 beamx_state = int_Vx;       // Detect changes in direction
