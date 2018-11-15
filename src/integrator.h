@@ -44,6 +44,12 @@ protected:
   int d_ZERO_Y = 15;
   int d_RAMP_Y = 15;
 
+  // State-machine memory
+  bool   blank_state = false;
+  double beamx_state = 0.0;
+  double beamy_state = 0.0;
+  double beamz_state = 0.0;
+
 public:
 
   // State variables
@@ -61,10 +67,14 @@ public:
   double vY = 0.0f;           // Y-axis output voltage
   double vZ = 0.0f;           // Z-axis output voltage
 
+  // Delay queues
   vxl::delay<std::pair<bool, float>>  rampX;
   vxl::delay<std::pair<bool, double>> rampY;
   vxl::delay<std::pair<bool, double>> zeroX;
   vxl::delay<std::pair<bool, double>> zeroY;
+
+  // Cycle counter
+  uint32_t cycles = 0;
 
   Integrator(MPXPorts * mpx_, VIAPorts * via_, DACPorts * dac_)
       : mpx(mpx_), via(via_), dac(dac_),
@@ -301,5 +311,49 @@ public:
       // Final output with added offset
       vX = vxl::clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
     }
+
+    if (BLANK != blank_state) 
+    {
+        // BLANK changed state
+        blank_state = BLANK;
+
+        if (blank_state)
+        {
+            // BLANK turned ON; end of vector
+            static_cast<T*>(this)->vec_End(cycles, vX, vY, vZ);
+        }
+        else
+        {
+            // BLANK turned OFF; beginning of vector
+            static_cast<T*>(this)->vec_Begin(cycles, vX, vY, vZ);
+        }
+
+        // update state variables
+        beamx_state = int_Vx;       // Detect changes in direction
+        beamy_state = int_Vy;       // Detect changes in direction
+        beamz_state = Vz;           // Detect changes in brightness
+    }
+    else
+    {
+        if (!blank_state)
+        {
+            // only when blank is OFF
+            if (beamx_state != int_Vx ||
+                beamy_state != int_Vy ||
+                beamz_state != Vz)
+            {
+                // Beam has changed, record new vertex
+                static_cast<T*>(this)->vec_Vertex(cycles, vX, vY, vZ);
+
+                // update state variables
+                beamx_state = int_Vx;       // Detect changes in direction
+                beamy_state = int_Vy;       // Detect changes in direction
+                beamz_state = Vz;           // Detect changes in brightness
+            }
+        }
+    }
+
+    // Update cycle count
+    cycles++;
   };
 };
