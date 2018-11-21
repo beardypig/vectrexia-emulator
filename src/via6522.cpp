@@ -274,7 +274,7 @@ void VIA6522::Reset()
     clk = 0;
 }
 
-void VIA6522::Step()
+void VIA6522::step()
 {
     // Update any delayed signals
     delayed_signals.tick(clk++);
@@ -365,36 +365,22 @@ void VIA6522::Step()
         delayed_signals.enqueue(clk+1, &ca2_state, 1);
 
     // Set the outputs
-    ports.IRQ = registers.IFR & IRQ_MASK;
-    ports.PA  = registers.ORA;
+    ports_.IRQ = registers.IFR & IRQ_MASK;
+    ports_.PA  = registers.ORA;
 
     uint8_t portb = (registers.ACR & T1_PB7_CONTROL)
         ? (uint8_t)((registers.ORB & ~0x80) | registers.PB7)
         : registers.ORB;
 
-    ports.PB0 = (portb >> 0) & 0x1;
-    ports.PB1 = (portb >> 1) & 0x1;
-    ports.PB2 = (portb >> 2) & 0x1;
-    ports.PB3 = (portb >> 3) & 0x1;
-    ports.PB4 = (portb >> 4) & 0x1;
-    ports.PB5 = (portb >> 5) & 0x1;
-    ports.PB7 = (portb >> 7) & 0x1;
-
-    ports.CA2 = ca2_state;
-    ports.CB1 = (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr;
-    ports.CB2 = (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state;
+    ports_.CA2 = ca2_state;
+    ports_.CB1 = (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr;
+    ports_.CB2 = (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state;
 }
 
 void VIA6522::SetPortAReadCallback(VIA6522::port_callback_t func, intptr_t ref)
 {
     porta_callback_func = func;
     porta_callback_ref = ref;
-}
-
-void VIA6522::SetPortBReadCallback(VIA6522::port_callback_t func, intptr_t ref)
-{
-    portb_callback_func = func;
-    portb_callback_ref = ref;
 }
 
 uint8_t VIA6522::GetIRQ()
@@ -420,4 +406,9 @@ uint8_t VIA6522::getPortBState()
 uint8_t VIA6522::getPortAState()
 {
     return registers.ORA;
+}
+
+VIA6522::ports_t *VIA6522::ports()
+{
+    return &ports_;
 }

@@ -1,13 +1,34 @@
+/*
+Copyright (C) 2016 beardypig
+
+This file is part of Vectrexia.
+
+Vectrexia is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Vectrexia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef INTEGRATOR_H
+#define INTEGRATOR_H
+
 #include <cassert>
 #include "via6522.h"
 #include "cd4052b.h"
 #include "mc1408p8.h"
 #include "veclib.h"
 
-template<typename Base>
-class Integrator : public Base {
+template<class T>
+class Integrator {
 protected:
-
   // Constants
   const float r_CD4052B = 125.0f;         // Multiplexer impedance
   const float r_CD4066B = 125.0f;         // Switch impedance
@@ -144,7 +165,7 @@ public:
     //
 
     // Y axis buffer
-    if (!via->PB0)
+    if (!via->pb_sh())
     {
       // The capacitor is charging to mpx->out1A...
       v_C304 += (mpx->out1A - v_C304) * (1.0f - cc_C304);
@@ -156,7 +177,7 @@ public:
     }
 
     // Z axis buffer
-    if (!via->PB0)
+    if (!via->pb_sh())
     {
       // The capacitor is charging to mpx->out1C...
       v_C306 += (mpx->out1C - v_C306) * (1.0f - cc_C306);
@@ -171,8 +192,8 @@ public:
     // BEGIN: ZERO & RAMP DELAY CALCULATIONS
     //
 
-    rampY.step({ via->PB7, v_C304 });
-    rampX.step({ via->PB7, dac->Vout });
+    rampY.step({ via->pb_ramp(), v_C304 });
+    rampX.step({ via->pb_ramp(), dac->Vout });
     zeroY.step({ via->CA2, v_C312 });
     zeroX.step({ via->CA2, v_C313 });
     
@@ -312,10 +333,10 @@ public:
       vX = vxl::clamp(integratorOut + mpx->out1B, (double)Vss, (double)Vdd);
     }
 
-    if (BLANK != blank_state) 
+    if (via->CB2 != blank_state)
     {
         // BLANK changed state
-        blank_state = BLANK;
+        blank_state = via->CB2;
 
         if (blank_state)
         {
@@ -335,18 +356,18 @@ public:
         }
 
         // update state variables
-        beamx_state = int_Vx;       // Detect changes in direction
-        beamy_state = int_Vy;       // Detect changes in direction
-        beamz_state = Vz;           // Detect changes in brightness
+        beamx_state = int_vX;       // Detect changes in direction
+        beamy_state = int_vY;       // Detect changes in direction
+        beamz_state = vZ;           // Detect changes in brightness
     }
     else
     {
         if (!blank_state)
         {
             // only when blank is OFF
-            if (beamx_state != int_Vx ||
-                beamy_state != int_Vy ||
-                beamz_state != Vz)
+            if (beamx_state != int_vX ||
+                beamy_state != int_vY ||
+                beamz_state != vZ)
             {
                 // Beam has changed, record new vertex
                 static_cast<T*>(this)->vec_Vertex(cycles,
@@ -355,9 +376,9 @@ public:
                     static_cast<float>(vZ));
 
                 // update state variables
-                beamx_state = int_Vx;       // Detect changes in direction
-                beamy_state = int_Vy;       // Detect changes in direction
-                beamz_state = Vz;           // Detect changes in brightness
+                beamx_state = int_vX;       // Detect changes in direction
+                beamy_state = int_vY;       // Detect changes in direction
+                beamz_state = vZ;           // Detect changes in brightness
             }
         }
     }
@@ -366,3 +387,5 @@ public:
     cycles++;
   };
 };
+
+#endif

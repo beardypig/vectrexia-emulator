@@ -22,7 +22,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 void Joystick::step()
 {
     // Connects to the PSG
-    ports.io = (p2_joystick.btn_4 << 7) |
+    ports_.io = (p2_joystick.btn_4 << 7) |
                (p2_joystick.btn_3 << 6) |
                (p2_joystick.btn_2 << 5) |
                (p2_joystick.btn_1 << 4) |
@@ -32,8 +32,13 @@ void Joystick::step()
                (p1_joystick.btn_1);
 
     // Connects to the multiplexer
-    ports.p1_pot_x = p1_joystick.pot_x;
-    ports.p1_pot_y = p1_joystick.pot_y;
-    ports.p2_pot_x = p2_joystick.pot_x;
-    ports.p2_pot_y = p2_joystick.pot_y;
+    ports_.p1_pot_x = p1_joystick.pot_x;
+    ports_.p1_pot_y = p1_joystick.pot_y;
+    ports_.p2_pot_x = p2_joystick.pot_x;
+    ports_.p2_pot_y = p2_joystick.pot_y;
+}
+
+Joystick::ports_t * Joystick::ports()
+{
+    return &ports_;
 }

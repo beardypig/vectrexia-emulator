@@ -27,10 +27,11 @@ set(VECTREXIA_SOURCE
 	m6809.cpp
     via6522.cpp
     ay38910.cpp
-	vectorizer.cpp gfxutil.h
 	debugfont.cpp
 	cd4052b.cpp
-	mc1408p8.cpp)
+	mc1408p8.cpp
+	joystick.cpp
+	sw_vectorizer.cpp)
 
 # vectrexia_libretro
 # Main target; a shared library (.so / .dll)

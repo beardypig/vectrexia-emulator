@@ -19,10 +19,10 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mc1408p8.h"
 
-MC1408P8::MC1408P8(VIAPorts * via_) : via(via_), delay(1, 0.0f) { }
+MC1408P8::MC1408P8(PSGPorts * psg_) : psg(psg_), delay(0, 0.0f) { }
 
 void MC1408P8::step()
 {
-    delay.step(2.5f - ((via->PA ^ 0x80) * (5.0f / 256.0f)));
+    delay.step(2.5f - ((psg->bus ^ 0x80) * (5.0f / 256.0f)));
     Vout = delay.output;
 }

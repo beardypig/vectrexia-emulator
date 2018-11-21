@@ -43,9 +43,12 @@ public:
    
     pins_t p1_joystick;
     pins_t p2_joystick;
-    ports_t ports;
 
     void step();
+    ports_t *ports();
+
+private:
+    ports_t ports_;
 };
 
 using JoyPorts = Joystick::ports_t;

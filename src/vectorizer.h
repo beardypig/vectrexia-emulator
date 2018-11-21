@@ -32,7 +32,7 @@ private:
   MPXPorts mpx{};
   VIAPorts via{};
   DACPorts dac{};
-  XYZAxisIntegrators integrators = XYZAxisIntegrators(&mpx, &via, &dac);
+  //XYZAxisIntegrators integrators = XYZAxisIntegrators(&mpx, &via, &dac);
 
 public:
   void Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank);

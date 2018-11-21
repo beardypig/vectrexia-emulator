@@ -566,6 +566,43 @@ void draw_line(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
 }
 
 /*
+ * Basic line drawing function
+ */
+template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>
+void draw_line_analog(T &fb, int x0, int y0, int x1, int y1, const Pf &c)
+{
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+    int sx = x0 < x1 ? 1 : -1;
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx - dy;
+
+    while (1)
+    {
+        auto pos = (y0 * fb.width) + x0;
+        if (x0 < fb.width && x0 >= 0 && y0 < fb.height && y0 >= 0) {
+            DrawMode()(fb, pos, c);
+        }
+
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy)
+        {
+            err = err - dy;
+            x0 = x0 + sx;
+        }
+
+        if (e2 < dx)
+        {
+            err = err + dx;
+            y0 = y0 + sy;
+        }
+    }
+}
+
+/*
  * Voltage based line drawing
  */
 template<typename DrawMode, typename T, typename Pf = decltype(T::value_type)>

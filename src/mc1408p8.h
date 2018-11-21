@@ -20,7 +20,7 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef VECTREXIA_MC1407P8_H
 #define VECTREXIA_MC1407P8_H
 
-#include "via6522.h"
+#include "ay38910.h"
 #include "veclib.h"
 
 /*
@@ -31,7 +31,7 @@ class MC1408P8
 public:
     
     // Constructor
-    MC1408P8(VIAPorts * via_);
+    MC1408P8(PSGPorts * psg);
 
     // Stepping function
     void step();
@@ -41,7 +41,7 @@ public:
 
 private:
     vxl::delay<float> delay;
-    VIAPorts *via;
+    PSGPorts *psg = nullptr;
 };
 
 using DACPorts = MC1408P8;

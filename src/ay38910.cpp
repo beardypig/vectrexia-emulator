@@ -22,9 +22,17 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <array>
 #include "ay38910.h"
 
-void AY38910::Step(uint8_t bus, uint8_t bc1, uint8_t bc2, uint8_t bdir)
+AY38910::AY38910(VIAPorts * via_, JoyPorts *joy_)
+    :via(via_), joy(joy_), bus_delay(0, 0) { }
+
+void AY38910::step()
 {
-    switch(bdir << 2 | bc2 << 1 | bc1)
+    // uint8_t bdir = via->PB4;
+    // uint8_t bc1 = via->PB3;
+    // uint8_t bus = via->PA;
+    constexpr uint8_t bc2 = 1;
+
+    switch(via->pb_snd2() << 2 | bc2 << 1 | via->pb_snd1())
     {
         case PSG_NACT: // disabled
         case PSG_IAB:
@@ -34,22 +42,14 @@ void AY38910::Step(uint8_t bus, uint8_t bc1, uint8_t bc2, uint8_t bdir)
         case PSG_LATCH_BAR:
         case PSG_LATCH_INTAK:
             // NOTE: address are octal in the documentation
-            addr = (uint8_t)(bus & 0xf);
+            addr = (uint8_t)(via->PA & 0xf);
             break;
         case PSG_DWS:
-            Write(addr, bus);
+            Write(addr, via->PA);
             break;
         case PSG_DTS:
-            // read callback
-            if (store_reg_func) {
-                if (addr == PSG_REG_PORTA) { // read from IO
-                    if (read_io_func)
-                        store_reg_func(store_reg_ref, read_io_func(read_io_ref));
-                }
-                else { // read from regular register
-                    store_reg_func(store_reg_ref, regs[addr]);
-                }
-            }
+            ports_.bus = (addr == PSG_REG_PORTA)
+                ? ports_.io : regs[addr];
             break;
         default:
             break;
@@ -120,18 +120,6 @@ void AY38910::Write(uint8_t reg, uint8_t value)
     }
 }
 
-void AY38910::SetIOReadCallback(AY38910::read_io_callback func, intptr_t ref)
-{
-    read_io_func = func;
-    read_io_ref = ref;
-}
-
-void AY38910::SetRegStoreCallback(AY38910::store_reg_callback func, intptr_t ref)
-{
-    store_reg_func = func;
-    store_reg_ref = ref;
-}
-
 void AY38910::FillBuffer(uint8_t *buffer, size_t length)
 {
     int16_t ampl_a = 0, ampl_b = 0, ampl_c = 0;
@@ -150,4 +138,9 @@ void AY38910::FillBuffer(uint8_t *buffer, size_t length)
                                             (channel_b_on ? ampl_b : 0) +
                                             (channel_c_on ? ampl_c : 0)) / 3.0) >> 8);
     }
+}
+
+AY38910::ports_t *AY38910::ports()
+{
+    return &ports_;
 }

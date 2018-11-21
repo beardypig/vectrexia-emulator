@@ -245,16 +245,22 @@ void retro_run(void)
     vectrex->SetPlayerOne(p1_x, p1_y, p1_b1, p1_b2, p1_b3, p1_b4);
     vectrex->SetPlayerTwo(p2_x, p2_y, p2_b1, p2_b2, p2_b3, p2_b4);
 
-    vectrex->psg_->channel_a_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_1);
-    vectrex->psg_->channel_b_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_2);
-    vectrex->psg_->channel_c_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3);
+    vectrex->psg->channel_a_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_1);
+    vectrex->psg->channel_b_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_2);
+    vectrex->psg->channel_c_on = !input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, RETROK_3);
 
     // Vectrex CPU is 1.5MHz (1500000) and at 50 fps, a frame lasts 20ms, therefore in every frame 30,000 cycles happen.
     auto cycles_run = vectrex->Run(cycles_per_frame);
 
+    // Draw the frame
+    vectrex->vec->draw(cycles_per_frame);
+
     // Get buffers
     auto fb = vectrex->getFramebuffer();
     //auto db = vectrex->getDebugbuffer();
+
+
+
 
     // Print sound debugging text
     //vxgfx::draw_text<vxgfx::m_direct>(*db, 2, 10, green, vxl::format("@ %.fHz", (double)(cycles_run * 50)));
@@ -278,7 +284,7 @@ void retro_run(void)
 
     // 882 audio samples per frame (44.1kHz @ 50 fps)
     uint8_t buffer[882];
-    vectrex->psg_->FillBuffer(buffer, sizeof(buffer));
+    vectrex->psg->FillBuffer(buffer, sizeof(buffer));
 
     for (unsigned char i : buffer) {
         auto convs = static_cast<short>((i << 8u) - 0x7ffu);
@@ -292,22 +298,22 @@ void retro_run(void)
 
 
 static void update_variables(void) {
-#ifdef VECTREXIA_DEBUG
-  struct retro_variable var = {
-      .key = "vectrexia_internal_slowdown",
-  };
-
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-    char str[100];
-    snprintf(str, sizeof(str), "%s", var.value);
-
-    auto pch = strtok(str, "x");
-    if (pch) {
-      auto factor = strtoul(pch, nullptr, 0);
-      cycles_per_frame = CYCLES_PER_FRAME / factor;
-    }
-
-    log_cb(RETRO_LOG_DEBUG, "[vectrexia]: Running at %lu cycles per frame.\n", cycles_per_frame);
-  }
-#endif
+//#ifdef VECTREXIA_DEBUG
+//  struct retro_variable var = {
+//      .key = "vectrexia_internal_slowdown",
+//  };
+//
+//  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+//    char str[100];
+//    snprintf(str, sizeof(str), "%s", var.value);
+//
+//    auto pch = strtok(str, "x");
+//    if (pch) {
+//      auto factor = strtoul(pch, nullptr, 0);
+//      cycles_per_frame = CYCLES_PER_FRAME / factor;
+//    }
+//
+//    log_cb(RETRO_LOG_DEBUG, "[vectrexia]: Running at %lu cycles per frame.\n", cycles_per_frame);
+//  }
+//#endif
 }

@@ -22,6 +22,9 @@ along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include "via6522.h"
+#include "veclib.h"
+#include "joystick.h"
 
 const double pi = std::acos(-1);
 
@@ -226,23 +229,37 @@ class AY38910
     // port a/b read callbacks
     store_reg_callback store_reg_func = nullptr;
 
-    intptr_t           store_reg_ref = 0;
-    read_io_callback   read_io_func = nullptr;
-    intptr_t           read_io_ref = 0;
+    vxl::delay<uint8_t> bus_delay;
+    intptr_t            store_reg_ref = 0;
+    VIAPorts            *via = nullptr;
+    JoyPorts            *joy = nullptr;
+
 public:
 
-    bool channel_a_on = true, channel_b_on = true, channel_c_on = true;
-
-    void Step(uint8_t bus, uint8_t bc1, uint8_t bc2, uint8_t bdir);
-    void SetIOReadCallback(read_io_callback func, intptr_t ref);
-    void SetRegStoreCallback(store_reg_callback func, intptr_t ref);
-    void Write(uint8_t reg, uint8_t value);
-    void FillBuffer(uint8_t * const buffer, size_t length);
+    bool channel_a_on = true;
+    bool channel_b_on = true;
+    bool channel_c_on = true;
 
     channel_t<44100> channel_a, channel_b, channel_c;
     noise_t<44100> channel_noise;
     envelope_t<44100> envelope;
+
+    struct ports_t {
+        uint8_t bus = 0;    // Connected to DAC
+        uint8_t io = 0;     // Connected to joystick inputs
+    };
+
+    AY38910(VIAPorts *via_, JoyPorts *joy_);
+    void step();
+    void Write(uint8_t reg, uint8_t value);
+    void FillBuffer(uint8_t * const buffer, size_t length);
+    ports_t *ports();
+
+private:
+    ports_t ports_{};
 };
+
+using PSGPorts = AY38910::ports_t;
 
 
 #endif //VECTREXIA_AY38910_H

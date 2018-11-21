@@ -235,8 +235,6 @@ class VIA6522
     // port a/b read callbacks
     port_callback_t porta_callback_func = nullptr;
     intptr_t        porta_callback_ref = 0;
-    port_callback_t portb_callback_func = nullptr;
-    intptr_t        portb_callback_ref = 0;
 
     // Signals that need to be updated in the future
     UpdateTimer<uint8_t> delayed_signals;
@@ -308,7 +306,9 @@ class VIA6522
             //via_debug("Reading PORTB in latched mode\r\n");
             orb |= registers.IRB_latch & ~registers.DDRB;
         } else {
-            orb |= (portb_callback_func) ? portb_callback_func(portb_callback_ref) & ~registers.DDRB : 0;
+            orb |= (ports_.pb_comp()) << 5 & ~registers.DDRB;
+            // TODO: is this correct?? :/
+            // orb |= (portb_callback_func) ? portb_callback_func(portb_callback_ref) & ~registers.DDRB : 0;
         }
         return orb;
     }
@@ -318,25 +318,47 @@ public:
     struct ports_t {
         uint8_t IRQ;    // IRQ
         uint8_t PA;     // Connected to the soundchip (AY3-8912)
-        bool PB0;       // S/H
-        bool PB1;       // Sel 0
-        bool PB2;       // Sel 1
-        bool PB3;       // Sound (clock?)
-        bool PB4;       // Sound (clock?)
-        bool PB5;       // Compare
-        bool PB7;       // Ramp
+        uint8_t PB;
         bool CA2;       // Zero
         bool CB1;       // Not Connected
         bool CB2;       // Blank
-    } ports;
+
+        uint8_t pb_sh()   { return (PB >> 0) & 0x1; } //PB0
+        uint8_t pb_sel0() { return (PB >> 1) & 0x1; } //PB1
+        uint8_t pb_sel1() { return (PB >> 2) & 0x1; } //PB2
+        uint8_t pb_snd1() { return (PB >> 3) & 0x1; } //PB3
+        uint8_t pb_snd2() { return (PB >> 4) & 0x1; } //PB4
+        uint8_t pb_comp() { return (PB >> 5) & 0x1; } //PB5
+        uint8_t pb_cart() { return (PB >> 6) & 0x1; } //PB6
+        uint8_t pb_ramp() { return (PB >> 7) & 0x1; } //PB7
+
+        void set_pb_sh()   { PB |= (0x1 << 0); }  //PB0
+        void set_pb_sel0() { PB |= (0x1 << 1); }  //PB1
+        void set_pb_sel1() { PB |= (0x1 << 2); }  //PB2
+        void set_pb_snd1() { PB |= (0x1 << 3); }  //PB3
+        void set_pb_snd2() { PB |= (0x1 << 4); }  //PB4
+        void set_pb_comp() { PB |= (0x1 << 5); }  //PB5
+        void set_pb_cart() { PB |= (0x1 << 6); }  //PB6
+        void set_pb_ramp() { PB |= (0x1 << 7); }  //PB7
+
+        void clr_pb_sh()   { PB &= ~(0x1 << 0); } //PB0
+        void clr_pb_sel0() { PB &= ~(0x1 << 1); } //PB1
+        void clr_pb_sel1() { PB &= ~(0x1 << 2); } //PB2
+        void clr_pb_snd1() { PB &= ~(0x1 << 3); } //PB3
+        void clr_pb_snd2() { PB &= ~(0x1 << 4); } //PB4
+        void clr_pb_comp() { PB &= ~(0x1 << 5); } //PB5
+        void clr_pb_cart() { PB &= ~(0x1 << 6); } //PB6
+        void clr_pb_ramp() { PB &= ~(0x1 << 7); } //PB7
+    };
+
+    ports_t *ports();
 
     VIA6522() = default;
-    void Step();
+    void step();
     void Reset();
 
     // Set callbacks for read and write, must be a static function
     void SetPortAReadCallback(port_callback_t func, intptr_t ref);
-    void SetPortBReadCallback(port_callback_t func, intptr_t ref);
 
     uint8_t Read(uint8_t reg);              // read from VIA register
     void Write(uint8_t reg, uint8_t data);  // write to VIA register
@@ -349,6 +371,9 @@ public:
     uint8_t getCA2State() { return ca2_state; }
     uint8_t getCB1State() { return (registers.ACR & SR_EXT) == SR_EXT ? cb1_state : cb1_state_sr; }
     uint8_t getCB2State() { return (registers.ACR & SR_IN_OUT) ? cb2_state_sr : cb2_state; };
+
+private:
+    ports_t ports_;
 };
 
 using VIAPorts = VIA6522::ports_t;
