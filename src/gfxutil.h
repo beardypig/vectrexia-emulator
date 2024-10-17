@@ -685,7 +685,7 @@ struct transform {
     float wr;       // ratio width
     float hr;       // ratio height
 
-    transform(const rect_t s, const rect_t d)
+    transform(rect_t s, rect_t d)
     : src(std::move(s)), dst(std::move(d)) {
         wr = static_cast<float>(s.width()) / d.width();
         hr = static_cast<float>(s.height()) / d.height();

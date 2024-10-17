@@ -27,7 +27,7 @@ class Cartridge
     const int REGULAR_ROM_SIZE = 32768;
     const int MAX_ROM_SIZE = 65536;
     // 64K of cartridge for bank switched ROMs
-    std::array<uint8_t, 65536> rom_;
+    std::array<uint8_t, 65536> rom_ = {};
     bool is_loaded_flag_ = false;
 
 public:

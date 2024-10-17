@@ -1,33 +1,52 @@
+/*
+Copyright (C) 2016-2024 Team Vectrexia
+
+This file is part of Vectrexia.
+
+Vectrexia is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Vectrexia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <m6809.h>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <stdint.h>
 
-using ::testing::Return;
-using ::testing::_;
+#include <catch2/catch_all.hpp> 
+#include <catch2/trompeloeil.hpp> /* this should go last */
 
-class MockMemory
+using trompeloeil::_;
+
+struct MockMemory
 {
-public:
-    MOCK_METHOD1(Read, uint8_t(uint16_t addr));
-    MOCK_METHOD2(Write, void(uint16_t addr, uint8_t value));
+   MAKE_MOCK1(Read, auto(uint16_t addr) -> uint8_t);
+   MAKE_MOCK2(Write, auto(uint16_t addr, uint8_t value) -> void);
 };
 
-static uint8_t read_mem(intptr_t ref, uint16_t addr)
-{
+static uint8_t read_mem(intptr_t ref, uint16_t addr) {
     return reinterpret_cast<MockMemory*>(ref)->Read(addr);
 }
 
-static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
-{
+static void write_mem(intptr_t ref, uint16_t addr, uint8_t data) {
     reinterpret_cast<MockMemory*>(ref)->Write(addr, data);
 }
 
-M6809 OpCodeTestHelper(MockMemory &mem)
-{
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x00))
-            .WillOnce(Return(0x00));
+
+M6809 OpCodeTestHelper(MockMemory& mem, trompeloeil::sequence &seq) {
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x00)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x00)
+        .IN_SEQUENCE(seq);
 
     M6809 cpu;
     cpu.SetReadCallback(&read_mem, reinterpret_cast<intptr_t>(&mem));
@@ -37,396 +56,283 @@ M6809 OpCodeTestHelper(MockMemory &mem)
 
     return cpu;
 }
+/*
+ * ABX
+ */
 
-TEST(M6809OpCodes, ABXInherent)
-{
-
+TEST_CASE("M6809OpCodes ABXInherent", "[m6809]") {
     MockMemory mem;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x3a));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x3a)
+		.IN_SEQUENCE(seq);
 
-    uint64_t cycles;
+    uint64_t cycles = 0;
 
     registers.B = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-
-    EXPECT_EQ(0x10, registers.X);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.X == 0x10);
 }
 
 /*
  * ADDA
  */
-
-TEST(M6809OpCodes, ADDAImmediate)
-{
+TEST_CASE("M6809OpCodes ADDAImmediate", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x8B))
-            .WillOnce(Return(0x10));
+
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x8B)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)
+        .IN_SEQUENCE(seq);
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x20, registers.A);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0x20);
 }
 
-TEST(M6809OpCodes, ADDADirect)
-{
+TEST_CASE("M6809OpCodes ADDADirect", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x9B))  // Direct ADDA
-            .WillOnce(Return(0x10)); // Page offset
 
-    // direct page offset will be 0x10, and the direct page will be 0x00
-    EXPECT_CALL(mem, Read(0x0010))
-            .WillOnce(Return(0x15));
-
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x9B)  // Direct ADDA
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)  // Page offset
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x0010))
+        .RETURN(0x15)
+        .IN_SEQUENCE(seq);
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-
-    // the result (0x25) should be stored in A
-    EXPECT_EQ(0x25, registers.A);
-
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0x25);
 }
 
-TEST(M6809OpCodes, ADDAExtended)
-{
+TEST_CASE("M6809OpCodes ADDAExtended", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0xBB))  // Direct ADDA
-            .WillOnce(Return(0x01))  // 2 byte address (0x1001)
-            .WillOnce(Return(0x10));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0xBB)
+        .IN_SEQUENCE(seq);  // Extended ADDA
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x01)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)
+        .IN_SEQUENCE(seq);
 
-    // expect a read at the extended offset 0x1001
-    EXPECT_CALL(mem, Read(0x1001))
-            .WillOnce(Return(0x15));
+    REQUIRE_CALL(mem, Read(0x1001))
+        .RETURN(0x15);
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-
-    // the result (0x25) should be stored in A
-    EXPECT_EQ(0x25, registers.A);
-
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0x25);
 }
 
 /*
  * ADDD
  */
-TEST(M6809OpCodes, ADDDImmediate)
-{
+TEST_CASE("M6809OpCodes ADDDImmediate", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0xC3))
-            .WillOnce(Return(0x20)) // 0x1020
-            .WillOnce(Return(0x10));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0xC3)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x20)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)
+        .IN_SEQUENCE(seq);
 
     registers.D = 0x2010;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-
-    EXPECT_EQ(registers.PC, 3);
-
-    EXPECT_EQ(0x3030, registers.D);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.PC == 3);
+    REQUIRE(registers.D == 0x3030);
 }
 
 /*
  * SUBA
  */
-
-TEST(M6809OpCodes, SUBAImmediate)
-{
+TEST_CASE("M6809OpCodes SUBAImmediate", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x80))
-            .WillOnce(Return(0x10));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x80)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)
+        .IN_SEQUENCE(seq);
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x00, registers.A);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0x00);
 }
 
-TEST(M6809OpCodes, SUBAImmediate2)
-{
+TEST_CASE("M6809OpCodes SUBAImmediate2", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x80))
-            .WillOnce(Return(0x12));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x80)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x12)
+        .IN_SEQUENCE(seq);
 
     registers.A = 0x10;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xfe, registers.A);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0xFE);
 }
 
 /*
  * BIT - bitwise and, the register should not be updated
  */
-TEST(M6809OpCodes, BITAImmediate)
-{
+TEST_CASE("M6809OpCodes BITAImmediate", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x85))
-            .WillOnce(Return(0x12));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x85)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x12)
+        .IN_SEQUENCE(seq);
 
     registers.A = 0xFF;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xFF, registers.A);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.A == 0xFF);
+    REQUIRE((registers.CC & (FLAG_Z | FLAG_N | FLAG_V)) == 0);
 }
 
 /*
  * EXG - exchange two registers
- *
- * Exchange X and Y
  */
-TEST(M6809OpCodes, EXGRegistersXY)
-{
+TEST_CASE("M6809OpCodes EXGRegistersXY", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1E))  // EXG
-        .WillOnce(Return(0x12)); // X <-> Y
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x1E)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x12)
+        .IN_SEQUENCE(seq); // X <-> Y
 
     registers.X = 0x00FF;
     registers.Y = 0xFF00;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x00FF, registers.Y);
-    EXPECT_EQ(0xFF00, registers.X);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.Y == 0x00FF);
+    REQUIRE(registers.X == 0xFF00);
+    REQUIRE((registers.CC & (FLAG_Z | FLAG_N | FLAG_V)) == 0);
 }
-
-/*
- * Exchange X and A, X will be truncated in to A
- */
-TEST(M6809OpCodes, EXGRegistersXA)
-{
-    MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
-
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1E))  // EXG
-        .WillOnce(Return(0x18)) // X <-> A
-        .WillOnce(Return(0x1E))  // EXG
-        .WillOnce(Return(0x81)); // A <-> X (same but reversed)
-
-    registers.A = 0x00;
-    registers.X = 0xBEEF;
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xBE, registers.A);
-    EXPECT_EQ(0xFF00, registers.X);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-
-    // Same exchange, but in reverse
-    registers.A = 0x00;
-    registers.X = 0xBEEF;
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xBE, registers.A);
-    EXPECT_EQ(0xFF00, registers.X);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-}
-
-/*
- * Exchange A and B
- */
-TEST(M6809OpCodes, EXGRegistersAB)
-{
-    MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
-
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1E))  // EXG
-        .WillOnce(Return(0x89)); // A <-> B
-
-    registers.A = 0xFF;
-    registers.B = 0x00;
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x00, registers.A);
-    EXPECT_EQ(0xFF, registers.B);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-}
-
 
 /*
  * TFR - move one register to another
- *
- * Transfer X to Y
  */
-TEST(M6809OpCodes, TFRRegistersXY)
-{
+TEST_CASE("M6809OpCodes TFRRegistersXY", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1F))  // TFR
-        .WillOnce(Return(0x12)); // X -> Y
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x1F)
+        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x12)
+        .IN_SEQUENCE(seq); // X -> Y
 
     registers.X = 0x1111;
     registers.Y = 0x0000;
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x1111, registers.X);
-    EXPECT_EQ(0x1111, registers.Y);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.X == 0x1111);
+    REQUIRE(registers.Y == 0x1111);
+    REQUIRE((registers.CC & (FLAG_Z | FLAG_N | FLAG_V)) == 0);
 }
 
 /*
- * Transfer X to A, X will be truncated in to A
+ * BSR - Branch Subroutine
  */
-TEST(M6809OpCodes, TFRRegistersXA)
-{
+TEST_CASE("M6809OpCodes BSRCorrectJump", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1F))  // TFR
-        .WillOnce(Return(0x18)) // X -> A
-        .WillOnce(Return(0x1F))  // TFR
-        .WillOnce(Return(0x81)); // A -> X (same but reversed)
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x8D)
+        .IN_SEQUENCE(seq);  // BSR
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x10)
+        .IN_SEQUENCE(seq);
 
-    registers.A = 0x00;
-    registers.X = 0xBEEF;
+    REQUIRE_CALL(mem, Write(0xffff, 0x02));
+    REQUIRE_CALL(mem, Write(0xfffe, 0x00));
 
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xBE, registers.A);
-    EXPECT_EQ(0xBEEF, registers.X);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-
-    // Same exchange, but in reverse
-    registers.A = 0x11;
-    registers.X = 0x0000;
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0x11, registers.A);
-    EXPECT_EQ(0xFF11, registers.X);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-}
-
-/*
- * Transfer A to B
- */
-TEST(M6809OpCodes, TFRRegistersAB)
-{
-    MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
-
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x1F))  // TFR
-        .WillOnce(Return(0x89)); // A -> B
-
-    registers.A = 0xFF;
-    registers.B = 0x00;
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    EXPECT_EQ(0xFF, registers.A);
-    EXPECT_EQ(0xFF, registers.B);
-    // no flags should be set
-    EXPECT_EQ(0, registers.CC & (FLAG_Z|FLAG_N|FLAG_V));
-}
-
-/*
- * Branch Subroutine BSR
- */
-TEST(M6809OpCodes, BSRCorrectJump)
-{
-    MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
-
-    // provide the OP codes
-    EXPECT_CALL(mem, Read(_))
-        .WillOnce(Return(0x8D))  // BSR
-        .WillOnce(Return(0x10)); // A -> B
-
-    // write the return address to the stack
-    EXPECT_CALL(mem, Write(0xffff, 0x02));
-    EXPECT_CALL(mem, Write(0xfffe, 0x00));
-
-    EXPECT_EQ(E_SUCCESS, cpu.Execute(cycles));
-    // should jump forward 0x10 from the end of the BSR instruction
-    EXPECT_EQ(0x0012, registers.PC);
+    REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
+    REQUIRE(registers.PC == 0x0012);
 }
 
 /*
  * Illegal Opcode
  */
-TEST(M6809OpCodes, IllegalOp)
-{
+TEST_CASE("M6809OpCodes IllegalOp", "[m6809]") {
     MockMemory mem;
-    uint64_t cycles;
-    M6809 cpu = OpCodeTestHelper(mem);
-    auto &registers = cpu.getRegisters();
+    uint64_t cycles = 0;
+    trompeloeil::sequence seq;
+    M6809 cpu = OpCodeTestHelper(mem, seq);
+    auto& registers = cpu.getRegisters();
 
-    EXPECT_CALL(mem, Read(_))
-            .WillOnce(Return(0x05));
+    REQUIRE_CALL(mem, Read(_))
+        .RETURN(0x05);
 
-    EXPECT_EQ(E_UNKNOWN_OPCODE, cpu.Execute(cycles));
-
+    REQUIRE(cpu.Execute(cycles) == E_UNKNOWN_OPCODE);
 }

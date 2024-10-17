@@ -1,74 +1,85 @@
+/*
+Copyright (C) 2016-2024 Team Vectrexia
+
+This file is part of Vectrexia.
+
+Vectrexia is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Vectrexia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <cartridge.h>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include <catch2/catch_all.hpp>  
 
-TEST(CartridgeTest, TestLoad32K)
-{
-    std::array<uint8_t, 0x8000> romdata;
-    romdata.fill(0xde);
+TEST_CASE("CartridgeTest Load32K", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x8000>>();
+    romdata->fill(0xde);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x8000);
+    cart.Load((const uint8_t*)romdata->data(), 0x8000);
 
-    EXPECT_TRUE(cart.is_loaded());
+    REQUIRE(cart.is_loaded());
 }
 
-TEST(CartridgeTest, TestLoad4K)
-{
-    std::array<uint8_t, 0x1000> romdata;
-    romdata.fill(0xad);
+TEST_CASE("CartridgeTest Load4K", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x1000>>();
+
+    romdata->fill(0xad);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x1000);
+    cart.Load((const uint8_t*)romdata->data(), 0x1000);
 
-    EXPECT_TRUE(cart.is_loaded());
+    REQUIRE(cart.is_loaded());
 }
 
-TEST(CartridgeTest, TestLoad64K)
-{
-    std::array<uint8_t, 0x10000> romdata;
-    romdata.fill(0xbe);
+TEST_CASE("CartridgeTest Load64K", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x10000>>();
+    romdata->fill(0xbe);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x10000);
+    cart.Load((const uint8_t*)romdata->data(), 0x10000);
 
-    EXPECT_TRUE(cart.is_loaded());
+    REQUIRE(cart.is_loaded());
 }
 
-TEST(CartridgeTest, TestLoadTooLarge)
-{
-    std::array<uint8_t, 0x10001> romdata;
-    romdata.fill(0xbe);
+TEST_CASE("CartridgeTest LoadTooLarge", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x10001>>();
+    romdata->fill(0xbe);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x10001);
+    cart.Load((const uint8_t*)romdata->data(), 0x10001);
 
-    EXPECT_FALSE(cart.is_loaded());
+    REQUIRE_FALSE(cart.is_loaded());
 }
 
-TEST(CartridgeTest, TestRead)
-{
-    std::array<uint8_t, 0x1000> romdata;
-    romdata.fill(0xef);
+TEST_CASE("CartridgeTest Read", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x1000>>();
+    romdata->fill(0xef);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x1000);
+    cart.Load((const uint8_t*)romdata->data(), 0x1000);
 
-    EXPECT_TRUE(cart.is_loaded());
-    EXPECT_EQ(0xef, cart.Read(0));
+    REQUIRE(cart.is_loaded());
+    REQUIRE(cart.Read(0) == 0xef);
 }
 
-
-TEST(CartridgeTest, TestWrite)
-{
-    std::array<uint8_t, 0x1000> romdata;
-    romdata.fill(0xde);
+TEST_CASE("CartridgeTest Write", "[cartridge]") {
+    auto romdata = std::make_unique<std::array<uint8_t, 0x1000>>();
+    romdata->fill(0xde);
 
     Cartridge cart;
-    cart.Load((const uint8_t *)romdata.data(), 0x1000);
+    cart.Load((const uint8_t*)romdata->data(), 0x1000);
 
-    EXPECT_TRUE(cart.is_loaded());
+    REQUIRE(cart.is_loaded());
     cart.Write(0, 0xbe);
     // rom should remain unchanged.
-    EXPECT_EQ(0xde, cart.Read(0));
+    REQUIRE(cart.Read(0) == 0xde);
 }

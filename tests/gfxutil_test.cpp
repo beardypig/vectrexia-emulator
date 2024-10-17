@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2016 Team Vectrexia
+Copyright (C) 2016-2024 Team Vectrexia
 
 This file is part of Vectrexia.
 
@@ -16,94 +16,96 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Vectrexia.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <gtest/gtest.h>
+
+#include <catch2/catch_all.hpp>
 #include "gfxutil.h"
 
-TEST(Mono, TestARGBChannels)
-{
-  auto pixel = vxgfx::pf_argb_t(0x7f, 0x7f, 0x7f);
+TEST_CASE("Mono TestARGBChannels", "[gfxutil]") {
+    auto pixel = vxgfx::pf_argb_t(0x7f, 0x7f, 0x7f);
 
-  EXPECT_EQ(static_cast<uint8_t>(pixel.a() * 0xff), 0xff);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0x7f);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x7f);
+    REQUIRE(static_cast<uint8_t>(pixel.a() * 0xff) == 0xff);
+    REQUIRE(static_cast<uint8_t>(pixel.r() * 0xff) == 0x7f);
+    REQUIRE(static_cast<uint8_t>(pixel.g() * 0xff) == 0x7f);
+    REQUIRE(static_cast<uint8_t>(pixel.b() * 0xff) == 0x7f);
 }
 
-TEST(Mono, TestRGB565Channels)
-{
-  // Round trip GREEN
-  auto pixel = vxgfx::pf_rgb565_t(0x00, 0xff, 0x00);
+TEST_CASE("Mono TestRGB565Channels", "[gfxutil]") {
+    // Round trip GREEN
+    auto pixel = vxgfx::pf_rgb565_t(0x00, 0xff, 0x00);
 
-  EXPECT_EQ(static_cast<uint8_t>(pixel.r() * 0xff), 0x00);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.g() * 0xff), 0xff);
-  EXPECT_EQ(static_cast<uint8_t>(pixel.b() * 0xff), 0x00);
+    REQUIRE(static_cast<uint8_t>(pixel.r() * 0xff) == 0x00);
+    REQUIRE(static_cast<uint8_t>(pixel.g() * 0xff) == 0xff);
+    REQUIRE(static_cast<uint8_t>(pixel.b() * 0xff) == 0x00);
 }
 
-TEST(ARGB, TestExtractChannelARGB)
-{
-  auto argb_pixel = vxgfx::pf_argb_t(0x00, 0x10, 0x20, 0x30);
+TEST_CASE("ARGB TestExtractChannelARGB", "[gfxutil]") {
+    auto argb_pixel = vxgfx::pf_argb_t(0x00, 0x10, 0x20, 0x30);
 
-  EXPECT_EQ(argb_pixel.comp_a(argb_pixel), 0x00);
-  EXPECT_EQ(argb_pixel.comp_r(argb_pixel), 0x10);
-  EXPECT_EQ(argb_pixel.comp_g(argb_pixel), 0x20);
-  EXPECT_EQ(argb_pixel.comp_b(argb_pixel), 0x30);
+    REQUIRE(argb_pixel.comp_a(argb_pixel) == 0x00);
+    REQUIRE(argb_pixel.comp_r(argb_pixel) == 0x10);
+    REQUIRE(argb_pixel.comp_g(argb_pixel) == 0x20);
+    REQUIRE(argb_pixel.comp_b(argb_pixel) == 0x30);
 }
 
-TEST(GFXUtil, RectIntersect)
-{
+TEST_CASE("GFXUtil RectIntersect", "[gfxutil]") {
     auto a = vxgfx::rect_t(10, 10);
     auto b = vxgfx::rect_t(-2, -2, 14, 14);
-    auto c = vxgfx::rect_t(-1, -1, 6,  6);
-    auto d = vxgfx::rect_t( 5, -1, 6,  6);
-    auto e = vxgfx::rect_t( 5,  5, 6,  6);
-    auto f = vxgfx::rect_t(-1,  5, 6,  6);
+    auto c = vxgfx::rect_t(-1, -1, 6, 6);
+    auto d = vxgfx::rect_t(5, -1, 6, 6);
+    auto e = vxgfx::rect_t(5, 5, 6, 6);
+    auto f = vxgfx::rect_t(-1, 5, 6, 6);
 
-    EXPECT_EQ(vxgfx::intersect(a, b), vxgfx::rect_t(0, 2, 10, 8));
-    EXPECT_EQ(vxgfx::intersect(a, c), vxgfx::rect_t(0, 0, 5, 5));
-    EXPECT_EQ(vxgfx::intersect(a, d), vxgfx::rect_t(5, 0, 5, 5));
-    EXPECT_EQ(vxgfx::intersect(a, e), vxgfx::rect_t(5, 5, 5, 5));
-    EXPECT_EQ(vxgfx::intersect(a, f), vxgfx::rect_t(0, 5, 5, 5));
+    REQUIRE(vxgfx::intersect(a, b) == vxgfx::rect_t(0, 2, 10, 8));
+    REQUIRE(vxgfx::intersect(a, c) == vxgfx::rect_t(0, 0, 5, 5));
+    REQUIRE(vxgfx::intersect(a, d) == vxgfx::rect_t(5, 0, 5, 5));
+    REQUIRE(vxgfx::intersect(a, e) == vxgfx::rect_t(5, 5, 5, 5));
+    REQUIRE(vxgfx::intersect(a, f) == vxgfx::rect_t(0, 5, 5, 5));
 }
 
-TEST(GFXUtil, RectArea)
-{
+TEST_CASE("GFXUtil RectArea", "[gfxutil]") {
     auto a = vxgfx::rect_t(10, 10);
-
-    EXPECT_EQ(a.area(), 100);
+    REQUIRE(a.area() == 100);
 }
 
-TEST(GFXUtil, RectBoolean)
-{
+TEST_CASE("GFXUtil RectBoolean", "[gfxutil]") {
     auto a = vxgfx::rect_t(10, 10);
     auto b = vxgfx::rect_t(0, 0);
 
-    EXPECT_TRUE(a);
-    EXPECT_FALSE(b);
+    REQUIRE(static_cast<bool>(a));
+    REQUIRE_FALSE(static_cast<bool>(b));
 }
 
-TEST(GFXUtil, RectMove)
-{
+TEST_CASE("GFXUtil RectMove", "[gfxutil]") {
     auto a = vxgfx::rect_t(10, 10);
     a.move(10, 10);
 
-    EXPECT_EQ(a, vxgfx::rect_t(10, 10, 10, 10));
+    REQUIRE(a == vxgfx::rect_t(10, 10, 10, 10));
 }
 
-TEST(GFXUtil, RectOffset)
-{
+TEST_CASE("GFXUtil RectOffset", "[gfxutil]") {
     auto a = vxgfx::rect_t(10, 10, 10, 10);
     a.offset(-10, -10);
 
-    EXPECT_EQ(a, vxgfx::rect_t(0, 0, 10, 10));
+    REQUIRE(a == vxgfx::rect_t(0, 0, 10, 10));
 }
 
-TEST(GFXUtil, RectInit)
-{
+TEST_CASE("GFXUtil RectInit", "[gfxutil]") {
     auto a = vxgfx::rect_t();
-    auto b = vxgfx::rect_t(10,10);  
-    auto c = vxgfx::rect_t(10,10,10,10);
-    
-    EXPECT_TRUE(a.left == 0 && a.top == 0 && a.right == 0 && a.bottom == 0);
-    EXPECT_TRUE(b.left == 0 && b.top == 0 && b.right == 10 && b.bottom == 10);
-    EXPECT_TRUE(c.left == 10 && c.top == 10 && c.right == 20 && c.bottom == 20);
+    auto b = vxgfx::rect_t(10, 10);
+    auto c = vxgfx::rect_t(10, 10, 10, 10);
+
+    REQUIRE(a.left == 0);
+    REQUIRE(a.top == 0);
+    REQUIRE(a.right == 0);
+    REQUIRE(a.bottom == 0);
+
+    REQUIRE(b.left == 0);
+    REQUIRE(b.top == 0);
+    REQUIRE(b.right == 10);
+    REQUIRE(b.bottom == 10);
+
+    REQUIRE(c.left == 10);
+    REQUIRE(c.top == 10);
+    REQUIRE(c.right == 20);
+    REQUIRE(c.bottom == 20);
 }

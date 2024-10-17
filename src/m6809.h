@@ -1022,9 +1022,9 @@ class M6809
     /*
      * Opcode handler definitions
      */
-    std::array<opcode_handler_t, 0x100> opcode_handlers;
-    std::array<opcode_handler_t, 0x100> opcode_handlers_page1;
-    std::array<opcode_handler_t, 0x100> opcode_handlers_page2;
+    std::array<opcode_handler_t, 0x100> opcode_handlers = {0};
+    std::array<opcode_handler_t, 0x100> opcode_handlers_page1 = {0};
+    std::array<opcode_handler_t, 0x100> opcode_handlers_page2 = {0};
 
     // ABX
     using op_abx_inherent = opcode<op_add<uint16_t, uint8_t>, RegisterX, RegisterB, compute_flags<0, 0, 0, 0, uint16_t, uint8_t>, 3>;
