@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
   }
 
   if (nargs == 1) {
-    sprintf(giffilename, "%s.gif", argv[optind]);
+    snprintf(giffilename, sizeof(giffilename), "%s.gif", argv[optind]);
   }
   else {
-    sprintf(giffilename, "%s", argv[optind + 1]);
+    snprintf(giffilename, sizeof(giffilename), "%s", argv[optind + 1]);
   }
 
   GifBegin(&gw, giffilename, FRAME_WIDTH, FRAME_HEIGHT, 2, 8, false);
