@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.9)
 project(vectrexia VERSION 0.1.0)
 enable_language(CXX)
 
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH ON)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+endif()
+
 include(TestBigEndian)
 include(CTest)
 
@@ -9,10 +14,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(APPLE)
-    set(CMAKE_MACOSX_RPATH ON)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
-endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
