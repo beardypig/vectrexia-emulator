@@ -11,8 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(APPLE)
     set(CMAKE_MACOSX_RPATH ON)
-    # minimum version of macos needed for c++14
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.7")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
