@@ -21,6 +21,7 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdint.h>
 #include <array>
+#include <cstddef>
 
 class Cartridge
 {

@@ -18,7 +18,7 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "cartridge.h"
 #include <cstring>
-#include <stdio.h>
+#include <cstdio>
 
 void Cartridge::Load(const uint8_t *data, size_t size)
 {
