@@ -1,13 +1,51 @@
 {
   "version": 2,
   "configurePresets": [
-     {
-        "name": "vcpkg",
-        "generator": "Visual Studio 17 2022",
-        "binaryDir": "${sourceDir}/build",
-        "cacheVariables": {
-            "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        }
+    {
+      // Preset for the vcpkg toolchain using Visual Studio 2022 as the generator
+      "name": "visualstudio-vcpkg",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      // Preset for the vcpkg toolchain using Ninja as the generator
+      "name": "ninja-vcpkg",
+      "generator": "ninja",
+      "binaryDir": "${sourceDir}/build",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      // Preset for building in x64-Debug mode using Visual Studio 2022
+      "name": "msvc-x64-debug",
+      "inherits": "visualstudio-vcpkg",
+      "binaryDir": "${sourceDir}/build/x64-Debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_GENERATOR_PLATFORM": "x64",
+        "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
+        "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+      }
+    },
+    {
+      // Preset for building in x64-Debug mode using Visual Studio 2022
+      "name": "msvc-x64-release",
+      "inherits": "visualstudio-vcpkg",
+      "binaryDir": "${sourceDir}/build/x64-Release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_GENERATOR_PLATFORM": "x64",
+        "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
+        "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+      }
     }
   ]
 }
