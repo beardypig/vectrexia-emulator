@@ -41,49 +41,11 @@
             "inherits": "vcpkg-base"
         },
         {
-            "name": "macos-ninja-vcpkg",
-            "inherits": "ninja-vcpkg",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
-            }
-        },
-        {
-            "name": "macos-arm64-base",
-            "inherits": "macos-ninja-vcpkg",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_OSX_ARCHITECTURES": "arm64",
-                "VCPKG_TARGET_TRIPLET": "arm64-osx"
-            }
-        },
-        {
-            "name": "macos-x64-base",
-            "inherits": "macos-ninja-vcpkg",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            }
-        },
-        {
-            "name": "macos-arm64-debug",
-            "inherits": ["macos-arm64-base", "base-debug"]
-        },
-        {
-            "name": "macos-arm64-release",
-            "inherits": ["macos-arm64-base", "base-release"]
-        },
-        {
-            "name": "macos-x64-debug",
-            "inherits": ["macos-x64-base", "base-debug"]
-        },
-        {
-            "name": "macos-x64-release",
-            "inherits": ["macos-x64-base", "base-release"]
-        },
-        {
             "name": "msvc-x64-debug",
-            "inherits": ["visualstudio-vcpkg", "base-debug"],
+            "inherits": [
+                "visualstudio-vcpkg",
+                "base-debug"
+            ],
             "binaryDir": "${sourceDir}/build/x64-Debug",
             "cacheVariables": {
                 "CMAKE_GENERATOR_PLATFORM": "x64",
@@ -93,7 +55,10 @@
         },
         {
             "name": "msvc-x64-release",
-            "inherits": ["visualstudio-vcpkg", "base-release"],
+            "inherits": [
+                "visualstudio-vcpkg",
+                "base-release"
+            ],
             "binaryDir": "${sourceDir}/build/x64-Release",
             "cacheVariables": {
                 "CMAKE_GENERATOR_PLATFORM": "x64",
@@ -102,70 +67,45 @@
             }
         },
         {
-            "name": "nix-x64-debug",
-            "inherits": ["ninja-vcpkg", "base-debug"],
-            "binaryDir": "${sourceDir}/build/nix-x64-debug"
+            "name": "ninja-debug",
+            "inherits": [
+                "ninja-vcpkg",
+                "base-debug"
+            ],
+            "binaryDir": "${sourceDir}/build/ninja-debug"
         },
         {
-            "name": "nix-x64-release",
-            "inherits": ["ninja-vcpkg", "base-release"],
-            "binaryDir": "${sourceDir}/build/nix-x64-release"
+            "name": "ninja-release",
+            "inherits": [
+                "ninja-vcpkg",
+                "base-release"
+            ],
+            "binaryDir": "${sourceDir}/build/ninja-release"
         }
     ],
     "buildPresets": [
         {
-            "name": "macos-arm64-debug",
-            "configurePreset": "macos-arm64-debug",
-            "description": "Build for macOS ARM64 Debug",
-            "jobs": 4,
-            "verbose": true
-        },
-        {
-            "name": "macos-arm64-release",
-            "configurePreset": "macos-arm64-release",
-            "description": "Build for macOS ARM64 Release",
-            "jobs": 4,
-            "verbose": true
-        },
-        {
-            "name": "macos-x64-debug",
-            "configurePreset": "macos-x64-debug",
-            "description": "Build for macOS x64 Debug",
-            "verbose": true
-        },
-        {
-            "name": "macos-x64-release",
-            "configurePreset": "macos-x64-release",
-            "description": "Build for macOS x64 Release",
-            "jobs": 4,
-            "verbose": true
-        },
-        {
             "name": "msvc-x64-debug",
             "configurePreset": "msvc-x64-debug",
             "description": "Build for Windows x64 Debug",
-            "jobs": 4,
             "verbose": true
         },
         {
             "name": "msvc-x64-release",
             "configurePreset": "msvc-x64-release",
             "description": "Build for Windows x64 Release",
-            "jobs": 4,
             "verbose": true
         },
         {
-            "name": "nix-x64-debug",
-            "configurePreset": "nix-x64-debug",
-            "description": "Build for *nix x64 Debug",
-            "jobs": 4,
+            "name": "ninja-debug",
+            "configurePreset": "ninja-debug",
+            "description": "Build for Ninja debug",
             "verbose": true
         },
         {
-            "name": "nix-x64-release",
-            "configurePreset": "nix-x64-release",
-            "description": "Build for *nix x64 Release",
-            "jobs": 4,
+            "name": "ninja-release",
+            "configurePreset": "ninja-release",
+            "description": "Build for Ninja Release",
             "verbose": true
         }
     ],
@@ -174,25 +114,13 @@
             "name": "msvc-x64-test",
             "configurePreset": "msvc-x64-debug",
             "description": "Run tests for Windows x64 Debug",
-            "displayName": "Tests (Windows)"
+            "displayName": "Tests (MSVC)"
         },
         {
-            "name": "macos-arm64-test",
-            "configurePreset": "macos-arm64-debug",
-            "description": "Run tests for macOS ARM64 Debug",
-            "displayName": "Tests (macOS ARM64)"
-        },
-        {
-            "name": "macos-x64-test",
-            "configurePreset": "macos-x64-debug",
-            "description": "Run tests for macOS x64 Debug",
-            "displayName": "Tests (macOS x64)"
-        },
-        {
-            "name": "nix-x64-test",
-            "configurePreset": "nix-x64-debug",
-            "description": "Run tests for *nix x64 Debug",
-            "displayName": "Tests (*nix)"
+            "name": "ninja-test",
+            "configurePreset": "ninja-debug",
+            "description": "Run tests for Ninja Debug",
+            "displayName": "Tests (Ninja)"
         }
     ]
 }

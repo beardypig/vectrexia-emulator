@@ -33,6 +33,6 @@ jobs:
       - name: Run CMake consuming CMakePreset.json and run vcpkg to build packages
         uses: lukka/run-cmake@v10
         with:
-          configurePreset: ${{ matrix.os == 'ubuntu-latest' && 'nix-x64-debug' || matrix.os == 'macos-latest' && 'macos-x64-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
-          buildPreset: ${{ matrix.os == 'ubuntu-latest' && 'nix-x64-debug' || matrix.os == 'macos-latest' && 'macos-x64-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
-          testPreset: ${{ matrix.os == 'ubuntu-latest' && 'nix-x64-test' || matrix.os == 'macos-latest' && 'macos-x64-test' || matrix.os == 'windows-latest' && 'msvc-x64-test' }}
+          configurePreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-debug' || matrix.os == 'macos-latest' && 'ninja-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
+          buildPreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-debug' || matrix.os == 'macos-latest' && 'ninja-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
+          testPreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-test' || matrix.os == 'macos-latest' && 'ninja-test' || matrix.os == 'windows-latest' && 'msvc-x64-test' }}
