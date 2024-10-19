@@ -10,9 +10,12 @@ include_directories(. ../src)
 # Define the tests executable
 add_executable(tests m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp gfxutil_test.cpp)
 
+# Define the tests output
 if (MSVC)
     set(LIBRETRO_SRC vectrexia_libretro_static)
-else()
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    set_target_properties(tests PROPERTIES OUTPUT_NAME tests)
+else() 
     set(LIBRETRO_SRC vectrexia_libretro)
 endif()
 
