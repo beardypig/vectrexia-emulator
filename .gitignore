@@ -47,3 +47,4 @@ coverage.info
 CMakeSettings.json
 CMakeUserPresets.json
 vcpkg_installed/
+.vscode/

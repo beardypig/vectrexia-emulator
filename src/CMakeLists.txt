@@ -67,19 +67,6 @@ if(CLANG_TIDY_EXE)
 	)
 endif()
 
-if (MSVC)
-	if (OPT_FULL)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /Ot /Oi /arch:AVX /sdl-") 
-	endif()
-	if (WITH_ASM)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FA")
-	endif()
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")        ## Optimize
-endif()
-
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DVECTREXIA_DEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVECTREXIA_DEBUG")
 

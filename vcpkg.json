@@ -1,6 +1,6 @@
 {
-    "dependencies": [
-        "catch2",
-        "trompeloeil"
-    ]
+  "dependencies": [
+    "catch2",
+    "trompeloeil"
+  ]
 }
