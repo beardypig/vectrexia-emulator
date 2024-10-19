@@ -89,6 +89,24 @@
                 "CMAKE_OSX_ARCHITECTURES": "arm64",
                 "VCPKG_TARGET_TRIPLET": "arm64-osx"
             }
+        },
+        {
+            "name": "nix-x64-debug",
+            "inherits": "ninja-vcpkg",
+            "binaryDir": "${sourceDir}/build/nix-x64-debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64"
+            }
+        },
+        {
+            "name": "nix-x64-release",
+            "inherits": "ninja-vcpkg",
+            "binaryDir": "${sourceDir}/build/nix-x64-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64"
+            }
         }
     ],
     "buildPresets": [
@@ -133,6 +151,20 @@
             "description": "Build for Windows x64 Release",
             "jobs": 4,
             "verbose": true
+        },
+        {
+            "name": "nix-x64-debug",
+            "configurePreset": "nix-x64-debug",
+            "description": "Build for *nix x64 Debug",
+            "jobs": 4,
+            "verbose": true
+        },
+        {
+            "name": "nix-x64-release",
+            "configurePreset": "nix-x64-release",
+            "description": "Build for *nix x64 Release",
+            "jobs": 4,
+            "verbose": true
         }
     ],
     "testPresets": [
@@ -153,6 +185,12 @@
             "description": "",
             "displayName": "Tests (macOS) ",
             "configurePreset": "macos-x64-debug"
+        },
+        {
+            "name": "nix-x64-test",
+            "description": "",
+            "displayName": "Tests (*nix) ",
+            "configurePreset": "nix-x64-debug"
         }
     ]
 }
