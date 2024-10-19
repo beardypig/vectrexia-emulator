@@ -15,10 +15,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static int optind = 1;
-static int opterr = 1;
-static int optopt;
-static char *optarg;
+extern int optind;
+extern int opterr;
+extern int optopt;
+extern char *optarg;
 
 static int
 getopt(int argc, char * const argv[], const char *optstring)
