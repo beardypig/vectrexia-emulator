@@ -5,8 +5,9 @@
 #include <iostream>
 #include <fstream>
 #include <string_view>
-#include <format>
 #include <optional>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 #include <vectrexia.h>
 #include "gif.h"
 #include <cxxopts.hpp>
@@ -47,22 +48,22 @@ int main(int argc, char *argv[])
     if (result.count("gif") && !result["gif"].as<std::string>().empty()) {
         giffilename = result["gif"].as<std::string>();
     } else {
-        giffilename = std::format("{}.gif", rom_filename);
+        giffilename = fmt::format("{}.gif", rom_filename);
     }
 
     // Load the ROM file
     std::ifstream romfile(rom_filename, std::ios::binary);
     if (!romfile) {
-        std::cerr << "[ROM]: Failed to open ROM file " << rom_filename << "\n";
+        std::cerr << fmt::format("[ROM]: Failed to open ROM file {}\n", rom_filename);
         return 1;
     }
 
-    std::cout << std::format("[ROM]: loading ROM \"{}\"\n", rom_filename);
+    std::cout << fmt::format("[ROM]: loading ROM \"{}\"\n", rom_filename);
     romfile.read(reinterpret_cast<char*>(rombuffer.data()), ROM_SIZE);
     auto r = static_cast<size_t>(romfile.gcount());
     romfile.close();
 
-    std::cout << std::format("[ROM]: size = {}\n", r);
+    std::cout << fmt::format("[ROM]: size = {}\n", r);
 
     if (!vectrex->LoadCartridge(rombuffer.data(), r)) {
         std::cerr << "Failed to load the ROM file\n";
@@ -92,7 +93,7 @@ int main(int argc, char *argv[])
         }
         GifWriteFrame(&gw, gif_buffer.data(), FRAME_WIDTH, FRAME_HEIGHT, 2);
         if (frame % 100 == 0) {
-            std::cout << std::format("[VECTREX] frame = {}\n", frame);
+            std::cout << fmt::format("[VECTREX] frame = {}\n", frame);
         }
     }
 

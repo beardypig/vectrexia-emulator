@@ -165,6 +165,7 @@
             "name": "nix-x64-release",
             "configurePreset": "nix-x64-release",
             "description": "Build for *nix x64 Release",
+            "jobs": 4,
             "verbose": true
         }
     ],
