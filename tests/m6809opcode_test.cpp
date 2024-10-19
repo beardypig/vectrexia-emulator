@@ -40,13 +40,9 @@ static void write_mem(intptr_t ref, uint16_t addr, uint8_t data) {
 }
 
 
-M6809 OpCodeTestHelper(MockMemory& mem, trompeloeil::sequence &seq) {
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x00)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x00)
-        .IN_SEQUENCE(seq);
+M6809 OpCodeTestHelper(MockMemory& mem) {
+    REQUIRE_CALL(mem, Read(0xffff)).RETURN(0x00);
+    REQUIRE_CALL(mem, Read(0xfffe)).RETURN(0x00);
 
     M6809 cpu;
     cpu.SetReadCallback(&read_mem, reinterpret_cast<intptr_t>(&mem));
@@ -62,13 +58,10 @@ M6809 OpCodeTestHelper(MockMemory& mem, trompeloeil::sequence &seq) {
 
 TEST_CASE("M6809OpCodes ABXInherent", "[m6809]") {
     MockMemory mem;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x3a)
-		.IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x3a);
 
     uint64_t cycles = 0;
 
@@ -84,17 +77,11 @@ TEST_CASE("M6809OpCodes ABXInherent", "[m6809]") {
 TEST_CASE("M6809OpCodes ADDAImmediate", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x8B)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x8B);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);
 
     registers.A = 0x10;
 
@@ -105,20 +92,12 @@ TEST_CASE("M6809OpCodes ADDAImmediate", "[m6809]") {
 TEST_CASE("M6809OpCodes ADDADirect", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x9B)  // Direct ADDA
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)  // Page offset
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(0x0010))
-        .RETURN(0x15)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x9B);  // Direct ADDA
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);  // Page offset
+    REQUIRE_CALL(mem, Read(0x0010)).RETURN(0x15);
     registers.A = 0x10;
 
     REQUIRE(cpu.Execute(cycles) == E_SUCCESS);
@@ -128,18 +107,13 @@ TEST_CASE("M6809OpCodes ADDADirect", "[m6809]") {
 TEST_CASE("M6809OpCodes ADDAExtended", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(0))
-        .RETURN(0xBB); // Extended ADDA 
-    REQUIRE_CALL(mem, Read(1))
-        .RETURN(0x10);
-    REQUIRE_CALL(mem, Read(2))
-        .RETURN(0x1);
-    REQUIRE_CALL(mem, Read(0x1001))
-        .RETURN(0x15);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0xBB); // Extended ADDA 
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);
+    REQUIRE_CALL(mem, Read(0x02)).RETURN(0x1);
+    REQUIRE_CALL(mem, Read(0x1001)).RETURN(0x15);
 
     registers.A = 0x10;
 
@@ -153,16 +127,12 @@ TEST_CASE("M6809OpCodes ADDAExtended", "[m6809]") {
 TEST_CASE("M6809OpCodes ADDDImmediate", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(0))
-        .RETURN(0xC3); // Immediate ADDD
-    REQUIRE_CALL(mem, Read(1))
-        .RETURN(0x10);
-    REQUIRE_CALL(mem, Read(2))
-        .RETURN(0x20);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0xC3); // Immediate ADDD
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);
+    REQUIRE_CALL(mem, Read(0x02)).RETURN(0x20);
 
     registers.D = 0x2010;
 
@@ -177,16 +147,11 @@ TEST_CASE("M6809OpCodes ADDDImmediate", "[m6809]") {
 TEST_CASE("M6809OpCodes SUBAImmediate", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x80)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x80);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);
 
     registers.A = 0x10;
 
@@ -197,16 +162,11 @@ TEST_CASE("M6809OpCodes SUBAImmediate", "[m6809]") {
 TEST_CASE("M6809OpCodes SUBAImmediate2", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x80)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x12)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x80);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x12);
 
     registers.A = 0x10;
 
@@ -220,16 +180,11 @@ TEST_CASE("M6809OpCodes SUBAImmediate2", "[m6809]") {
 TEST_CASE("M6809OpCodes BITAImmediate", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x85)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x12)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x85);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x12);
 
     registers.A = 0xFF;
 
@@ -244,16 +199,11 @@ TEST_CASE("M6809OpCodes BITAImmediate", "[m6809]") {
 TEST_CASE("M6809OpCodes EXGRegistersXY", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x1E)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x12)
-        .IN_SEQUENCE(seq); // X <-> Y
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x1E);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x12); // X <-> Y
 
     registers.X = 0x00FF;
     registers.Y = 0xFF00;
@@ -270,16 +220,11 @@ TEST_CASE("M6809OpCodes EXGRegistersXY", "[m6809]") {
 TEST_CASE("M6809OpCodes TFRRegistersXY", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x1F)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x12)
-        .IN_SEQUENCE(seq); // X -> Y
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x1F);
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x12); // X -> Y
 
     registers.X = 0x1111;
     registers.Y = 0x0000;
@@ -296,16 +241,11 @@ TEST_CASE("M6809OpCodes TFRRegistersXY", "[m6809]") {
 TEST_CASE("M6809OpCodes BSRCorrectJump", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x8D)
-        .IN_SEQUENCE(seq);  // BSR
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x8D);  // BSR
+    REQUIRE_CALL(mem, Read(0x01)).RETURN(0x10);
 
     REQUIRE_CALL(mem, Write(0xffff, 0x02));
     REQUIRE_CALL(mem, Write(0xfffe, 0x00));
@@ -320,12 +260,10 @@ TEST_CASE("M6809OpCodes BSRCorrectJump", "[m6809]") {
 TEST_CASE("M6809OpCodes IllegalOp", "[m6809]") {
     MockMemory mem;
     uint64_t cycles = 0;
-    trompeloeil::sequence seq;
-    M6809 cpu = OpCodeTestHelper(mem, seq);
+    M6809 cpu = OpCodeTestHelper(mem);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x05);
+    REQUIRE_CALL(mem, Read(0x00)).RETURN(0x05);
 
     REQUIRE(cpu.Execute(cycles) == E_UNKNOWN_OPCODE);
 }
