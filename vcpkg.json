@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "catch2",
-    "trompeloeil"
+    "trompeloeil",
+    "cxxopts"
   ]
 }
