@@ -55,7 +55,7 @@ set_source_files_properties(libretro/libretro.cpp
 if(CLANG_TIDY_EXE)
 	add_library(vectrexia_libretro_tidy STATIC ${VECTREXIA_SOURCE})
 	if (MSVC)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++14")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++23")
 	endif()
 
 	set (CLANG_TIDY_CHECKS "-checks=*,-clang-analyzer-alpha.*")
