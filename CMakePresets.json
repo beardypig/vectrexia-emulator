@@ -11,15 +11,33 @@
             }
         },
         {
-            "name": "visualstudio-vcpkg",
-            "generator": "Visual Studio 17 2022",
+            "name": "base-debug",
             "hidden": true,
+            "inherits": "vcpkg-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_STANDARD": "23"
+            }
+        },
+        {
+            "name": "base-release",
+            "hidden": true,
+            "inherits": "vcpkg-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_STANDARD": "23"
+            }
+        },
+        {
+            "name": "visualstudio-vcpkg",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
             "inherits": "vcpkg-base"
         },
         {
             "name": "ninja-vcpkg",
-            "generator": "Ninja",
             "hidden": true,
+            "generator": "Ninja",
             "inherits": "vcpkg-base"
         },
         {
@@ -31,11 +49,43 @@
             }
         },
         {
+            "name": "macos-arm64-base",
+            "inherits": "macos-ninja-vcpkg",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
+            }
+        },
+        {
+            "name": "macos-x64-base",
+            "inherits": "macos-ninja-vcpkg",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_OSX_ARCHITECTURES": "x86_64"
+            }
+        },
+        {
+            "name": "macos-arm64-debug",
+            "inherits": ["macos-arm64-base", "base-debug"]
+        },
+        {
+            "name": "macos-arm64-release",
+            "inherits": ["macos-arm64-base", "base-release"]
+        },
+        {
+            "name": "macos-x64-debug",
+            "inherits": ["macos-x64-base", "base-debug"]
+        },
+        {
+            "name": "macos-x64-release",
+            "inherits": ["macos-x64-base", "base-release"]
+        },
+        {
             "name": "msvc-x64-debug",
-            "inherits": "visualstudio-vcpkg",
+            "inherits": ["visualstudio-vcpkg", "base-debug"],
             "binaryDir": "${sourceDir}/build/x64-Debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_GENERATOR_PLATFORM": "x64",
                 "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
                 "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
@@ -43,70 +93,23 @@
         },
         {
             "name": "msvc-x64-release",
-            "inherits": "visualstudio-vcpkg",
+            "inherits": ["visualstudio-vcpkg", "base-release"],
             "binaryDir": "${sourceDir}/build/x64-Release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_GENERATOR_PLATFORM": "x64",
                 "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
                 "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
             }
         },
         {
-            "name": "macos-x64-debug",
-            "inherits": "macos-ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/macos-x64-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            }
-        },
-        {
-            "name": "macos-x64-release",
-            "inherits": "macos-ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/macos-x64-release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            }
-        },
-        {
-            "name": "macos-arm64-debug",
-            "inherits": "macos-ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/macos-arm64-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_OSX_ARCHITECTURES": "arm64",
-                "VCPKG_TARGET_TRIPLET": "arm64-osx"
-            }
-        },
-        {
-            "name": "macos-arm64-release",
-            "inherits": "macos-ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/macos-arm64-release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_OSX_ARCHITECTURES": "arm64",
-                "VCPKG_TARGET_TRIPLET": "arm64-osx"
-            }
-        },
-        {
             "name": "nix-x64-debug",
-            "inherits": "ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/nix-x64-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            }
+            "inherits": ["ninja-vcpkg", "base-debug"],
+            "binaryDir": "${sourceDir}/build/nix-x64-debug"
         },
         {
             "name": "nix-x64-release",
-            "inherits": "ninja-vcpkg",
-            "binaryDir": "${sourceDir}/build/nix-x64-release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64"
-            }
+            "inherits": ["ninja-vcpkg", "base-release"],
+            "binaryDir": "${sourceDir}/build/nix-x64-release"
         }
     ],
     "buildPresets": [
@@ -127,8 +130,7 @@
         {
             "name": "macos-x64-debug",
             "configurePreset": "macos-x64-debug",
-            "description": "Build for macOS ARM64 Debug",
-            "jobs": 4,
+            "description": "Build for macOS x64 Debug",
             "verbose": true
         },
         {
@@ -163,34 +165,33 @@
             "name": "nix-x64-release",
             "configurePreset": "nix-x64-release",
             "description": "Build for *nix x64 Release",
-            "jobs": 4,
             "verbose": true
         }
     ],
     "testPresets": [
         {
             "name": "msvc-x64-test",
-            "description": "",
-            "displayName": "Tests (Windows)",
-            "configurePreset": "msvc-x64-debug"
+            "configurePreset": "msvc-x64-debug",
+            "description": "Run tests for Windows x64 Debug",
+            "displayName": "Tests (Windows)"
         },
         {
             "name": "macos-arm64-test",
-            "description": "",
-            "displayName": "Test (macOS Apple Silicon)",
-            "configurePreset": "macos-arm64-debug"
+            "configurePreset": "macos-arm64-debug",
+            "description": "Run tests for macOS ARM64 Debug",
+            "displayName": "Tests (macOS ARM64)"
         },
         {
             "name": "macos-x64-test",
-            "description": "",
-            "displayName": "Tests (macOS) ",
-            "configurePreset": "macos-x64-debug"
+            "configurePreset": "macos-x64-debug",
+            "description": "Run tests for macOS x64 Debug",
+            "displayName": "Tests (macOS x64)"
         },
         {
             "name": "nix-x64-test",
-            "description": "",
-            "displayName": "Tests (*nix) ",
-            "configurePreset": "nix-x64-debug"
+            "configurePreset": "nix-x64-debug",
+            "description": "Run tests for *nix x64 Debug",
+            "displayName": "Tests (*nix)"
         }
     ]
 }
