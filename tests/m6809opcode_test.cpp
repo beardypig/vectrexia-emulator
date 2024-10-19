@@ -132,16 +132,12 @@ TEST_CASE("M6809OpCodes ADDAExtended", "[m6809]") {
     M6809 cpu = OpCodeTestHelper(mem, seq);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0xBB)
-        .IN_SEQUENCE(seq);  // Extended ADDA
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x01)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)
-        .IN_SEQUENCE(seq);
-
+    REQUIRE_CALL(mem, Read(0))
+        .RETURN(0xBB); // Extended ADDA 
+    REQUIRE_CALL(mem, Read(1))
+        .RETURN(0x10);
+    REQUIRE_CALL(mem, Read(2))
+        .RETURN(0x1);
     REQUIRE_CALL(mem, Read(0x1001))
         .RETURN(0x15);
 
@@ -161,15 +157,12 @@ TEST_CASE("M6809OpCodes ADDDImmediate", "[m6809]") {
     M6809 cpu = OpCodeTestHelper(mem, seq);
     auto& registers = cpu.getRegisters();
 
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0xC3)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x20)
-        .IN_SEQUENCE(seq);
-    REQUIRE_CALL(mem, Read(_))
-        .RETURN(0x10)
-        .IN_SEQUENCE(seq);
+    REQUIRE_CALL(mem, Read(0))
+        .RETURN(0xC3); // Immediate ADDD
+    REQUIRE_CALL(mem, Read(1))
+        .RETURN(0x10);
+    REQUIRE_CALL(mem, Read(2))
+        .RETURN(0x20);
 
     registers.D = 0x2010;
 
