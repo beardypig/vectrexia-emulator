@@ -1,0 +1,38 @@
+name: 'build-test'
+
+on:
+  push:
+  pull_request:
+    
+jobs:
+  build_and_test:
+    name: '${{ matrix.os }}: build and unit tests'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: switch to gcc-12 on linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt install gcc-12 g++-12
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
+          sudo update-alternatives --set gcc /usr/bin/gcc-12
+      
+      - uses: lukka/get-cmake@latest
+
+      - name: Setup anew (or from cache) vcpkg
+        uses: lukka/run-vcpkg@v11 
+
+      - name: Run CMake consuming CMakePreset.json and run vcpkg to build packages
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-debug' || matrix.os == 'macos-latest' && 'ninja-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
+          buildPreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-debug' || matrix.os == 'macos-latest' && 'ninja-debug' || matrix.os == 'windows-latest' && 'msvc-x64-debug' }}
+          testPreset: ${{ matrix.os == 'ubuntu-latest' && 'ninja-test' || matrix.os == 'macos-latest' && 'ninja-test' || matrix.os == 'windows-latest' && 'msvc-x64-test' }}

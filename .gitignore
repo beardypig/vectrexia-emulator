@@ -45,3 +45,6 @@ cmake-build-*/
 .vs
 coverage.info
 CMakeSettings.json
+CMakeUserPresets.json
+vcpkg_installed/
+.vscode/
