@@ -1,0 +1,126 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "vcpkg-base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_FEATURE_FLAGS": "manifests"
+            }
+        },
+        {
+            "name": "base-debug",
+            "hidden": true,
+            "inherits": "vcpkg-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_STANDARD": "23"
+            }
+        },
+        {
+            "name": "base-release",
+            "hidden": true,
+            "inherits": "vcpkg-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_STANDARD": "23"
+            }
+        },
+        {
+            "name": "visualstudio-vcpkg",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
+            "inherits": "vcpkg-base"
+        },
+        {
+            "name": "ninja-vcpkg",
+            "hidden": true,
+            "generator": "Ninja",
+            "inherits": "vcpkg-base"
+        },
+        {
+            "name": "msvc-x64-debug",
+            "inherits": [
+                "visualstudio-vcpkg",
+                "base-debug"
+            ],
+            "binaryDir": "${sourceDir}/build/x64-Debug",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64",
+                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
+                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+            }
+        },
+        {
+            "name": "msvc-x64-release",
+            "inherits": [
+                "visualstudio-vcpkg",
+                "base-release"
+            ],
+            "binaryDir": "${sourceDir}/build/x64-Release",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64",
+                "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
+                "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+            }
+        },
+        {
+            "name": "ninja-debug",
+            "inherits": [
+                "ninja-vcpkg",
+                "base-debug"
+            ],
+            "binaryDir": "${sourceDir}/build/ninja-debug"
+        },
+        {
+            "name": "ninja-release",
+            "inherits": [
+                "ninja-vcpkg",
+                "base-release"
+            ],
+            "binaryDir": "${sourceDir}/build/ninja-release"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "msvc-x64-debug",
+            "configurePreset": "msvc-x64-debug",
+            "description": "Build for Windows x64 Debug",
+            "verbose": true
+        },
+        {
+            "name": "msvc-x64-release",
+            "configurePreset": "msvc-x64-release",
+            "description": "Build for Windows x64 Release",
+            "verbose": true
+        },
+        {
+            "name": "ninja-debug",
+            "configurePreset": "ninja-debug",
+            "description": "Build for Ninja debug",
+            "verbose": true
+        },
+        {
+            "name": "ninja-release",
+            "configurePreset": "ninja-release",
+            "description": "Build for Ninja Release",
+            "verbose": true
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "msvc-x64-test",
+            "configurePreset": "msvc-x64-debug",
+            "description": "Run tests for Windows x64 Debug",
+            "displayName": "Tests (MSVC)"
+        },
+        {
+            "name": "ninja-test",
+            "configurePreset": "ninja-debug",
+            "description": "Run tests for Ninja Debug",
+            "displayName": "Tests (Ninja)"
+        }
+    ]
+}
