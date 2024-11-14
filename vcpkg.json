@@ -1,8 +1,19 @@
 {
-  "dependencies": [
-    "catch2",
-    "cxxopts",
-    "trompeloeil",
-    "fmt"
-  ]
+    "dependencies": [
+        { "name": "catch2" },
+        { "name": "cxxopts" },
+        { "name": "trompeloeil" },
+        { "name": "fmt" },
+        {
+            "name": "imgui",
+            "features": [
+                "sdl2-binding",
+                "opengl3-binding",
+                "docking-experimental"
+            ]
+        },
+        { "name": "sdl2"},
+        { "name": "glad"},
+        { "name": "plog"}
+    ]
 }

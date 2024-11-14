@@ -20,9 +20,9 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #define VECTREXIA_UPDATETIMER_H
 
 #include <stdint.h>
-#include <vector>
 #include <functional>
 #include <algorithm>
+#include <deque>
 
 using update_callback_t = std::function<void(uint64_t)>;
 
@@ -60,7 +60,7 @@ class UpdateTimer
         }
     };
 
-    std::vector<data> items;
+    std::deque<data> items;
 public:
     // enqueue and item to be updated at a later time
     void enqueue(uint64_t cycles, T* ptr, T value)
@@ -69,8 +69,10 @@ public:
     }
     void tick(uint64_t cycles)
     {
-        // https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
-        items.erase(std::remove(items.begin(), items.end(), cycles), items.end());
+        auto it = std::find(items.begin(), items.end(), cycles);
+        if (it != items.end()) {
+            items.erase(it);
+        }
     }
     void clear()
     {
@@ -96,7 +98,7 @@ class CallbackTimer
         }
     };
 
-    std::vector<data> items;
+    std::deque<data> items;
 public:
     // enqueue and item to be updated at a later time
     void enqueue(uint64_t current_cycle, uint64_t nanosecond, update_callback_t callback)
@@ -112,8 +114,10 @@ public:
     }
     void tick(uint64_t cycles)
     {
-        // https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
-        items.erase(std::remove(items.begin(), items.end(), cycles), items.end());
+        auto it = std::find(items.begin(), items.end(), cycles);
+        if (it != items.end()) {
+            items.erase(it);
+        }
     }
     void clear()
     {
