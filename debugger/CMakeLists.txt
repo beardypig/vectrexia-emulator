@@ -5,7 +5,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
 
-add_executable(vectdebug "main.cpp" "ui/application.cpp")
+add_executable(vectdebug "main.cpp" "ui/application.cpp" )
 
 include_directories(../src)
 

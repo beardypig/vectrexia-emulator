@@ -56,6 +56,7 @@ namespace debugger::ui::widget {
 			std::transform(fb->begin(), fb->end(), out_buffer.begin(), mono_to_argb);
 
 			updateTexture(out_buffer.data());
+
 			// Render the texture in ImGui window
 			ImGui::SetCursorPos(ImVec2(0, 0));
 			ImGui::Image((void*)(intptr_t)texture, ImVec2(textureWidth, textureHeight));
