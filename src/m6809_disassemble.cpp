@@ -23,23 +23,25 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #include "m6809_disassemble.h"
 #include "veclib.h"
 
-std::string M6809Disassemble::disasm(uint16_t &addr)
+M6809Instruction M6809Disassemble::disasm(uint16_t addr)
 {
-    std::string addr_ = vxl::format("$%04x: ", addr);
     std::string instr;
-    auto opcode = Read8(addr++);
+    auto addr_ = addr;
+    auto opcode = Read<uint8_t>(addr++);
 
     disasm_handler_t disasm_handler = this->disasm_handlers[opcode];
     if (disasm_handler)
     {
-        instr = disasm_handler(*this, addr);
+        auto instruction = disasm_handler(*this, addr);
+        // fix the length and the address
+		instruction.length = addr - addr_;
+		instruction.address = addr_;
+		return instruction;
     }
     else
     {
-        instr = vxl::format("ILLEGAL: %02x", opcode);
+        throw std::exception(vxl::format("ILLEGAL: %02x", opcode).c_str());
     }
-
-    return addr_ + instr;
 }
 
 M6809Disassemble::M6809Disassemble()
@@ -50,7 +52,7 @@ M6809Disassemble::M6809Disassemble()
     disasm_handlers[0x10] = std::addressof(disasm_page1);
     disasm_handlers[0x11] = std::addressof(disasm_page2);
 
-    disasm_handlers[0x3A] = std::addressof(opcodewrap<opcode<op_abx, InherentAddressing>>);
+    disasm_handlers[0x3A] = std::addressof(opcodewrap<opcode<op_abx,  InherentAddressing>>);
     disasm_handlers[0x99] = std::addressof(opcodewrap<opcode<op_adca, DirectAddressing>>);
     disasm_handlers[0xB9] = std::addressof(opcodewrap<opcode<op_adca, ExtendedAddressing>>);
     disasm_handlers[0x89] = std::addressof(opcodewrap<opcode<op_adca, ImmediateAddressing8>>);
@@ -323,9 +325,9 @@ M6809Disassemble::M6809Disassemble()
     disasm_handlers_page1[0x28] = std::addressof(opcodewrap<opcode<op_lbvc, RelativeAddressingLong>>);
 }
 
-std::string M6809Disassemble::disasm_page1(M6809Disassemble &dis, uint16_t &addr)
+M6809Instruction M6809Disassemble::disasm_page1(M6809Disassemble& dis, uint16_t& addr)
 {
-    auto opcode = dis.Read8(addr++);
+    auto opcode = dis.Read<uint8_t>(addr++);
     disasm_handler_t page1_disasm = dis.disasm_handlers_page1[opcode];
     if (page1_disasm)
     {
@@ -333,13 +335,13 @@ std::string M6809Disassemble::disasm_page1(M6809Disassemble &dis, uint16_t &addr
     }
     else
     {
-        return vxl::format("ILLEGAL PAGE1: %02x", opcode);
+        throw std::exception(vxl::format("ILLEGAL PAGE1: %02x", opcode).c_str());
     }
 }
 
-std::string M6809Disassemble::disasm_page2(M6809Disassemble &dis, uint16_t &addr)
+M6809Instruction M6809Disassemble::disasm_page2(M6809Disassemble &dis, uint16_t &addr)
 {
-    auto opcode = dis.Read8(addr++);
+    auto opcode = dis.Read<uint8_t>(addr++);
     disasm_handler_t page2_disasm = dis.disasm_handlers_page2[opcode];
     if (page2_disasm)
     {
@@ -347,7 +349,7 @@ std::string M6809Disassemble::disasm_page2(M6809Disassemble &dis, uint16_t &addr
     }
     else
     {
-        return vxl::format("ILLEGAL PAGE2: %02x", opcode);
+        throw std::exception(vxl::format("ILLEGAL PAGE2: %02x", opcode).c_str());
     }
 }
 
@@ -356,4 +358,3 @@ void M6809Disassemble::SetReadCallback(M6809Disassemble::read_callback_t func, i
     read_callback_func = func;
     read_callback_ref = ref;
 }
-

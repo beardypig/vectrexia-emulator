@@ -27,6 +27,7 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 #include "ui/application.h"
+#include <filesystem>
 
 using namespace debugger;
 
@@ -75,6 +76,12 @@ int main(int argc, char* argv[]) {
     ImGui_ImplOpenGL3_Init("#version 330");
 
 	auto config = Configuration();
+
+    // load the config if it exists
+    if (std::filesystem::exists("vectrex.cfg")) {
+        config.loadFromFile("vectrex.cfg");
+    }
+
     auto app = ui::DebuggerApplication(config);
 
     // Main loop
@@ -112,6 +119,9 @@ int main(int argc, char* argv[]) {
 
         SDL_GL_SwapWindow(window);
     }
+
+
+    config.saveToFile("vectrex.cfg");
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();

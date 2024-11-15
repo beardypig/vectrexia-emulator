@@ -382,8 +382,11 @@ void M6809::SetReadCallback(M6809::read_callback_t func, intptr_t ref)
 {
     read_callback_func = func;
     read_callback_ref = ref;
+}
 
-    dis_.SetReadCallback(func, ref);
+void M6809::SetPeekCallback(read_callback_t func, intptr_t ref)
+{
+	dis_.SetReadCallback(func, ref);
 }
 
 void M6809::SetWriteCallback(M6809::write_callback_t func, intptr_t ref)

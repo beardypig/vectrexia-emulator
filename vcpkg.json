@@ -14,6 +14,8 @@
         },
         { "name": "sdl2"},
         { "name": "glad"},
-        { "name": "plog"}
+        { "name": "plog" },
+        { "name": "nlohmann-json" },
+        { "name": "nativefiledialog-extended" }
     ]
 }

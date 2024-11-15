@@ -120,6 +120,77 @@ uint8_t VIA6522::Read(uint8_t reg)
     return data;
 }
 
+uint8_t VIA6522::Peek(uint8_t reg)
+{
+    uint8_t data = 0;
+
+    switch (reg & 0xf) {
+    case REG_ORB:
+        data = read_portb();
+        break;
+
+    case REG_ORA:
+    case REG_ORA_NO_HANDSHAKE:
+        data = read_porta();
+        break;
+
+        // Timer 1
+    case REG_T1CL:  // timer 1 low-order counter
+        data = (uint8_t)(timer1.counter & 0xff);
+        break;
+    case REG_T1CH:  // timer 1 high-order counter
+        data = (uint8_t)(timer1.counter >> 8);
+        break;
+    case REG_T1LL:  // timer 1 low-order latch
+        data = registers.T1LL;
+        break;
+    case REG_T1LH:  // timer 2 high-order latch
+        data = registers.T1LH;
+        break;
+
+        // Timer 2
+    case REG_T2CL:  // timer 2 low-order counter
+        data = (uint8_t)(timer2.counter & 0xff);
+        break;
+    case REG_T2CH:  // timer 2 high-order counter
+        data = (uint8_t)(timer2.counter >> 8);
+        break;
+
+        // Shift Register
+    case REG_SR:
+        data = registers.SR;
+        break;
+
+        // Interrupt Registers
+    case REG_IER:
+        // interrupt enable register, the MSB is always set when reading.
+        data = registers.IER | IRQ_MASK;
+        break;
+
+        // Basic Reads
+    case REG_DDRB:
+        // DDR register 0 for output, 1 for input
+        data = registers.DDRB;
+        break;
+    case REG_DDRA:
+        data = registers.DDRA;
+        break;
+    case REG_ACR:
+        data = registers.ACR;
+        break;
+    case REG_PCR:
+        data = registers.PCR;
+        break;
+    case REG_IFR:
+        data = registers.IFR;
+        break;
+    default:
+        break;
+    }
+    // invalid address
+    return data;
+}
+
 void VIA6522::Write(uint8_t reg, uint8_t data)
 {
     switch (reg & 0xf) {

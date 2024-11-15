@@ -22,6 +22,7 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdio>
 #include <array>
 #include <vector>
 #include <memory>
@@ -37,8 +38,14 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #include "ay38910.h"
 #include "vectorizer.h"
 
+typedef struct {
+    uint8_t pot_x, pot_y;
+    uint8_t btn_1, btn_2, btn_3, btn_4;
+} VectrexController;
+
 class Vectrex
 {
+protected:
     const char *kName_ = "Vectrexia";
     const char *kVersion_ = "0.2.0";
 
@@ -49,11 +56,7 @@ class Vectrex
     std::array<uint8_t, 1024> ram_{};
 
     // This structure represents the values of the potentiometers and the buttons a vectrex controller
-    struct
-    {
-        uint8_t pot_x, pot_y;
-        uint8_t btn_1, btn_2, btn_3, btn_4;
-    } p1_joystick, p2_joystick;
+    VectrexController p1_joystick, p2_joystick;
     uint8_t joystick_compare;
     uint8_t psg_port;
 
@@ -82,6 +85,7 @@ public:
     const char *GetVersion();
 
     uint8_t Read(uint16_t addr);
+    uint8_t Peek(uint16_t addr);
     void Write(uint16_t addr, uint8_t data);
 
     void message(const char *fmt, ...);
@@ -97,6 +101,7 @@ public:
     uint8_t ReadPSGIO();
     void StorePSGReg(uint8_t reg);
     M6809 &GetM6809();
+    VIA6522 &GetVIA6522();
 };
 
 #endif //VECTREXIA_VECTREXIA_H

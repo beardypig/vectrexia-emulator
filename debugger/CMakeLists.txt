@@ -4,8 +4,10 @@ find_package(SDL2 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
-
-add_executable(vectdebug "main.cpp" "ui/application.cpp" )
+find_package(plog CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(nfd CONFIG REQUIRED)
+add_executable(vectdebug "main.cpp" "ui/application.cpp" "ui/widgets/controller.h")
 
 include_directories(../src)
 
@@ -21,6 +23,8 @@ target_link_libraries(vectdebug PRIVATE fmt::fmt)
 target_link_libraries(vectdebug PRIVATE imgui::imgui)
 target_link_libraries(vectdebug PRIVATE glad::glad)
 target_link_libraries(vectdebug PRIVATE plog::plog)
+target_link_libraries(vectdebug PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(vectdebug PRIVATE nfd::nfd)
 target_link_libraries(vectdebug
     PRIVATE
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>

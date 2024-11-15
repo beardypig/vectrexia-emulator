@@ -29,10 +29,97 @@ along with Vectrexia. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include "veclib.h"
 
+// Enum to represent the type of operand
+enum class M6809OperandType {
+    REL,
+    INHERENT,
+    IMMEDIATE,
+    INDEXED,
+    EXTENDED,
+    DIRECT,
+    REG
+};
+
+// Enum to represent the available registers
+enum class M6809Register {
+    A,
+    B,
+    D,
+    X,
+    Y,
+    U,
+    S,
+    PC,            
+    CC,
+    DP,
+    INVALID
+};
+
+inline std::string toString(M6809Register reg) {
+    switch (reg) {
+    case M6809Register::A: return "A";
+    case M6809Register::B: return "B";
+    case M6809Register::D: return "D";
+    case M6809Register::X: return "X";
+    case M6809Register::Y: return "Y";
+    case M6809Register::U: return "U";
+    case M6809Register::S: return "S";
+    case M6809Register::PC: return "PC";
+    case M6809Register::CC: return "CC";
+    case M6809Register::DP: return "DP";
+    default: return "INVALID";
+    }
+}
+
+struct M6809Operand {
+    M6809OperandType type;
+
+    union {
+        uint16_t immediate;         // Immediate value
+        uint16_t directAddress;     // Direct addressing (0x00-0xFF range)
+        uint16_t extendedAddress;   // Extended addressing (16-bit address)
+
+        struct {
+            int16_t offset;              // 5-bit or 8-bit constant offset
+            bool indirect;              // Indicates if this is indirect (`[n,X]`)
+            int8_t increment;           // Post-increment or pre-decrement value (+1, +2, -1, -2)
+            M6809Register indexReg;     // Index register used (`X`, `Y`, `U`, `S`)
+            M6809Register offsetReg;    // Register offset (e.g., `A`, `B`, `D`), or `INVALID` if none
+        } indexed;
+
+        struct {
+            uint16_t base;   // Base address (used for relative jumps)
+            int16_t offset;         // Offset relative to base address
+        } relativeAddress;
+
+        M6809Register reg;          // Register-based operand (for inherent instructions, like `PSHS`)
+
+    };
+
+    // Constructor to initialize the operand type
+    M6809Operand(M6809OperandType type) : type(type), indexed({ 0 }) {}
+};
+
+
+struct M6809Instruction
+{
+    uint16_t address;
+    std::string mnemonic;
+    std::vector<M6809Operand> operands;
+    uint8_t length;
+
+    M6809Instruction(uint16_t address) : address(address), length(1), mnemonic("") {}
+    M6809Instruction() : address(0), length(1), mnemonic("") {}
+    M6809Instruction(uint16_t address, std::string mnemonic, std::vector<M6809Operand> operands)
+        : address(address), mnemonic(std::move(mnemonic)), operands(std::move(operands)), length(0) {
+    }
+};
+
+
 class M6809Disassemble
 {
     using read_callback_t = uint8_t (*)(intptr_t, uint16_t);
-    using disasm_handler_t = std::string (*)(M6809Disassemble &, uint16_t &);
+    using disasm_handler_t = M6809Instruction (*)(M6809Disassemble &, uint16_t &);
 
     // read callback
     read_callback_t read_callback_func;
@@ -41,20 +128,26 @@ class M6809Disassemble
     std::array<disasm_handler_t, 0x100> disasm_handlers;
     std::array<disasm_handler_t, 0x100> disasm_handlers_page1;
     std::array<disasm_handler_t, 0x100> disasm_handlers_page2;
-    const char index_mode_register_table[4] = {'x', 'y', 'u', 's'};
-    const char *exg_register_table[0xc] = {"d", "x", "y", "u", "s", "pc", "INVALID_REG", "s", "a", "b", "cc", "dp"};
-
-    inline uint8_t Read8(const uint16_t &addr)
-    {
-        if (read_callback_func)
-            return read_callback_func(read_callback_ref, addr);
-        return 0;
-    }
-
-    inline uint16_t Read16(const uint16_t &addr)
-    {
-        return (uint16_t) Read8((uint16_t) (addr)) << 8 | (uint16_t) Read8((uint16_t) (addr + 1));
-    }
+    const M6809Register index_mode_register_table[4] = {
+        M6809Register::X,
+        M6809Register::Y,
+        M6809Register::U,
+        M6809Register::S
+    };
+    const M6809Register exg_register_table[0xc] = { 
+        M6809Register::D, 
+        M6809Register::X, 
+        M6809Register::Y, 
+        M6809Register::U, 
+        M6809Register::S, 
+        M6809Register::PC, 
+        M6809Register::INVALID,
+        M6809Register::S, 
+        M6809Register::A, 
+        M6809Register::B, 
+        M6809Register::CC, 
+        M6809Register::DP
+    };
 
     struct op_abx { std::string operator()() { return "abx"; } };
     struct op_adca { std::string operator()() { return "adca"; } };
@@ -190,156 +283,136 @@ class M6809Disassemble
     struct op_lbsr { std::string operator()() { return "lbsr"; } };
 
     struct DirectAddressing {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Operand operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            return vxl::format("<$%02X", dis.Read8(addr++));
+			M6809Operand operand(M6809OperandType::DIRECT);
+			operand.directAddress = dis.Read8<uint8_t>(addr++);
+			return operand;
         }
     };
 
-    struct InherentAddressing { std::string operator()(M6809Disassemble& dis, uint16_t &addr) { return ""; } };
+    struct InherentAddressing { M6809Operand operator()(M6809Disassemble& dis, uint16_t &addr) { return M6809Operand(M6809OperandType::INHERENT); } };
     template <typename T>
     struct RelativeAddressing {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Operand operator()(M6809Disassemble& dis, uint16_t& addr)
         {
-            std::string r;
-            if (sizeof(T) == 1)
-            {
-                auto a = dis.Read8(addr++);
-                r = vxl::format("$%04X", addr + static_cast<int8_t>(a));
-            }
-            else
-            {
-                auto a = dis.Read16(addr);
-                r = vxl::format("$%04X", addr + static_cast<int16_t>(a));
-                addr += 2;
-            }
-            r += vxl::format("  # $%04X", addr);
-            return r;
+            M6809Operand operand(M6809OperandType::REL);
+            operand.relativeAddress.offset = dis.Read<T>(addr);
+            addr += sizeof(T);
+            operand.relativeAddress.base = addr;
+            return operand;
         }
     };
-    using RelativeAddressingShort = RelativeAddressing<uint8_t>;
-    using RelativeAddressingLong  = RelativeAddressing<uint16_t>;
+    using RelativeAddressingShort = RelativeAddressing<int8_t>;
+    using RelativeAddressingLong  = RelativeAddressing<int16_t>;
 
     template<typename T>
     struct ImmediateAddressing {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Operand operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            if (sizeof(T) == 1)
-            {
-                return vxl::format("#$%02X", dis.Read8(addr++));
-            }
-            else
-            {
-                auto r = vxl::format("#$%04X", dis.Read16(addr));
-                addr += 2;
-                return r;
-            }
-
+            M6809Operand operand(M6809OperandType::IMMEDIATE);
+            operand.immediate = dis.Read<T>(addr);
+            addr += sizeof(T);
+            return operand;
         }
     };
-
     using ImmediateAddressing8  = ImmediateAddressing<uint8_t>;
     using ImmediateAddressing16 = ImmediateAddressing<uint16_t>;
 
     struct ExtendedAddressing {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Operand operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            auto r = vxl::format("$%04x", dis.Read16(addr));
+			M6809Operand operand(M6809OperandType::EXTENDED);
+			operand.extendedAddress = dis.Read<uint16_t>(addr);
             addr += 2;
-            return r;
+            return operand;
         }
     };
 
     struct IndexedAddressing {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Operand operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            uint8_t post_byte = dis.Read8(addr++);
-            std::string mode;
-            const char reg = dis.index_mode_register_table[(post_byte >> 5) & 0x03];  // bits 5+6
+            M6809Operand operand(M6809OperandType::INDEXED);
+            uint8_t post_byte = dis.Read<uint8_t>(addr++);
+            const auto reg = dis.index_mode_register_table[(post_byte >> 5) & 0x03];  // bits 5+6
+            operand.indexed.indexReg = reg;
 
             if (!(post_byte >> 7))
             {
                 // (+/- 4 bit offset),R
-                return vxl::format("%02d,%c", (int8_t)((post_byte & 0xf) - (post_byte & 0x10)), reg);
+				operand.indexed.offset = (int8_t)((post_byte & 0xf) - (post_byte & 0x10));
+                return operand;
             }
             else
             {
-                uint8_t b8;
-                uint16_t b16;
                 switch (post_byte & 0x0f)
                 {
                     case 0:
-                        // ,R+
-                        mode = vxl::format(",%c+", reg);
+						// ,R+ post-increment
+						operand.indexed.increment = 1;
                         break;
                     case 1:
                         // ,R++
-                        // register is incremented by 1 or 2
-                        mode = vxl::format(",%c++", reg);
+						operand.indexed.increment = 2;
                         break;
                     case 2:
                         // ,-R
-                        mode = vxl::format(",-%c", reg);
+						operand.indexed.increment = -1;
                         break;
                     case 3:
                         // ,--R
-                        mode = vxl::format(",--%c", reg);
+						operand.indexed.increment = -2;
                         break;
                     case 4:
                         // ,R
-                        mode = vxl::format(",%c", reg);
+						operand.indexed.offset = 0;
                         break;
                     case 5:
                         // (+/- B), R
-                        mode = vxl::format("b, %c", reg);
+						operand.indexed.offsetReg = M6809Register::B;
                         break;
                     case 6:
                         // (+/- A), R
-                        mode = vxl::format("a, %c", reg);
+                        operand.indexed.offsetReg = M6809Register::A;
                         break;
                     case 8:
                         // (+/- 7 bit offset), R
-                        b8 = dis.Read8(addr++);
-                        mode = vxl::format("%d,%c", (int8_t)b8, reg);
+						operand.indexed.offset = dis.Read<int8_t>(addr++);
                         break;
                     case 9:
                         // (+/- 15 bit offset), R
-                        b16 = dis.Read16(addr);
-                        mode = vxl::format("%d,%c", (int16_t)b16, reg);
+						operand.indexed.offset = dis.Read<int16_t>(addr);
                         addr += 2;
                         break;
                     case 0xb:
                         // (+/- D), R
-                        mode = vxl::format("d, %c", reg);
+                        operand.indexed.offsetReg = M6809Register::D;
+                        operand.indexed.indexReg = reg;
                         break;
                     case 0xc:
                         // (+/- 7 bit offset), PC
-                        b8 = dis.Read8(addr++);
-                        mode = vxl::format("%d,PC", (int8_t)b8);
+						operand.indexed.offset = dis.Read<int8_t>(addr++);
+						operand.indexed.indexReg = M6809Register::PC;
                         break;
                     case 0xd:
                         // (+/- 15 bit offset), PC
-                        b16 = dis.Read16(addr);
-                        mode = vxl::format("%d,PC", (int16_t)b16);
+						operand.indexed.offset = dis.Read<int16_t>(addr);
+						operand.indexed.indexReg = M6809Register::PC;
                         addr += 2;
                         break;
                     case 0xf:
-                        mode = vxl::format("$%04x", dis.Read16(addr));
+						operand.indexed.indirect = true;
+                        operand.indexed.offset = dis.Read<int16_t>(addr);
+                        operand.indexed.indexReg = M6809Register::INVALID;
                         addr += 2;
                         break;
                     default:
                         // Illegal
-                        return ", ILLEGAL";
+						throw std::exception("Illegal indexed addressing mode");
                 }
                 // indirect mode
-                if ((post_byte >> 4) & 1)
-                {
-                    return "[" + mode + "]";
-                }
-                else
-                {
-                    return mode;
-                }
+                operand.indexed.indirect = ((post_byte >> 4) & 1);
+                return operand;
             }
 
         }
@@ -348,34 +421,64 @@ class M6809Disassemble
     template<typename mnemonic, typename Addressing>
     struct opcode
     {
-        std::string operator()(M6809Disassemble& dis, uint16_t &addr)
+        M6809Instruction operator()(M6809Disassemble& dis, uint16_t &addr)
         {
-            return mnemonic()() + " " + Addressing()(dis, addr);
+            return M6809Instruction(0, std::string(mnemonic()()), std::vector<M6809Operand>(1, Addressing()(dis, addr)));
         }
     };
 
     template <typename mnemonic>
-    static std::string disasm_exg_tbl(M6809Disassemble& dis, uint16_t &addr)
+    static M6809Instruction disasm_exg_tbl(M6809Disassemble& dis, uint16_t &addr)
     {
-        auto post_byte = dis.Read8(addr++);
-        auto reg_a = dis.exg_register_table[(post_byte >> 4) & 0xf];
-        auto reg_b = dis.exg_register_table[post_byte & 0x0f];
-        return mnemonic()() + vxl::format(" %s, %s", reg_a, reg_b);
+        M6809Operand reg_a(M6809OperandType::REG);
+        M6809Operand reg_b(M6809OperandType::REG);
+        auto post_byte = dis.Read<uint8_t>(addr++);
+        reg_a.reg = dis.exg_register_table[(post_byte >> 4) & 0xf];
+        reg_b.reg = dis.exg_register_table[post_byte & 0x0f];
+
+        return M6809Instruction(0, mnemonic()(), std::vector<M6809Operand>({reg_a, reg_b}));
     }
 
     template<typename Op>
-    static std::string opcodewrap(M6809Disassemble& dis, uint16_t &addr)
+    static M6809Instruction opcodewrap(M6809Disassemble& dis, uint16_t &addr)
     {
         return Op()(dis, addr);
     }
 
-    static std::string disasm_page1(M6809Disassemble& dis, uint16_t &addr);
-    static std::string disasm_page2(M6809Disassemble& dis, uint16_t &addr);
+    static M6809Instruction disasm_page1(M6809Disassemble& dis, uint16_t &addr);
+    static M6809Instruction disasm_page2(M6809Disassemble& dis, uint16_t &addr);
 
 public:
     M6809Disassemble();
-    std::string disasm(uint16_t &addr);
+    M6809Instruction disasm(uint16_t addr);
     void SetReadCallback(read_callback_t func, intptr_t ref);
+
+    template<typename T>
+    inline T Read8(const uint16_t& addr)
+    {
+        if (read_callback_func)
+            return read_callback_func(read_callback_ref, addr);
+        return 0;
+    }
+
+    template<typename T>
+    inline T Read16(const uint16_t& addr)
+    {
+        return Read8<uint16_t>(addr) << 8 | Read8<uint16_t>(addr + 1);
+    }
+    
+
+    template<typename T>
+    inline T Read(const uint16_t& addr)
+    {
+        if (sizeof(T) == 1) {
+            return Read8<T>(addr);
+        }
+        else
+        {
+            return Read16<T>(addr);
+        }
+    }
 
 };
 

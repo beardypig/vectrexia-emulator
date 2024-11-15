@@ -36,6 +36,9 @@ const char *Vectrex::GetVersion()
 void Vectrex::Reset()
 {
     cpu_->Reset();
+    via_->Reset();
+	getFramebuffer()->clear();
+	ram_.fill(0);
 }
 
 uint64_t Vectrex::Run(uint64_t cycles)
@@ -97,6 +100,11 @@ static uint8_t read_mem(intptr_t ref, uint16_t addr)
     return reinterpret_cast<Vectrex*>(ref)->Read(addr);
 }
 
+static uint8_t peek_mem(intptr_t ref, uint16_t addr)
+{
+    return reinterpret_cast<Vectrex*>(ref)->Peek(addr);
+}
+
 static void write_mem(intptr_t ref, uint16_t addr, uint8_t data)
 {
     reinterpret_cast<Vectrex*>(ref)->Write(addr, data);
@@ -130,6 +138,7 @@ Vectrex::Vectrex() noexcept
 
     // CPU Callbacks
     cpu_->SetReadCallback(read_mem, reinterpret_cast<intptr_t>(this));
+    cpu_->SetPeekCallback(peek_mem, reinterpret_cast<intptr_t>(this));
     cpu_->SetWriteCallback(write_mem, reinterpret_cast<intptr_t>(this));
 
     // VIA Callback
@@ -167,6 +176,15 @@ uint8_t Vectrex::Read(uint16_t addr)
         }
     }
     return 0x00;
+}
+
+uint8_t Vectrex::Peek(uint16_t addr)
+{
+	// D000-D8000: VIA
+    if (addr >= 0xD000 && addr < 0xD800) {
+        return via_->Peek((uint8_t)(addr & 0xf));
+    }
+    return Read(addr);
 }
 
 void Vectrex::Write(uint16_t addr, uint8_t data)
@@ -305,4 +323,9 @@ DebugBuffer *Vectrex::getDebugbuffer()
 M6809 &Vectrex::GetM6809()
 {
     return *cpu_;
+}
+
+VIA6522& Vectrex::GetVIA6522()
+{
+	return *via_;
 }

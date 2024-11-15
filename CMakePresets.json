@@ -49,8 +49,8 @@
             "binaryDir": "${sourceDir}/build/x64-Debug",
             "cacheVariables": {
                 "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
-                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc /O1",
+                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc /O1"
             }
         },
         {

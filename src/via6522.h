@@ -325,6 +325,7 @@ public:
     void SetUpdateCallback(update_callback_t func, intptr_t ref);
 
     uint8_t Read(uint8_t reg);              // read from VIA register
+    uint8_t Peek(uint8_t reg);              // read from VIA register with no side effects
     void Write(uint8_t reg, uint8_t data);  // write to VIA register
 
     uint8_t GetIRQ();

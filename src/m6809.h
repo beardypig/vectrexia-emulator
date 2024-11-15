@@ -74,20 +74,22 @@ enum m6809_interrupt_t
 
 class M6809
 {
+public:
+    static const uint16_t RESET_VECTOR = 0xfffe;
+    static const uint16_t NMI_VECTOR = 0xfffc;
+    static const uint16_t IRQ_VECTOR = 0xfff8;
+    static const uint16_t FIRQ_VECTOR = 0xfff6;
+
+    static const uint16_t SWI1_VECTOR = 0xfffa;
+    static const uint16_t SWI2_VECTOR = 0xfff4;
+    static const uint16_t SWI3_VECTOR = 0xfff2;
+
+private:
     using ptr_t = M6809*;
 
     using read_callback_t = uint8_t (*)(intptr_t, uint16_t);
     using write_callback_t = void (*)(intptr_t, uint16_t, uint8_t);
     using opcode_handler_t = void (*)(M6809 &, uint64_t &);
-
-    const uint16_t RESET_VECTOR = 0xfffe;
-    const uint16_t NMI_VECTOR   = 0xfffc;
-    const uint16_t IRQ_VECTOR   = 0xfff8;
-    const uint16_t FIRQ_VECTOR  = 0xfff6;
-
-    static const uint16_t SWI1_VECTOR  = 0xfffa;
-    static const uint16_t SWI2_VECTOR  = 0xfff4;
-    static const uint16_t SWI3_VECTOR  = 0xfff2;
 
     M6809Disassemble dis_;
 
@@ -1369,9 +1371,9 @@ class M6809
     using op_subd_extended  = opcode<op_sub<uint16_t>, RegisterD,         ExtendedOperand16,  FlagMaths16Sub, 7>;
 
     // SWI
-    using op_swi1_inherent  = opcode_count<op_swi<SWI1_VECTOR, true>, RegisterPC, inherent, NoFlags16, 7>;
-    using op_swi2_inherent  = opcode_count<op_swi<SWI2_VECTOR>,       RegisterPC, inherent, NoFlags16, 8>;
-    using op_swi3_inherent  = opcode_count<op_swi<SWI3_VECTOR>,       RegisterPC, inherent, NoFlags16, 8>;
+    using op_swi1_inherent  = opcode_count<op_swi<M6809::SWI1_VECTOR, true>, RegisterPC, inherent, NoFlags16, 7>;
+    using op_swi2_inherent  = opcode_count<op_swi<M6809::SWI2_VECTOR>,       RegisterPC, inherent, NoFlags16, 8>;
+    using op_swi3_inherent  = opcode_count<op_swi<M6809::SWI3_VECTOR>,       RegisterPC, inherent, NoFlags16, 8>;
 
     // SYNC
     using op_sync_inherent  = opcode<op_sync, inherent, inherent, compute_flags<>, 4>;
@@ -1434,12 +1436,14 @@ public:
 
     // Set callbacks for read and write, must be a static function
     void SetReadCallback(read_callback_t func, intptr_t ref);
+    void SetPeekCallback(read_callback_t func, intptr_t ref);
     void SetWriteCallback(write_callback_t func, intptr_t ref);
 
     // Exceture one instruction and updated the number of cycles that it took
     m6809_error_t Execute(uint64_t &cycles, m6809_interrupt_t irq=NONE);
 
     Registers &getRegisters() { return registers; }
+	M6809Disassemble& getDisassembler() { return dis_; }
 };
 
 #endif //VECTREXIA_M6809_H
