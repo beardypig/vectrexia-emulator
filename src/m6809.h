@@ -689,7 +689,12 @@ class M6809
     struct op_rti {
         // pull the registers and then the pc
         uint16_t operator() (M6809& cpu, const uint8_t &operand, uint64_t &cycles) {
-            uint8_t register_mask = (cpu.registers.flags.E) ? (uint8_t)0xff : (uint8_t)0x81;
+            // First pull CC from the stack to get the E flag
+            cpu.registers.CC = cpu.Pull8(cpu.registers.SP);
+            cycles += 1;
+            // Now check E flag in the pulled CC to determine if we restore all registers
+            // 0xfe = all except CC (already pulled), 0x80 = just PC
+            uint8_t register_mask = (cpu.registers.flags.E) ? (uint8_t)0xfe : (uint8_t)0x80;
             op_pull<reg_sp, reg_usp>()(cpu, register_mask, cycles);
             return cpu.registers.PC;
         }
@@ -909,7 +914,8 @@ class M6809
     struct op_bra_plus { bool operator ()(M6809 &cpu) { return !cpu.registers.flags.N; } };
     struct op_bra_overflow { bool operator ()(M6809 &cpu) { return cpu.registers.flags.V; } };
 
-    template <typename Test, typename T, bool Negate=false>
+    // Unconditional=true skips the extra cycle for LBRA/LBRN
+    template <typename Test, typename T, bool Negate=false, bool Unconditional=false>
     struct op_bra {
         uint16_t operator()(M6809 &cpu, uint16_t &pc, uint64_t &cycles)
         {
@@ -918,8 +924,9 @@ class M6809
             if (Negate) test = !test;
             if (test)
             {
-                cycles += sizeof(T) - 1;  // extra cycle to take the branch
-                // cast to correct sized signed int
+                // Long branches add 1 cycle when taken (sizeof(int16_t)-1=1, sizeof(int8_t)-1=0)
+                // Unconditional branches (LBRA/LBRN) don't add the extra cycle
+                if constexpr (!Unconditional) cycles += sizeof(T) - 1;
                 return static_cast<uint16_t>(pc + ((sizeof(T) == 1) ? static_cast<int8_t>(offset) : static_cast<int16_t>(offset)) + sizeof(T));
             }
             return static_cast<uint16_t>(pc + sizeof(T));
@@ -929,8 +936,8 @@ class M6809
     template <typename Fn, bool negate=false>
     using op_bra_short = op_bra<Fn, int8_t, negate>;
 
-    template <typename Fn, bool negate=false>
-    using op_bra_long = op_bra<Fn, int16_t, negate>;
+    template <typename Fn, bool negate=false, bool unconditional=false>
+    using op_bra_long = op_bra<Fn, int16_t, negate, unconditional>;
 
     // no operands
     struct op_nop { uint8_t operator() (const M6809& cpu) { return 0u; } };
@@ -1406,8 +1413,8 @@ class M6809
     using op_bvs_inherent   = opcode_count<op_bra_short<op_bra_overflow>,         RegisterPC,   inherent,  NoFlags16, 3>;
     using op_bvc_inherent   = opcode_count<op_bra_short<op_bra_overflow, true>,   RegisterPC,   inherent,  NoFlags16, 3>;
 
-    using op_lbra_inherent  = opcode_count<op_bra_long<op_bra_always>,            RegisterPC,   inherent, NoFlags16, 5>;
-    using op_lbrn_inherent  = opcode_count<op_bra_long<op_bra_always, true>,      RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lbra_inherent  = opcode_count<op_bra_long<op_bra_always, false, true>,  RegisterPC,   inherent, NoFlags16, 5>;
+    using op_lbrn_inherent  = opcode_count<op_bra_long<op_bra_always, true, true>,   RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbcs_inherent  = opcode_count<op_bra_long<op_bra_carry>,             RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbcc_inherent  = opcode_count<op_bra_long<op_bra_carry, true>,       RegisterPC,   inherent, NoFlags16, 5>;
     using op_lbhi_inherent  = opcode_count<op_bra_long<op_bra_less>,              RegisterPC,   inherent, NoFlags16, 5>;
