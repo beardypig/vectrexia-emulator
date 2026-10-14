@@ -35,6 +35,12 @@
             "inherits": "vcpkg-base"
         },
         {
+            "name": "visualstudio2026-vcpkg",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "inherits": "vcpkg-base"
+        },
+        {
             "name": "ninja-vcpkg",
             "hidden": true,
             "generator": "Ninja",
@@ -60,6 +66,32 @@
                 "base-release"
             ],
             "binaryDir": "${sourceDir}/build/x64-Release",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64",
+                "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
+                "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+            }
+        },
+        {
+            "name": "msvc2026-x64-debug",
+            "inherits": [
+                "visualstudio2026-vcpkg",
+                "base-debug"
+            ],
+            "binaryDir": "${sourceDir}/build/vs2026-x64-Debug",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64",
+                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
+                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+            }
+        },
+        {
+            "name": "msvc2026-x64-release",
+            "inherits": [
+                "visualstudio2026-vcpkg",
+                "base-release"
+            ],
+            "binaryDir": "${sourceDir}/build/vs2026-x64-Release",
             "cacheVariables": {
                 "CMAKE_GENERATOR_PLATFORM": "x64",
                 "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
@@ -97,6 +129,18 @@
             "verbose": true
         },
         {
+            "name": "msvc2026-x64-debug",
+            "configurePreset": "msvc2026-x64-debug",
+            "description": "Build for Windows x64 Debug (Visual Studio 2026)",
+            "verbose": true
+        },
+        {
+            "name": "msvc2026-x64-release",
+            "configurePreset": "msvc2026-x64-release",
+            "description": "Build for Windows x64 Release (Visual Studio 2026)",
+            "verbose": true
+        },
+        {
             "name": "ninja-debug",
             "configurePreset": "ninja-debug",
             "description": "Build for Ninja debug",
@@ -115,6 +159,12 @@
             "configurePreset": "msvc-x64-debug",
             "description": "Run tests for Windows x64 Debug",
             "displayName": "Tests (MSVC)"
+        },
+        {
+            "name": "msvc2026-x64-test",
+            "configurePreset": "msvc2026-x64-debug",
+            "description": "Run tests for Windows x64 Debug (Visual Studio 2026)",
+            "displayName": "Tests (MSVC 2026)"
         },
         {
             "name": "ninja-test",
