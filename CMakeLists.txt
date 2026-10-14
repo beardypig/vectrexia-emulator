@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 3.9)
-project(vectrexia VERSION 0.1.0)
-enable_language(CXX)
+cmake_minimum_required(VERSION 3.21)
+project(vectrexia VERSION 0.1.0 LANGUAGES CXX)
 
 include(TestBigEndian)
 include(CTest)
@@ -23,7 +22,6 @@ else()
     message(STATUS "System is little endian")
 endif()
 
-enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(vectgif)

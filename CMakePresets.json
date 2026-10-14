@@ -6,8 +6,7 @@
             "hidden": true,
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_FEATURE_FLAGS": "manifests"
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {
@@ -15,8 +14,7 @@
             "hidden": true,
             "inherits": "vcpkg-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_STANDARD": "23"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -24,8 +22,7 @@
             "hidden": true,
             "inherits": "vcpkg-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_STANDARD": "23"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -54,9 +51,7 @@
             ],
             "binaryDir": "${sourceDir}/build/x64-Debug",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
-                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
@@ -67,9 +62,7 @@
             ],
             "binaryDir": "${sourceDir}/build/x64-Release",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
-                "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
@@ -80,9 +73,7 @@
             ],
             "binaryDir": "${sourceDir}/build/vs2026-x64-Debug",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
-                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
@@ -93,9 +84,7 @@
             ],
             "binaryDir": "${sourceDir}/build/vs2026-x64-Release",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
-                "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
