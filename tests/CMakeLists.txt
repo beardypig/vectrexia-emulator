@@ -9,18 +9,10 @@ include_directories(. ../src)
 # Define the tests executable
 add_executable(tests m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp gfxutil_test.cpp)
 
-# Define the tests output
-if (MSVC)
-    set(LIBRETRO_SRC vectrexia_libretro_static)
-    set_target_properties(tests PROPERTIES OUTPUT_NAME tests)
-else() 
-    set(LIBRETRO_SRC vectrexia_libretro)
-endif()
-
 # Link the tests target with the required libraries
 target_link_libraries(tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 target_link_libraries(tests PRIVATE trompeloeil::trompeloeil Threads::Threads)
-target_link_libraries(tests PRIVATE ${LIBRETRO_SRC})
+target_link_libraries(tests PRIVATE vectrexia_core)
 
 include(Catch)
 catch_discover_tests(tests)
