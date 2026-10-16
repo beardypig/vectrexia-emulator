@@ -40,7 +40,3 @@ if (IS_BIG_ENDIAN)
 endif()
 
 target_compile_definitions(vectrexia_core PUBLIC $<$<CONFIG:Debug>:VECTREXIA_DEBUG>)
-
-if (VECTORIZER_DEBUG)
-	target_compile_definitions(vectrexia_core PRIVATE $<$<CONFIG:Debug>:VECTORIZER_DEBUG>)
-endif()

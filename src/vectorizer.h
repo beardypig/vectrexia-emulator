@@ -13,7 +13,6 @@
 static const float VECTOR_MAX_V =  5.0f;
 static const float VECTOR_MIN_V = -5.0f;
 static const float time_per_clock = (float) (1.0f / 1.5e6);
-static const float DEBUG_LINE_INTENSITY = 0.03f;
 static const int FRAME_WIDTH  = 330;
 static const int FRAME_HEIGHT = 410;
 
@@ -98,8 +97,6 @@ class Vectorizer
     std::vector<Vector> vectors_;
     VectorBuffer vector_buffer{};
     DebugBuffer debug_buffer{};
-
-    float min_x, max_x, min_y, max_y;
 
 public:
     void Step(uint8_t porta, uint8_t portb, uint8_t zero, uint8_t blank);

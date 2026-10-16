@@ -59,13 +59,6 @@ void Vectorizer::Step(uint8_t porta, uint8_t portb, uint8_t zero_, uint8_t blank
                              UpdateSignals(ramp_, zero_, {new_integrator_x, new_integrator_y}, n);
                          });
 
-#ifdef VECTORIZER_DEBUG
-    min_x = std::min(axes.x, min_x);
-    max_x = std::max(axes.x, max_x);
-    min_y = std::min(axes.y, min_y);
-    max_y = std::max(axes.y, max_y);
-#endif
-
     cycles++;
 }
 
@@ -129,13 +122,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
             intensity0 = intensity1 = intensity_;
             cycles0 = cycles1 = cycles_;
         };
-        line_vector_t(axes_t pos, uint64_t cycles_)
-        {
-            x0 = x1 = pos.x;
-            y0 = y1 = pos.y;
-            intensity0 = intensity1 = 0.0f;
-            cycles0 = cycles1 = cycles_;
-        }
         void set_end(axes_t pos)
         {
             x1 = pos.x;
@@ -147,7 +133,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
     vector_buffer.clear();
 
     std::vector<line_vector_t> to_draw;
-    std::vector<line_vector_t> debug_to_draw;
     bool beam = false;
 
     for (auto vect = vectors_.begin(); vect != vectors_.end(); vect++)
@@ -156,10 +141,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
         {
             if (!vect->blank)
             {
-#ifdef VECTORIZER_DEBUG
-                line_vector_t debug_vect(vect->pos, vect->end_cycle);
-                debug_to_draw.push_back(debug_vect);
-#endif
                 beam = false;
             }
             // Update line when the beam is on or if it's just turned off (that's the end of the line)
@@ -174,18 +155,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
                 to_draw.push_back(new_vect);
                 beam = true;
             }
-#ifdef VECTORIZER_DEBUG
-            if (!debug_to_draw.empty()) // is off, or just ending
-            {
-                // extend the debug vector
-                line_vector_t &debug_vect = debug_to_draw.back();
-                // beam may only be on for 1 cycle
-                debug_vect.set_end(vect->pos);
-
-                line_vector_t new_debug_vect(vect->pos, vect->intensity, vect->end_cycle);
-                debug_to_draw.push_back(new_debug_vect);
-            }
-#endif
         }
 
         // fade the vector based on how long ago it was drawn
@@ -207,40 +176,6 @@ VectorBuffer *Vectorizer::getVectorBuffer()
                 vxgfx::pf_mono_t{ vect.intensity0 });
         }
     }
-
-#ifdef VECTORIZER_DEBUG
-    for (const auto &debug_vect: debug_to_draw)
-    {
-        debug_framebuffer.draw_line(debug_vect.x0 * scale_factor, debug_vect.y0 * scale_factor,
-                                    debug_vect.x1 * scale_factor, debug_vect.y1 * scale_factor,
-                                    color_t{1.0f, 0.0f, 0.0f, DEBUG_LINE_INTENSITY});
-    }
-
-    debug_framebuffer.draw_debug_grid({1.0f, 1.0f, 0.0f, 0.2f}, 0.5f / scale_factor, 1.0f / scale_factor);
-
-    uint64_t dcycles = TimerUtil::nanos_to_cycles(signal_delay);
-    uint64_t dremainder = signal_delay - TimerUtil::cycles_to_nanos(dcycles);
-
-    debug_framebuffer.draw_debug_text(2, FRAME_HEIGHT-10, {0.0, 1.0, 0.0, 0.5f}, "delay: %" PRId64 "~ + %" PRId64 "ns decay: %d", dcycles, dremainder, decay_cycles);
-    debug_framebuffer.draw_debug_text(2, FRAME_HEIGHT-20, {0.0, 1.0, 0.0, 0.5f}, "y: [%.2f, %.2f]", min_y, max_y);
-    debug_framebuffer.draw_debug_text(2, FRAME_HEIGHT-30, {0.0, 1.0, 0.0, 0.5f}, "x: [%.2f, %.2f]", min_x, max_x);
-
-    auto grid_size_len = snprintf(NULL, 0, "%.2f%%", scale_factor * 100);
-    debug_framebuffer.draw_debug_text(FRAME_WIDTH - (grid_size_len * 9), 2, {0.0, 1.0, 0.0, 0.5f}, "%.2f%%", scale_factor * 100);
-
-    debug_framebuffer.draw_debug_text(2, 2, {0.0, 1.0, 0.0, 0.5f}, "%'" PRId64, cycles);
-
-    min_x =  10.0f;
-    min_y =  10.0f;
-    max_x = -10.0f;
-    max_y = -10.0f;
-
-    auto ret = debug_framebuffer + framebuffer;
-    debug_framebuffer.fill(); // clear at the end, so that libretro can write debug message here if it wants
-
-    return ret;
-
-#endif
 
     return &vector_buffer;
 }
