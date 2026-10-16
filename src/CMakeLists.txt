@@ -33,10 +33,14 @@ set_target_properties(vectrexia_libretro PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN ON)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DVECTREXIA_DEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVECTREXIA_DEBUG")
+# Definitions are on the core and PUBLIC, so everything that links it (the
+# libretro core, the tests and vectgif) is compiled with the same settings.
+if (IS_BIG_ENDIAN)
+	target_compile_definitions(vectrexia_core PUBLIC __MSB_FIRST)
+endif()
+
+target_compile_definitions(vectrexia_core PUBLIC $<$<CONFIG:Debug>:VECTREXIA_DEBUG>)
 
 if (VECTORIZER_DEBUG)
-	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DVECTORIZER_DEBUG")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVECTORIZER_DEBUG")
+	target_compile_definitions(vectrexia_core PRIVATE $<$<CONFIG:Debug>:VECTORIZER_DEBUG>)
 endif()

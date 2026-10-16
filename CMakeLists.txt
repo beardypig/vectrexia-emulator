@@ -12,7 +12,6 @@ TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 
 if (IS_BIG_ENDIAN)
     message(STATUS "System is big endian")
-    add_definitions(-D__MSB_FIRST)
 else()
     message(STATUS "System is little endian")
 endif()

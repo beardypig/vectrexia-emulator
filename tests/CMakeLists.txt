@@ -4,10 +4,9 @@ find_package(Threads REQUIRED)
 find_package(Catch2 3 CONFIG REQUIRED)
 find_package(trompeloeil CONFIG REQUIRED)
 
-include_directories(. ../src)
-
 # Define the tests executable
 add_executable(tests m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp gfxutil_test.cpp)
+target_include_directories(tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link the tests target with the required libraries
 target_link_libraries(tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
