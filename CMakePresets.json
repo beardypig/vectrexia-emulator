@@ -114,6 +114,7 @@
         {
             "name": "msvc-x64-release",
             "configurePreset": "msvc-x64-release",
+            "configuration": "Release",
             "description": "Build for Windows x64 Release",
             "verbose": true
         },
@@ -126,6 +127,7 @@
         {
             "name": "msvc2026-x64-release",
             "configurePreset": "msvc2026-x64-release",
+            "configuration": "Release",
             "description": "Build for Windows x64 Release (Visual Studio 2026)",
             "verbose": true
         },
