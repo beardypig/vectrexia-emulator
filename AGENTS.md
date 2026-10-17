@@ -12,7 +12,7 @@ Vectrex emulator written in C++23, built as a `libretro` core. CMake + vcpkg (gi
 
 All commands are run from the repo root using presets from `CMakePresets.json`.
 
-Visual Studio 2026 (Windows, no special shell needed):
+Visual Studio 2026 (Windows, no special shell needed, also what CI uses):
 
 ```shell
 cmake --preset msvc2026-x64-debug
@@ -20,7 +20,7 @@ cmake --build --preset msvc2026-x64-debug
 ctest --preset msvc2026-x64-test -C Debug
 ```
 
-Visual Studio 2022 (Windows, also what CI uses): same commands with the `msvc-x64-debug` / `msvc-x64-test` presets.
+Visual Studio 2022 (Windows): same commands with the `msvc-x64-debug` / `msvc-x64-test` presets. CI does not use these, because GitHub's `windows-latest` image no longer has Visual Studio 2022.
 
 Ninja (Linux, macOS, or Windows):
 
