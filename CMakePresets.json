@@ -6,8 +6,7 @@
             "hidden": true,
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_FEATURE_FLAGS": "manifests"
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {
@@ -15,8 +14,7 @@
             "hidden": true,
             "inherits": "vcpkg-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_STANDARD": "23"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -24,14 +22,19 @@
             "hidden": true,
             "inherits": "vcpkg-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_STANDARD": "23"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
             "name": "visualstudio-vcpkg",
             "hidden": true,
             "generator": "Visual Studio 17 2022",
+            "inherits": "vcpkg-base"
+        },
+        {
+            "name": "visualstudio2026-vcpkg",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
             "inherits": "vcpkg-base"
         },
         {
@@ -48,9 +51,7 @@
             ],
             "binaryDir": "${sourceDir}/build/x64-Debug",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/DDEBUG /W3 /MDd /EHsc",
-                "CMAKE_C_FLAGS": "/DDEBUG /W3 /MDd /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
@@ -61,9 +62,29 @@
             ],
             "binaryDir": "${sourceDir}/build/x64-Release",
             "cacheVariables": {
-                "CMAKE_GENERATOR_PLATFORM": "x64",
-                "CMAKE_CXX_FLAGS": "/O2 /MD /EHsc",
-                "CMAKE_C_FLAGS": "/O2 /MD /EHsc"
+                "CMAKE_GENERATOR_PLATFORM": "x64"
+            }
+        },
+        {
+            "name": "msvc2026-x64-debug",
+            "inherits": [
+                "visualstudio2026-vcpkg",
+                "base-debug"
+            ],
+            "binaryDir": "${sourceDir}/build/vs2026-x64-Debug",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64"
+            }
+        },
+        {
+            "name": "msvc2026-x64-release",
+            "inherits": [
+                "visualstudio2026-vcpkg",
+                "base-release"
+            ],
+            "binaryDir": "${sourceDir}/build/vs2026-x64-Release",
+            "cacheVariables": {
+                "CMAKE_GENERATOR_PLATFORM": "x64"
             }
         },
         {
@@ -93,7 +114,21 @@
         {
             "name": "msvc-x64-release",
             "configurePreset": "msvc-x64-release",
+            "configuration": "Release",
             "description": "Build for Windows x64 Release",
+            "verbose": true
+        },
+        {
+            "name": "msvc2026-x64-debug",
+            "configurePreset": "msvc2026-x64-debug",
+            "description": "Build for Windows x64 Debug (Visual Studio 2026)",
+            "verbose": true
+        },
+        {
+            "name": "msvc2026-x64-release",
+            "configurePreset": "msvc2026-x64-release",
+            "configuration": "Release",
+            "description": "Build for Windows x64 Release (Visual Studio 2026)",
             "verbose": true
         },
         {
@@ -115,6 +150,12 @@
             "configurePreset": "msvc-x64-debug",
             "description": "Run tests for Windows x64 Debug",
             "displayName": "Tests (MSVC)"
+        },
+        {
+            "name": "msvc2026-x64-test",
+            "configurePreset": "msvc2026-x64-debug",
+            "description": "Run tests for Windows x64 Debug (Visual Studio 2026)",
+            "displayName": "Tests (MSVC 2026)"
         },
         {
             "name": "ninja-test",

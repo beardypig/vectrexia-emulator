@@ -42,6 +42,7 @@ build/
 # IDE
 .idea
 cmake-build-*/
+out/
 .vs
 coverage.info
 CMakeSettings.json

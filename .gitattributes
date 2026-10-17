@@ -1,0 +1,14 @@
+# Normalise line endings: LF in the repository and in working copies on every
+# platform (this also overrides core.autocrlf).
+* text=auto eol=lf
+
+# Windows-only files that expect CRLF.
+*.sln   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary files.
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.ico   binary

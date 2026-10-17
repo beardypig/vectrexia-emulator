@@ -1,33 +1,18 @@
 find_package(Threads REQUIRED)
-include(CTest)
 
 # Find testing and mocking libraries
 find_package(Catch2 3 CONFIG REQUIRED)
 find_package(trompeloeil CONFIG REQUIRED)
 
-include_directories(. ../src)
-
 # Define the tests executable
 add_executable(tests m6809opcode_test.cpp m6809_test.cpp cartridge_test.cpp gfxutil_test.cpp)
-
-# Define the tests output
-if (MSVC)
-    set(LIBRETRO_SRC vectrexia_libretro_static)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    set_target_properties(tests PROPERTIES OUTPUT_NAME tests)
-else() 
-    set(LIBRETRO_SRC vectrexia_libretro)
-endif()
+target_include_directories(tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link the tests target with the required libraries
 target_link_libraries(tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 target_link_libraries(tests PRIVATE trompeloeil::trompeloeil Threads::Threads)
-target_link_libraries(tests PRIVATE ${LIBRETRO_SRC})
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_link_libraries(tests PRIVATE ${LIBCXX_LIBRARY})
-endif()
+target_link_libraries(tests PRIVATE vectrexia_core)
 
-include(CTest)
 include(Catch)
 catch_discover_tests(tests)
 
